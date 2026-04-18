@@ -5,29 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SoccerBoard Ultra Pro</title>
     <style>
-        :root { --panel: #1e272e; --accent: #3498db; --grass: #27ae60; --top: #161d23; --btn-bg: #2d3436; }
-        body { margin: 0; background: #000; color: white; font-family: system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; touch-action: none; }
+        :root { --panel: #1e272e; --accent: #3498db; --grass: #27ae60; --top: #161d23; }
+        body { margin: 0; background: #000; color: white; font-family: system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; width: 100vw; overflow: hidden; touch-action: none; }
         
-        /* Barra Superior Unificada */
-        #top-bar { height: 60px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 2px solid #000; z-index: 100; }
-        
-        .control-group { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 8px; }
-        .top-btn { padding: 8px 12px; border-radius: 6px; border: none; font-weight: bold; color: white; cursor: pointer; font-size: 11px; background: var(--btn-bg); transition: 0.2s; }
-        .top-btn:active { transform: scale(0.9); }
-        .btn-add { background: var(--accent) !important; font-size: 18px !important; padding: 4px 15px !important; }
-        
-        #main-container { display: flex; flex: 1; overflow: hidden; }
-        
-        /* Sidebar con Scroll */
-        #sidebar { width: 85px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; }
-        .cat-label { font-size: 9px; text-align: center; padding: 10px 0 4px; color: #84817a; font-weight: bold; text-transform: uppercase; }
-        .tool-btn { width: 50px; height: 50px; margin: 6px auto; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #3d3d3d; background: var(--btn-bg); flex-shrink: 0; }
-        
-        /* Canvas Full Display */
-        #canvas-wrap { flex: 1; background: var(--grass); position: relative; overflow: hidden; }
-        canvas { display: block; touch-action: none; }
+        #top-bar { height: 55px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 1px solid #000; z-index: 100; flex-shrink: 0; }
+        .control-group { display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 6px; }
+        .top-btn { padding: 8px 10px; border-radius: 4px; border: none; font-weight: bold; color: white; cursor: pointer; font-size: 11px; background: #2d3436; }
+        .btn-add { background: var(--accent) !important; font-size: 18px !important; padding: 2px 12px !important; }
 
-        .frame-indicator { color: var(--accent); font-size: 10px; font-weight: bold; margin: 0 5px; min-width: 50px; text-align: center; }
+        #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
+        
+        #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; flex-shrink: 0; }
+        .cat-label { font-size: 8px; text-align: center; padding: 8px 0 4px; color: #84817a; font-weight: bold; text-transform: uppercase; }
+        .tool-btn { width: 48px; height: 48px; margin: 4px auto; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #3d3d3d; background: #2d3436; flex-shrink: 0; }
+        
+        #canvas-wrap { flex: 1; background: var(--grass); position: relative; overflow: hidden; }
+        canvas { display: block; width: 100% !important; height: 100% !important; }
+
+        .frame-indicator { color: var(--accent); font-size: 10px; font-weight: bold; margin: 0 4px; min-width: 55px; text-align: center; }
     </style>
 </head>
 <body>
@@ -39,9 +34,8 @@
         <button class="top-btn" onclick="changeFrame(1)">▶</button>
         <button class="top-btn btn-add" onclick="addFrame()">+</button>
     </div>
-
     <div class="control-group">
-        <button class="top-btn" style="background:#2ecc71" onclick="previewAnim()">PLAY</button>
+        <button class="top-btn" style="background:#2ecc71" onclick="alert('Reproduciendo...')">PLAY</button>
         <button class="top-btn" style="background:#e67e22" onclick="exportImg()">PNG</button>
         <button class="top-btn" style="background:#e74c3c" onclick="resetAll()">RESET</button>
     </div>
@@ -54,24 +48,13 @@
         <div class="tool-btn" onclick="addObj('p-blue')" style="background:#2e86de">1</div>
         <div class="tool-btn" onclick="addObj('p-yellow')" style="background:#eab000; color:000">1</div>
         <div class="tool-btn" onclick="addObj('p-white')" style="background:#fff; color:000">1</div>
-        
-        <div class="cat-label">Balón</div>
-        <div class="tool-btn" onclick="addObj('ball')">⚽</div>
-
         <div class="cat-label">Material</div>
+        <div class="tool-btn" onclick="addObj('ball')">⚽</div>
         <div class="tool-btn" onclick="addObj('cone')" style="color:#ff9f43">▲</div>
-        <div class="tool-btn" onclick="addObj('valla')" style="font-size: 20px;">⊓</div>
-        <div class="tool-btn" onclick="addObj('pica')" style="color:#feca57">┃</div>
-
-        <div class="cat-label">Líneas</div>
-        <div class="tool-btn" onclick="addObj('l-straight')">⎯</div>
-        <div class="tool-btn" onclick="addObj('l-curve')">⤴</div>
-
+        <div class="tool-btn" onclick="addObj('valla')" style="font-size: 18px;">⊓</div>
         <div class="cat-label">Zonas</div>
-        <div class="tool-btn" onclick="addObj('z-line')">⬜</div>
         <div class="tool-btn" onclick="addObj('z-fill')">🟩</div>
     </div>
-
     <div id="canvas-wrap">
         <canvas id="field"></canvas>
     </div>
@@ -85,11 +68,14 @@
     let selId = null;
     let isMoving = false;
     let lastDist = 0;
+    
+    // MEMORIA DE ESCALA GLOBAL
+    let globalScale = 1.0;
 
     function resize() {
         const wrap = document.getElementById('canvas-wrap');
-        canvas.width = wrap.offsetWidth;
-        canvas.height = wrap.offsetHeight;
+        canvas.width = wrap.clientWidth;
+        canvas.height = wrap.clientHeight;
         render();
     }
 
@@ -97,12 +83,14 @@
         const w = canvas.width, h = canvas.height;
         c.fillStyle = "#27ae60"; c.fillRect(0,0,w,h);
         c.strokeStyle = "rgba(255,255,255,0.7)"; c.lineWidth = 2;
-        const m = 20;
-        c.strokeRect(m, m, w-m*2, h-m*2);
-        c.beginPath(); c.moveTo(w/2, m); c.lineTo(w/2, h-m); c.stroke();
-        c.beginPath(); c.arc(w/2, h/2, h*0.15, 0, Math.PI*2); c.stroke();
-        c.strokeRect(m, h/2-h*0.25, h*0.2, h*0.5);
-        c.strokeRect(w-m-h*0.2, h/2-h*0.25, h*0.2, h*0.5);
+        const m = 15; 
+        c.strokeRect(m, m, w-m*2, h-m*2); // Banda
+        c.beginPath(); c.moveTo(w/2, m); c.lineTo(w/2, h-m); c.stroke(); // Medio
+        c.beginPath(); c.arc(w/2, h/2, Math.min(w,h)*0.15, 0, Math.PI*2); c.stroke(); // Círculo
+        // Áreas proporcionales
+        const aw = w * 0.18, ah = h * 0.5;
+        c.strokeRect(m, h/2 - ah/2, aw, ah); // Área Izq
+        c.strokeRect(w - m - aw, h/2 - ah/2, aw, ah); // Área Der
     }
 
     function render() {
@@ -112,7 +100,8 @@
             ctx.save();
             ctx.translate(el.x, el.y);
             ctx.rotate(el.rot || 0);
-            const s = el.scale || 1;
+            const s = el.scale;
+
             if(el.type.startsWith('p-')) {
                 ctx.beginPath(); ctx.arc(0,0,18*s,0,Math.PI*2);
                 ctx.fillStyle = el.color; ctx.fill();
@@ -123,11 +112,17 @@
             } else if(el.type === 'ball') {
                 ctx.beginPath(); ctx.arc(0,0,8*s,0,Math.PI*2);
                 ctx.fillStyle="#fff"; ctx.fill(); ctx.strokeStyle="#000"; ctx.stroke();
-            } else if(el.type.startsWith('z-')) {
-                ctx.strokeStyle="white"; ctx.lineWidth=2;
-                if(el.type==='z-fill'){ctx.fillStyle="rgba(255,255,255,0.15)"; ctx.fillRect(-50*s,-30*s,100*s,60*s);}
-                ctx.setLineDash([5,5]); ctx.strokeRect(-50*s,-30*s,100*s,60*s);
+            } else if(el.type === 'valla') {
+                ctx.strokeStyle="#fff"; ctx.lineWidth=3;
+                ctx.beginPath(); ctx.moveTo(-15*s, 10*s); ctx.lineTo(-15*s, -10*s); ctx.lineTo(15*s, -10*s); ctx.lineTo(15*s, 10*s); ctx.stroke();
+            } else if(el.type === 'cone') {
+                ctx.beginPath(); ctx.moveTo(0, -12*s); ctx.lineTo(-10*s, 10*s); ctx.lineTo(10*s, 10*s); ctx.closePath();
+                ctx.fillStyle="#ff9f43"; ctx.fill();
+            } else if(el.type === 'z-fill') {
+                ctx.fillStyle = "rgba(255,255,255,0.15)"; ctx.fillRect(-50*s,-30*s,100*s,60*s);
+                ctx.strokeStyle="white"; ctx.setLineDash([5,5]); ctx.strokeRect(-50*s,-30*s,100*s,60*s);
             }
+
             if(selId === el.id) {
                 ctx.beginPath(); ctx.arc(0,0,32*s,0,Math.PI*2);
                 ctx.strokeStyle="yellow"; ctx.setLineDash([4,4]); ctx.stroke();
@@ -139,7 +134,17 @@
     function addObj(type) {
         const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#eab000', 'p-white':'#fff'};
         const num = frames[curF].filter(e => e.type === type).length + 1;
-        frames[curF].push({ id: Date.now(), type, x: canvas.width/2, y: canvas.height/2, color: colors[type] || '#fff', num, rot:0, scale:1 });
+        // USAMOS LA ESCALA GLOBAL GUARDADA
+        frames[curF].push({ 
+            id: Date.now(), 
+            type, 
+            x: canvas.width/2, 
+            y: canvas.height/2, 
+            color: colors[type] || '#fff', 
+            num, 
+            rot: 0, 
+            scale: globalScale 
+        });
         render();
     }
 
@@ -177,11 +182,17 @@
         if(!isMoving || !selId) return;
         const r = canvas.getBoundingClientRect();
         const el = frames[curF].find(e => e.id === selId);
+        
         if(e.touches.length === 1) {
             el.x = e.touches[0].clientX - r.left; el.y = e.touches[0].clientY - r.top;
         } else if(e.touches.length === 2) {
             const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            el.scale *= dist / lastDist; el.scale = Math.max(0.3, Math.min(el.scale, 4));
+            if (lastDist > 0) {
+                el.scale *= dist / lastDist;
+                el.scale = Math.max(0.3, Math.min(el.scale, 4));
+                // ACTUALIZAR ESCALA GLOBAL CADA VEZ QUE ESCALAMOS
+                globalScale = el.scale;
+            }
             lastDist = dist;
         }
         render();
