@@ -3,62 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pizarra Táctica Visual Pro</title>
+    <title>SoccerBoard Ultra Pro</title>
     <style>
         :root { --panel: #1e272e; --accent: #3498db; --grass: #27ae60; }
-        body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; touch-action: none; }
+        body { margin: 0; background: #000; color: white; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; touch-action: none; }
         
-        /* Layout */
-        #ui-layer { display: flex; flex: 1; overflow: hidden; }
-        #sidebar { width: 85px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; }
-        #canvas-wrap { flex: 1; background: #16a085; position: relative; display: flex; align-items: center; justify-content: center; }
+        #main-ui { display: flex; flex: 1; overflow: hidden; }
         
-        /* Categorías y Botones */
-        .cat-label { font-size: 0.6em; text-align: center; padding: 10px 0 5px; color: #84817a; font-weight: bold; border-top: 1px solid #2d3436; }
-        .tool-btn { width: 55px; height: 55px; margin: 5px auto; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #3d3d3d; position: relative; background: #2d3436; }
+        /* Sidebar con Scroll */
+        #sidebar { width: 90px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; overflow-x: hidden; padding-bottom: 20px; }
+        #sidebar::-webkit-scrollbar { width: 4px; }
+        #sidebar::-webkit-scrollbar-thumb { background: #3d3d3d; }
+
+        .cat-label { font-size: 9px; text-align: center; padding: 12px 0 5px; color: #84817a; font-weight: bold; text-transform: uppercase; background: #161d23; }
+        .tool-btn { width: 55px; height: 55px; margin: 8px auto; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #3d3d3d; background: #2d3436; flex-shrink: 0; position: relative; }
         
+        /* Canvas Area */
+        #canvas-wrap { flex: 1; background: #1a1a1a; position: relative; display: flex; align-items: center; justify-content: center; }
+        canvas { background: var(--grass); box-shadow: 0 0 50px rgba(0,0,0,0.5); touch-action: none; }
+
+        #hud { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; }
+        .hud-btn { padding: 8px 16px; border-radius: 6px; border: none; font-weight: bold; color: white; cursor: pointer; font-size: 11px; }
+
         /* Timeline */
-        #timeline { height: 100px; background: #0f1418; display: flex; align-items: center; padding: 0 15px; gap: 12px; overflow-x: auto; border-top: 3px solid var(--accent); }
-        .f-card { min-width: 90px; height: 65px; background: #2d3436; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.7em; border: 2px solid transparent; flex-direction: column; }
+        #timeline { height: 85px; background: #0f1418; display: flex; align-items: center; padding: 0 15px; gap: 10px; overflow-x: auto; border-top: 2px solid var(--accent); }
+        .f-card { min-width: 75px; height: 50px; background: #2d3436; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; border: 2px solid transparent; flex-shrink: 0; }
         .f-card.active { border-color: var(--accent); background: #3d3d3d; }
-        
-        #controls { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; }
-        .main-btn { padding: 10px 20px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; color: white; }
-        
-        canvas { background: var(--grass); cursor: crosshair; }
     </style>
 </head>
 <body>
 
-<div id="ui-layer">
+<div id="main-ui">
     <div id="sidebar">
-        <div class="cat-label">EQUIPOS</div>
+        <div class="cat-label">Equipos</div>
         <div class="tool-btn" onclick="addObj('p-red')" style="background:#ff4757">1</div>
         <div class="tool-btn" onclick="addObj('p-blue')" style="background:#2e86de">1</div>
-        <div class="tool-btn" onclick="addObj('p-yellow')" style="background:#eab000; color:black">1</div>
-        <div class="tool-btn" onclick="addObj('p-white')" style="background:#ffffff; color:black">1</div>
+        <div class="tool-btn" onclick="addObj('p-yellow')" style="background:#eab000; color:000">1</div>
+        <div class="tool-btn" onclick="addObj('p-white')" style="background:#fff; color:000">1</div>
         
-        <div class="cat-label">MATERIAL</div>
+        <div class="cat-label">Balón</div>
         <div class="tool-btn" onclick="addObj('ball')">⚽</div>
-        <div class="tool-btn" onclick="addObj('goal-mini')">🥅</div>
-        
-        <div class="cat-label">ZONAS</div>
-        <div class="tool-btn" onclick="addObj('zone-line')">🔲</div>
-        <div class="tool-btn" onclick="addObj('zone-fill')">🟩</div>
+
+        <div class="cat-label">Material</div>
+        <div class="tool-btn" onclick="addObj('cone')">▲</div>
+        <div class="tool-btn" onclick="addObj('pica')">┃</div>
+        <div class="tool-btn" onclick="addObj('valla')">⊓</div>
+
+        <div class="cat-label">Líneas</div>
+        <div class="tool-btn" onclick="addObj('l-straight')">⎯</div>
+        <div class="tool-btn" onclick="addObj('l-dash')">---</div>
+        <div class="tool-btn" onclick="addObj('l-curve')">⤴</div>
+
+        <div class="cat-label">Zonas</div>
+        <div class="tool-btn" onclick="addObj('z-line')">⬜</div>
+        <div class="tool-btn" onclick="addObj('z-fill')">🟩</div>
     </div>
 
     <div id="canvas-wrap">
         <canvas id="field"></canvas>
-        <div id="controls">
-            <button class="main-btn" style="background:#27ae60" onclick="openPreview()">PREVIEW</button>
-            <button class="main-btn" style="background:#c0392b" onclick="clearAll()">RESET</button>
+        <div id="hud">
+            <button class="hud-btn" style="background:#2ecc71" onclick="alert('Preview próximamente')">PREVIEW</button>
+            <button class="hud-btn" style="background:#e74c3c" onclick="resetAll()">RESET</button>
         </div>
     </div>
 </div>
 
 <div id="timeline">
     <div id="frame-list" style="display:flex; gap:10px;"></div>
-    <button onclick="addFrame()" style="width:50px; height:50px; border-radius:50%; background:var(--accent); border:none; color:white; font-size:1.8em">+</button>
+    <button onclick="addFrame()" style="min-width:40px; height:40px; border-radius:50%; background:var(--accent); border:none; color:white; font-size:20px">+</button>
 </div>
 
 <script>
@@ -67,136 +79,95 @@
     let frames = [ [] ];
     let curF = 0;
     let selId = null;
+    let isMoving = false;
+    let lastDist = 0;
 
     function init() {
-        canvas.width = window.innerWidth - 85;
-        canvas.height = window.innerHeight - 100;
+        const w = window.innerWidth - 90;
+        const h = window.innerHeight - 85;
+        canvas.height = h - 20;
+        canvas.width = canvas.height * 1.5;
+        if(canvas.width > w) { canvas.width = w - 20; canvas.height = canvas.width / 1.5; }
         updateUI();
         render();
     }
 
-    // --- MOTOR GRÁFICO: DIBUJO DEL CAMPO ---
-    function drawPitch(tCtx) {
-        const w = tCtx.canvas.width;
-        const h = tCtx.canvas.height;
-        const pad = 40;
-        
-        tCtx.fillStyle = "#27ae60";
-        tCtx.fillRect(0, 0, w, h);
-        
-        tCtx.strokeStyle = "rgba(255,255,255,0.9)";
-        tCtx.lineWidth = 2;
-
-        // Líneas exteriores
-        tCtx.strokeRect(pad, pad, w - pad*2, h - pad*2);
-        
-        // Medio campo
-        tCtx.beginPath();
-        tCtx.moveTo(w/2, pad); tCtx.lineTo(w/2, h - pad);
-        tCtx.stroke();
-        
-        // Círculo Central y punto
-        tCtx.beginPath(); tCtx.arc(w/2, h/2, 60, 0, Math.PI*2); tCtx.stroke();
-        tCtx.beginPath(); tCtx.arc(w/2, h/2, 2, 0, Math.PI*2); tCtx.fill();
-
-        // Áreas (Izquierda)
-        tCtx.strokeRect(pad, h/2 - 120, 100, 240); // Grande
-        tCtx.strokeRect(pad, h/2 - 50, 40, 100);   // Pequeña
-        tCtx.beginPath(); tCtx.arc(pad + 80, h/2, 2, 0, Math.PI*2); tCtx.fill(); // Penalti
-        tCtx.beginPath(); tCtx.arc(pad + 100, h/2, 50, -Math.PI/2.5, Math.PI/2.5); tCtx.stroke(); // Media luna
-
-        // Áreas (Derecha)
-        tCtx.strokeRect(w - pad - 100, h/2 - 120, 100, 240);
-        tCtx.strokeRect(w - pad - 40, h/2 - 50, 40, 100);
-        tCtx.beginPath(); tCtx.arc(w - pad - 80, h/2, 2, 0, Math.PI*2); tCtx.fill();
-        tCtx.beginPath(); tCtx.arc(w - pad - 100, h/2, 50, Math.PI - Math.PI/2.5, Math.PI + Math.PI/2.5); tCtx.stroke();
+    function drawPitch(c) {
+        const w = canvas.width, h = canvas.height, p = 30;
+        c.fillStyle = "#27ae60"; c.fillRect(0,0,w,h);
+        c.strokeStyle = "rgba(255,255,255,0.8)"; c.lineWidth = 2;
+        c.strokeRect(p, p, w-p*2, h-p*2);
+        c.beginPath(); c.moveTo(w/2, p); c.lineTo(w/2, h-p); c.stroke();
+        c.beginPath(); c.arc(w/2, h/2, h*0.15, 0, Math.PI*2); c.stroke();
+        // Áreas
+        c.strokeRect(p, h/2-h*0.2, h*0.25, h*0.4);
+        c.strokeRect(w-p-h*0.25, h/2-h*0.2, h*0.25, h*0.4);
     }
 
-    // --- MOTOR GRÁFICO: DIBUJO DE OBJETOS ---
     function render() {
+        ctx.clearRect(0,0,canvas.width, canvas.height);
         drawPitch(ctx);
-        const elements = frames[curF];
         
-        elements.forEach(el => {
+        frames[curF].forEach(el => {
             ctx.save();
             ctx.translate(el.x, el.y);
-            ctx.rotate(el.angle || 0);
+            ctx.rotate(el.rot || 0);
+            const s = el.scale || 1;
 
-            if(el.type.startsWith('p-')) drawPlayer(el);
-            else if(el.type === 'ball') drawBall();
-            else if(el.type === 'goal-mini') drawMiniGoal();
-            else if(el.type.startsWith('zone')) drawZone(el);
+            if(el.type.startsWith('p-')) {
+                ctx.beginPath(); ctx.arc(0,0,18*s,0,Math.PI*2);
+                ctx.fillStyle = el.color; ctx.fill();
+                ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.lineWidth=2; ctx.stroke();
+                ctx.fillStyle = (el.type==='p-white'||el.type==='p-yellow')?'#000':'#fff';
+                ctx.font=`bold ${12*s}px arial`; ctx.textAlign="center"; ctx.textBaseline="middle";
+                ctx.fillText(el.num, 0, 0);
+            } 
+            else if(el.type === 'ball') {
+                ctx.beginPath(); ctx.arc(0,0,8*s,0,Math.PI*2);
+                ctx.fillStyle="#fff"; ctx.fill(); ctx.strokeStyle="#000"; ctx.stroke();
+                // Detalle balón
+                for(let i=0; i<5; i++) {
+                    ctx.rotate(Math.PI*2/5);
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, 5*s); ctx.stroke();
+                }
+            }
+            else if(el.type === 'cone') {
+                ctx.beginPath(); ctx.moveTo(0, -12*s); ctx.lineTo(-10*s, 10*s); ctx.lineTo(10*s, 10*s); ctx.closePath();
+                ctx.fillStyle="#ff9f43"; ctx.fill();
+            }
+            else if(el.type === 'valla') {
+                ctx.strokeStyle="#fff"; ctx.lineWidth=3;
+                ctx.strokeRect(-15*s, -10*s, 30*s, 20*s);
+                ctx.clearRect(-16*s, 5*s, 32*s, 10*s); // Estilo WhatsApp
+            }
+            else if(el.type === 'pica') {
+                ctx.fillStyle="#feca57"; ctx.fillRect(-2*s, -20*s, 4*s, 40*s);
+            }
+            else if(el.type.startsWith('z-')) {
+                ctx.strokeStyle="#fff"; ctx.lineWidth=2;
+                if(el.type==='z-fill'){ctx.fillStyle="rgba(255,255,255,0.2)"; ctx.fillRect(-50*s,-30*s,100*s,60*s);}
+                ctx.setLineDash([5,5]); ctx.strokeRect(-50*s,-30*s,100*s,60*s);
+            }
 
             if(selId === el.id) {
-                ctx.beginPath(); ctx.arc(0,0, 25, 0, Math.PI*2);
-                ctx.strokeStyle = "yellow"; ctx.setLineDash([4,4]); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0,0,30*s,0,Math.PI*2);
+                ctx.strokeStyle="yellow"; ctx.setLineDash([4,4]); ctx.stroke();
             }
             ctx.restore();
         });
     }
 
-    function drawPlayer(el) {
-        const colors = {
-            'p-red': ['#ff4757', '#c0392b'],
-            'p-blue': ['#2e86de', '#1d63a3'],
-            'p-yellow': ['#eab000', '#b88a00'],
-            'p-white': ['#ffffff', '#bdc3c7']
-        };
-        const [main, dark] = colors[el.type];
-        
-        // Cuerpo
-        ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI*2);
-        const grad = ctx.createRadialGradient(-5, -5, 2, 0, 0, 18);
-        grad.addColorStop(0, main); grad.addColorStop(1, dark);
-        ctx.fillStyle = grad; ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.stroke();
-        
-        // Número
-        ctx.fillStyle = (el.type === 'p-white' || el.type === 'p-yellow') ? "black" : "white";
-        ctx.font = "bold 12px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillText(el.num, 0, 0);
-    }
-
-    function drawBall() {
-        ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2);
-        ctx.fillStyle = "white"; ctx.fill();
-        ctx.strokeStyle = "black"; ctx.lineWidth = 1; ctx.stroke();
-        // Pentágonos sutiles
-        ctx.beginPath(); ctx.moveTo(-4,0); ctx.lineTo(4,0); ctx.stroke();
-    }
-
-    function drawMiniGoal() {
-        ctx.strokeStyle = "white"; ctx.lineWidth = 3; ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(-20, 15); ctx.lineTo(-20, -15); // Lado izq
-        ctx.lineTo(20, -15); // Travesaño
-        ctx.lineTo(20, 15);  // Lado der
-        ctx.stroke();
-    }
-
-    function drawZone(el) {
-        ctx.lineWidth = 2; ctx.strokeStyle = "white";
-        if(el.type === 'zone-fill') {
-            ctx.fillStyle = "rgba(255,255,255,0.2)";
-            ctx.fillRect(-50, -35, 100, 70);
-        }
-        ctx.setLineDash([5, 5]);
-        ctx.strokeRect(-50, -35, 100, 70);
-    }
-
-    // --- LÓGICA DE APLICACIÓN ---
     function addObj(type) {
-        // Contar cuántos jugadores hay de ese equipo para el número del dorsal
+        const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#eab000', 'p-white':'#fff'};
         const num = frames[curF].filter(e => e.type === type).length + 1;
-        frames[curF].push({ id: Date.now(), type, x: 150, y: 150, num, angle: 0 });
+        frames[curF].push({ id: Date.now(), type, x: 100, y: 100, color: colors[type] || '#fff', num, rot:0, scale:1 });
         render();
     }
 
     function addFrame() {
         frames.push(JSON.parse(JSON.stringify(frames[curF])));
         curF = frames.length - 1;
-        updateUI();
-        render();
+        updateUI(); render();
     }
 
     function updateUI() {
@@ -205,38 +176,43 @@
         frames.forEach((f, i) => {
             const card = document.createElement('div');
             card.className = `f-card ${i === curF ? 'active' : ''}`;
-            card.innerHTML = `<b>PASO ${i+1}</b>`;
+            card.innerText = `Paso ${i+1}`;
             card.onclick = () => { curF = i; updateUI(); render(); };
             list.appendChild(card);
         });
     }
 
-    // --- INTERACCIÓN TÁCTIL ---
-    let isMoving = false;
     canvas.addEventListener('touchstart', (e) => {
-        const t = e.touches[0];
         const r = canvas.getBoundingClientRect();
-        const mx = t.clientX - r.left; const my = t.clientY - r.top;
-        
-        const found = frames[curF].findLast(el => Math.hypot(el.x - mx, el.y - my) < 30);
-        if(found) { selId = found.id; isMoving = true; }
-        else { selId = null; }
+        const touch = e.touches[0];
+        const mx = touch.clientX - r.left, my = touch.clientY - r.top;
+
+        // Detección mejorada: Margen mayor para zonas (hitbox de 60px)
+        const found = frames[curF].findLast(el => {
+            const range = el.type.startsWith('z-') ? 60 : 30;
+            return Math.hypot(el.x - mx, el.y - my) < range;
+        });
+
+        if(found) { selId = found.id; isMoving = true; } else { selId = null; }
+        if(e.touches.length === 2) lastDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
         render();
     });
 
     canvas.addEventListener('touchmove', (e) => {
-        if(!isMoving || !selId) return;
-        const t = e.touches[0];
         const r = canvas.getBoundingClientRect();
         const el = frames[curF].find(e => e.id === selId);
-        el.x = t.clientX - r.left; el.y = t.clientY - r.top;
+        if(!el) return;
+        if(e.touches.length === 1 && isMoving) {
+            el.x = e.touches[0].clientX - r.left; el.y = e.touches[0].clientY - r.top;
+        } else if(e.touches.length === 2) {
+            const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+            el.scale *= dist / lastDist; el.scale = Math.max(0.3, Math.min(el.scale, 4));
+            lastDist = dist;
+        }
         render();
     });
 
-    canvas.addEventListener('touchend', () => isMoving = false);
-
-    function clearAll() { if(confirm("¿Borrar todo?")) { frames = [[]]; curF = 0; updateUI(); render(); } }
-
+    function resetAll() { if(confirm("¿Borrar?")) { frames=[[]]; curF=0; updateUI(); render(); } }
     window.onload = init;
 </script>
 </body>
