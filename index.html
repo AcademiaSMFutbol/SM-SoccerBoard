@@ -13,14 +13,23 @@
         .top-btn { padding: 8px 10px; border-radius: 4px; border: none; font-weight: bold; color: white; cursor: pointer; font-size: 11px; background: #2d3436; }
         .btn-add { background: var(--accent) !important; font-size: 18px !important; padding: 2px 12px !important; }
 
-        #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; }
+        #main-container { display: flex; flex: 1; width: 100%; overflow: hidden; position: relative; }
         
+        /* Sidebar */
         #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; flex-shrink: 0; }
         .cat-label { font-size: 8px; text-align: center; padding: 8px 0 4px; color: #84817a; font-weight: bold; text-transform: uppercase; }
         .tool-btn { width: 48px; height: 48px; margin: 4px auto; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #3d3d3d; background: #2d3436; flex-shrink: 0; }
         
+        /* Canvas */
         #canvas-wrap { flex: 1; background: var(--grass); position: relative; overflow: hidden; }
-        canvas { display: block; width: 100% !important; height: 100% !important; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* Panel de Configuración */
+        #config-panel { position: absolute; top: 0; right: -250px; width: 220px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 200; padding: 15px; box-sizing: border-box; font-size: 12px; }
+        #config-panel.open { right: 0; }
+        .config-group { margin-bottom: 15px; border-bottom: 1px solid #3d3d3d; padding-bottom: 10px; }
+        .config-group label { display: block; margin-bottom: 5px; color: var(--accent); font-weight: bold; }
+        select, input[type="range"] { width: 100%; background: #2d3436; color: white; border: 1px solid #3d3d3d; padding: 5px; border-radius: 4px; }
 
         .frame-indicator { color: var(--accent); font-size: 10px; font-weight: bold; margin: 0 4px; min-width: 55px; text-align: center; }
     </style>
@@ -35,28 +44,57 @@
         <button class="top-btn btn-add" onclick="addFrame()">+</button>
     </div>
     <div class="control-group">
-        <button class="top-btn" style="background:#2ecc71" onclick="alert('Reproduciendo...')">PLAY</button>
         <button class="top-btn" style="background:#e67e22" onclick="exportImg()">PNG</button>
+        <button class="top-btn" onclick="toggleConfig()">⚙️</button>
         <button class="top-btn" style="background:#e74c3c" onclick="resetAll()">RESET</button>
     </div>
 </div>
 
 <div id="main-container">
     <div id="sidebar">
-        <div class="cat-label">Equipos</div>
+        <div class="cat-label" id="txt-team">Equipos</div>
         <div class="tool-btn" onclick="addObj('p-red')" style="background:#ff4757">1</div>
         <div class="tool-btn" onclick="addObj('p-blue')" style="background:#2e86de">1</div>
         <div class="tool-btn" onclick="addObj('p-yellow')" style="background:#eab000; color:000">1</div>
         <div class="tool-btn" onclick="addObj('p-white')" style="background:#fff; color:000">1</div>
-        <div class="cat-label">Material</div>
+        <div class="cat-label" id="txt-material">Material</div>
         <div class="tool-btn" onclick="addObj('ball')">⚽</div>
         <div class="tool-btn" onclick="addObj('cone')" style="color:#ff9f43">▲</div>
         <div class="tool-btn" onclick="addObj('valla')" style="font-size: 18px;">⊓</div>
-        <div class="cat-label">Zonas</div>
+        <div class="cat-label" id="txt-lines">Líneas</div>
+        <div class="tool-btn" onclick="addObj('l-straight')">⎯</div>
+        <div class="tool-btn" onclick="addObj('l-curve')">⤴</div>
+        <div class="cat-label" id="txt-zones">Zonas</div>
         <div class="tool-btn" onclick="addObj('z-fill')">🟩</div>
+        <div class="tool-btn" onclick="addObj('z-line')">⬜</div>
     </div>
+
     <div id="canvas-wrap">
         <canvas id="field"></canvas>
+    </div>
+
+    <div id="config-panel">
+        <h3 id="txt-settings">Ajustes</h3>
+        <div class="config-group">
+            <label id="txt-size">Tamaño Jugadores</label>
+            <input type="range" id="sizeRange" min="0.5" max="3" step="0.1" value="1" oninput="updateGlobalSize(this.value)">
+        </div>
+        <div class="config-group">
+            <label id="txt-view">Vista del Campo</label>
+            <select id="viewSelect" onchange="render()">
+                <option value="full">Campo Entero</option>
+                <option value="half">Medio Campo</option>
+                <option value="green">Fondo Verde</option>
+            </select>
+        </div>
+        <div class="config-group">
+            <label id="txt-lang">Idioma</label>
+            <select id="langSelect" onchange="setLang(this.value)">
+                <option value="es">Español</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+        <button class="top-btn" style="width:100%" onclick="toggleConfig()">Cerrar</button>
     </div>
 </div>
 
@@ -67,10 +105,29 @@
     let curF = 0;
     let selId = null;
     let isMoving = false;
-    let lastDist = 0;
-    
-    // MEMORIA DE ESCALA GLOBAL
     let globalScale = 1.0;
+    let currentLang = 'es';
+
+    const translations = {
+        es: { team:"Equipos", mat:"Material", lines:"Líneas", zones:"Zonas", settings:"Ajustes", size:"Tamaño Objetos", view:"Vista del Campo", lang:"Idioma" },
+        en: { team:"Teams", mat:"Material", lines:"Lines", zones:"Zones", settings:"Settings", size:"Object Size", view:"Field View", lang:"Language" }
+    };
+
+    function setLang(l) {
+        currentLang = l;
+        const t = translations[l];
+        document.getElementById('txt-team').innerText = t.team;
+        document.getElementById('txt-material').innerText = t.mat;
+        document.getElementById('txt-lines').innerText = t.lines;
+        document.getElementById('txt-zones').innerText = t.zones;
+        document.getElementById('txt-settings').innerText = t.settings;
+        document.getElementById('txt-size').innerText = t.size;
+        document.getElementById('txt-view').innerText = t.view;
+        document.getElementById('txt-lang').innerText = t.lang;
+    }
+
+    function toggleConfig() { document.getElementById('config-panel').classList.toggle('open'); }
+    function updateGlobalSize(v) { globalScale = parseFloat(v); render(); }
 
     function resize() {
         const wrap = document.getElementById('canvas-wrap');
@@ -81,16 +138,23 @@
 
     function drawField(c) {
         const w = canvas.width, h = canvas.height;
+        const view = document.getElementById('viewSelect').value;
         c.fillStyle = "#27ae60"; c.fillRect(0,0,w,h);
+        if (view === 'green') return;
+
         c.strokeStyle = "rgba(255,255,255,0.7)"; c.lineWidth = 2;
-        const m = 15; 
-        c.strokeRect(m, m, w-m*2, h-m*2); // Banda
-        c.beginPath(); c.moveTo(w/2, m); c.lineTo(w/2, h-m); c.stroke(); // Medio
-        c.beginPath(); c.arc(w/2, h/2, Math.min(w,h)*0.15, 0, Math.PI*2); c.stroke(); // Círculo
-        // Áreas proporcionales
-        const aw = w * 0.18, ah = h * 0.5;
-        c.strokeRect(m, h/2 - ah/2, aw, ah); // Área Izq
-        c.strokeRect(w - m - aw, h/2 - ah/2, aw, ah); // Área Der
+        const m = 15;
+        
+        if (view === 'full') {
+            c.strokeRect(m, m, w-m*2, h-m*2);
+            c.beginPath(); c.moveTo(w/2, m); c.lineTo(w/2, h-m); c.stroke();
+            c.beginPath(); c.arc(w/2, h/2, Math.min(w,h)*0.15, 0, Math.PI*2); c.stroke();
+        } else {
+            // Medio campo (Vista Portería)
+            c.strokeRect(m, m, w-m*2, h-m);
+            c.beginPath(); c.arc(w/2, m, Math.min(w,h)*0.2, 0, Math.PI); c.stroke();
+            c.strokeRect(w/2 - w*0.2, m, w*0.4, h*0.4); 
+        }
     }
 
     function render() {
@@ -100,7 +164,7 @@
             ctx.save();
             ctx.translate(el.x, el.y);
             ctx.rotate(el.rot || 0);
-            const s = el.scale;
+            const s = el.scale * globalScale;
 
             if(el.type.startsWith('p-')) {
                 ctx.beginPath(); ctx.arc(0,0,18*s,0,Math.PI*2);
@@ -112,19 +176,27 @@
             } else if(el.type === 'ball') {
                 ctx.beginPath(); ctx.arc(0,0,8*s,0,Math.PI*2);
                 ctx.fillStyle="#fff"; ctx.fill(); ctx.strokeStyle="#000"; ctx.stroke();
-            } else if(el.type === 'valla') {
-                ctx.strokeStyle="#fff"; ctx.lineWidth=3;
-                ctx.beginPath(); ctx.moveTo(-15*s, 10*s); ctx.lineTo(-15*s, -10*s); ctx.lineTo(15*s, -10*s); ctx.lineTo(15*s, 10*s); ctx.stroke();
+            } else if(el.type === 'l-straight') {
+                ctx.strokeStyle="white"; ctx.lineWidth=3;
+                ctx.beginPath(); ctx.moveTo(-40*s, 0); ctx.lineTo(40*s, 0); ctx.stroke();
+            } else if(el.type === 'l-curve') {
+                ctx.strokeStyle="white"; ctx.lineWidth=3; ctx.setLineDash([5, 5]);
+                ctx.beginPath(); ctx.arc(0, 0, 40*s, 0, Math.PI); ctx.stroke(); ctx.setLineDash([]);
+            } else if(el.type === 'z-fill') {
+                ctx.fillStyle = "rgba(255,255,255,0.15)"; ctx.fillRect(-50*s,-30*s,100*s,60*s);
+                ctx.strokeStyle="white"; ctx.setLineDash([5,5]); ctx.strokeRect(-50*s,-30*s,100*s,60*s); ctx.setLineDash([]);
+            } else if(el.type === 'z-line') {
+                ctx.strokeStyle="white"; ctx.setLineDash([5,5]); ctx.strokeRect(-50*s,-30*s,100*s,60*s); ctx.setLineDash([]);
             } else if(el.type === 'cone') {
                 ctx.beginPath(); ctx.moveTo(0, -12*s); ctx.lineTo(-10*s, 10*s); ctx.lineTo(10*s, 10*s); ctx.closePath();
                 ctx.fillStyle="#ff9f43"; ctx.fill();
-            } else if(el.type === 'z-fill') {
-                ctx.fillStyle = "rgba(255,255,255,0.15)"; ctx.fillRect(-50*s,-30*s,100*s,60*s);
-                ctx.strokeStyle="white"; ctx.setLineDash([5,5]); ctx.strokeRect(-50*s,-30*s,100*s,60*s);
+            } else if(el.type === 'valla') {
+                ctx.strokeStyle="#fff"; ctx.lineWidth=3;
+                ctx.beginPath(); ctx.moveTo(-15*s, 10*s); ctx.lineTo(-15*s, -10*s); ctx.lineTo(15*s, -10*s); ctx.lineTo(15*s, 10*s); ctx.stroke();
             }
 
             if(selId === el.id) {
-                ctx.beginPath(); ctx.arc(0,0,32*s,0,Math.PI*2);
+                ctx.beginPath(); ctx.arc(0,0,35*s,0,Math.PI*2);
                 ctx.strokeStyle="yellow"; ctx.setLineDash([4,4]); ctx.stroke();
             }
             ctx.restore();
@@ -134,17 +206,7 @@
     function addObj(type) {
         const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#eab000', 'p-white':'#fff'};
         const num = frames[curF].filter(e => e.type === type).length + 1;
-        // USAMOS LA ESCALA GLOBAL GUARDADA
-        frames[curF].push({ 
-            id: Date.now(), 
-            type, 
-            x: canvas.width/2, 
-            y: canvas.height/2, 
-            color: colors[type] || '#fff', 
-            num, 
-            rot: 0, 
-            scale: globalScale 
-        });
+        frames[curF].push({ id: Date.now(), type, x: canvas.width/2, y: canvas.height/2, color: colors[type] || '#fff', num, rot:0, scale:1 });
         render();
     }
 
@@ -173,7 +235,6 @@
             return Math.hypot(el.x - mx, el.y - my) < range;
         });
         if(found) { selId = found.id; isMoving = true; } else { selId = null; }
-        if(e.touches.length === 2) lastDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
         render();
     });
 
@@ -182,27 +243,17 @@
         if(!isMoving || !selId) return;
         const r = canvas.getBoundingClientRect();
         const el = frames[curF].find(e => e.id === selId);
-        
-        if(e.touches.length === 1) {
-            el.x = e.touches[0].clientX - r.left; el.y = e.touches[0].clientY - r.top;
-        } else if(e.touches.length === 2) {
-            const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            if (lastDist > 0) {
-                el.scale *= dist / lastDist;
-                el.scale = Math.max(0.3, Math.min(el.scale, 4));
-                // ACTUALIZAR ESCALA GLOBAL CADA VEZ QUE ESCALAMOS
-                globalScale = el.scale;
-            }
-            lastDist = dist;
-        }
+        el.x = e.touches[0].clientX - r.left; el.y = e.touches[0].clientY - r.top;
         render();
     }, {passive: false});
+
+    canvas.addEventListener('touchend', () => { isMoving = false; });
 
     function resetAll() { if(confirm("¿Reiniciar pizarra?")) { frames=[[]]; curF=0; updateUI(); } }
     function exportImg() { const link = document.createElement('a'); link.download = 'tactica.png'; link.href = canvas.toDataURL(); link.click(); }
     
     window.addEventListener('resize', resize);
-    window.onload = resize;
+    window.onload = () => { resize(); setLang('es'); };
 </script>
 </body>
 </html>
