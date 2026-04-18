@@ -1,0 +1,11 @@
+{
+  "appId": "com.tupizarra.tactica",
+  "appName": "SoccerBoard Pro",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "ScreenOrientation": {
+      "orientation": "landscape"
+    }
+  }
+}
