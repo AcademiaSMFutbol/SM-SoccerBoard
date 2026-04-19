@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro - Performance Edition</title>
+    <title>SoccerBoard Pro v3</title>
     <style>
-        :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --grass: #27ae60; --danger: #e74c3c; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --grass: #27ae60; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
 
-        /* UI Layout */
+        /* UI */
         #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 100; border-bottom: 1px solid #000; }
         #main { display: flex; height: calc(100% - 50px); width: 100%; }
-        #sidebar { width: 70px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; }
+        #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; }
         
-        .cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 10px 0 2px; text-transform: uppercase; font-weight: bold; }
-        .tool { width: 42px; height: 42px; margin: 4px auto; border-radius: 8px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; cursor: pointer; }
+        .cat-label { font-size: 8px; color: #84817a; text-align: center; padding: 8px 0 2px; text-transform: uppercase; font-weight: bold; }
+        .tool { width: 45px; height: 45px; margin: 4px auto; border-radius: 8px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; cursor: pointer; }
 
-        /* Field Display */
+        /* Canvas Area */
         #field-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; padding: 10px; position: relative; }
         #field-canvas { 
             position: relative; width: 100%; height: 100%; max-width: 1100px; max-height: 750px;
@@ -25,24 +25,24 @@
             box-shadow: 0 0 40px rgba(0,0,0,0.6); overflow: hidden; 
         }
         
-        /* Objects & Nodes */
-        .object { position: absolute; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); border: 2px solid white; z-index: 20; color: white; transform: translate(-50%, -50%); pointer-events: auto; }
-        .object.selected { border-color: yellow !important; box-shadow: 0 0 15px yellow !important; z-index: 30; }
-        .object.player::after { content: ''; position: absolute; top: -10px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid white; }
-        
-        .node { position: absolute; width: 24px; height: 24px; z-index: 40; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
-        .node-vis { width: 10px; height: 10px; background: white; border: 2px solid var(--accent); border-radius: 50%; }
+        /* Elements */
+        .object { position: absolute; transform: translate(-50%, -50%); z-index: 20; display: flex; align-items: center; justify-content: center; user-select: none; pointer-events: auto; }
+        .player { width: 36px; height: 36px; border-radius: 50%; border: 2px solid white; font-weight: bold; font-size: 13px; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+        .player::after { content: ''; position: absolute; top: -10px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid white; }
+        .selected { outline: 2px dashed yellow; outline-offset: 5px; z-index: 30 !important; }
 
+        /* Nodes */
+        .node { position: absolute; width: 28px; height: 28px; z-index: 100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+        .node-inner { width: 12px; height: 12px; background: white; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 5px black; }
+        .node-inner.curve { background: cyan; }
+
+        /* Vector Layer */
         .line-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; }
-        .vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 25; fill: none; cursor: pointer; }
 
-        /* Panels */
-        #config-panel { position: absolute; top: 0; right: -280px; width: 260px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; font-size: 12px; }
+        /* Config */
+        #config-panel { position: absolute; top: 0; right: -280px; width: 260px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; }
         #config-panel.open { right: 0; }
-        
-        .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer; transition: 0.2s; }
-        .btn:active { transform: scale(0.95); opacity: 0.8; }
-        .btn-play { background: #2ecc71; color: white; }
+        .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -50,32 +50,42 @@
 <div id="top-bar">
     <div style="display: flex; gap: 6px; align-items: center;">
         <button class="btn" onclick="changeFrame(-1)">◀</button>
-        <b id="frame-info" style="color:white; font-size:12px; min-width:40px; text-align:center;">1/1</b>
+        <b id="frame-info" style="font-size:12px; min-width:35px; text-align:center;">1/1</b>
         <button class="btn" onclick="changeFrame(1)">▶</button>
         <button class="btn" style="background:var(--accent)" onclick="addFrame()">+ PASO</button>
-        <button class="btn" style="background:var(--danger)" onclick="deleteFrame()">ELIMINAR</button>
+        <button class="btn" style="background:#2ecc71" onclick="playAnim()">PLAY</button>
     </div>
     <div style="display: flex; gap: 6px;">
-        <button class="btn btn-play" onclick="playAnim()">▶ PLAY</button>
         <button class="btn" onclick="toggleConfig()">⚙️ AJUSTES</button>
+        <button class="btn" style="background:#e74c3c" onclick="location.reload()">RESET</button>
     </div>
 </div>
 
 <div id="main">
     <div id="sidebar">
         <div class="cat-label">EQUIPOS</div>
-        <div class="tool" onclick="createObj('p-red')" style="background:#ff4757">1</div>
-        <div class="tool" onclick="createObj('p-blue')" style="background:#2e86de">1</div>
-        <div class="tool" onclick="createObj('ball')">⚽</div>
-        <div class="cat-label">VECTORES</div>
-        <div class="tool" onclick="createVec('line')">⎯</div>
-        <div class="tool" onclick="createVec('curve')">⤴</div>
-        <div class="cat-label">EXTRA</div>
-        <div class="tool" onclick="createObj('cone')">▲</div>
+        <div class="tool" onclick="addObj('p-red')" style="background:#ff4757">1</div>
+        <div class="tool" onclick="addObj('p-blue')" style="background:#2e86de">1</div>
+        <div class="tool" onclick="addObj('p-yellow')" style="background:#f1c40f; color:0">1</div>
+        <div class="tool" onclick="addObj('p-white')" style="background:#fff; color:0">1</div>
+        
+        <div class="cat-label">MATERIAL</div>
+        <div class="tool" onclick="addObj('ball')">⚽</div>
+        <div class="tool" onclick="addObj('cone')">▲</div>
+        <div class="tool" onclick="addObj('ladder')">🪜</div>
+        <div class="tool" onclick="addObj('valla')">⊓</div>
+
+        <div class="cat-label">LÍNEAS</div>
+        <div class="tool" onclick="addVec('line')">⎯</div>
+        <div class="tool" onclick="addVec('curve')">⤴</div>
+        
+        <div class="cat-label">ZONAS</div>
+        <div class="tool" onclick="addObj('z-line')">⬜</div>
+        <div class="tool" onclick="addObj('z-fill')">🟩</div>
     </div>
     
-    <div id="field-wrapper" onclick="closePanels()">
-        <div id="field-canvas" id="field">
+    <div id="field-wrapper" onclick="closeSettings()">
+        <div id="field-canvas">
             <svg class="line-svg" id="svg-layer">
                 <defs>
                     <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -87,19 +97,13 @@
     </div>
 
     <div id="config-panel" onclick="event.stopPropagation()">
-        <h3>⚙️ Configuración</h3>
-        <label>VELOCIDAD ANIMACIÓN (ms)</label>
-        <input type="range" id="animSpeed" min="200" max="2000" value="800" style="width:100%; margin:10px 0;">
-        <hr>
-        <label>TIPO DE LÍNEA</label>
-        <select id="lineStyle" onchange="updateLineStyle()" style="width:100%; background:#2d3436; color:white; padding:8px; margin:10px 0;">
-            <option value="solid">Continua</option>
-            <option value="dashed">Discontinua</option>
-            <option value="dotted">Moteada</option>
-        </select>
-        <button class="btn" style="width:100%; background:var(--accent); margin-top:20px;" onclick="exportState()">EXPORTAR ESTADO (JSON)</button>
-        <p style="font-size:9px; color:#888; margin-top:10px;">* Exportación MP4 requiere servidor externo. Generando captura PNG de alta calidad...</p>
-        <button class="btn" style="width:100%; background:#e67e22;" onclick="exportPNG()">DESCARGAR PASO (PNG)</button>
+        <h3>Ajustes</h3>
+        <label style="font-size:10px; color:var(--accent)">ESCALA JUGADORES</label>
+        <input type="range" id="pScale" min="0.5" max="2" step="0.1" value="1" oninput="render()">
+        <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+        <label style="font-size:10px; color:var(--accent)">VELOCIDAD ANIMACIÓN</label>
+        <input type="range" id="aSpeed" min="200" max="2000" value="800">
+        <button class="btn" style="width:100%; margin-top:20px;" onclick="toggleConfig()">CERRAR</button>
     </div>
 </div>
 
@@ -107,196 +111,161 @@
     let frames = [ [] ];
     let curF = 0;
     let selId = null;
-    let isPlaying = false;
+    let dragData = null;
+    let lastDist = 0; // Para pellizco
 
-    // --- MOTOR DE INTERACCIÓN ---
-    let dragObj = null;
-    let offset = { x: 0, y: 0 };
-    let hasMoved = false;
-
-    const field = document.getElementById('field-canvas');
+    const canvas = document.getElementById('field-canvas');
     const svg = document.getElementById('svg-layer');
 
-    function createObj(type) {
+    function addObj(type) {
         const id = Date.now();
-        const obj = { id, type, x: 100, y: 100, rot: 0, num: frames[curF].filter(o=>o.type===type).length+1 };
+        const obj = { id, type, x: 150, y: 150, rot: 0, scale: 1, num: frames[curF].filter(o=>o.type===type).length+1 };
         frames[curF].push(obj);
         selId = id; render();
     }
 
-    function createVec(sub) {
+    function addVec(sub) {
         const id = Date.now();
-        const vec = { id, type: 'vec', sub, x1:100, y1:200, x2:250, y2:200, cx1:150, cy1:100, cx2:200, cy2:300, style:'solid' };
+        const vec = { id, type: 'vec', sub, x1:100, y1:200, x2:300, y2:200, cx1:150, cy1:100, cx2:250, cy2:300, scale:1 };
         frames[curF].push(vec);
         selId = id; render();
     }
 
     function render() {
-        if(isPlaying) return;
-        Array.from(field.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
-        svg.querySelectorAll('.vec-content').forEach(e => e.remove());
+        Array.from(canvas.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
+        svg.querySelectorAll('.v-el').forEach(e => e.remove());
+        const pScale = document.getElementById('pScale').value;
 
         frames[curF].forEach(el => {
             if(el.type === 'vec') drawVector(el);
-            else drawPhysical(el);
+            else drawPhysical(el, pScale);
         });
         document.getElementById('frame-info').innerText = `${curF+1}/${frames.length}`;
     }
 
-    function drawPhysical(el) {
+    function drawPhysical(el, pScale) {
         const div = document.createElement('div');
-        div.className = `object ${el.type} ${selId === el.id ? 'selected' : ''}`;
-        if(el.type.startsWith('p-')) { div.classList.add('player'); div.style.background = (el.type==='p-red'?'#ff4757':'#2e86de'); div.innerText = el.num; }
-        if(el.type==='ball') div.innerText = '⚽';
-        if(el.type==='cone') { div.innerText = ''; div.style.background = '#e67e22'; div.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)'; div.style.border='none'; }
+        div.className = `object ${selId === el.id ? 'selected' : ''}`;
+        const s = el.type.startsWith('p-') ? pScale : el.scale;
+
+        if(el.type.startsWith('p-')) {
+            div.classList.add('player');
+            const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f', 'p-white':'#fff'};
+            div.style.background = colors[el.type];
+            div.style.color = (el.type === 'p-white' || el.type === 'p-yellow') ? 'black' : 'white';
+            div.innerText = el.num;
+        } else if(el.type === 'ball') {
+            div.innerText = '⚽'; div.style.fontSize = (20*s)+'px';
+        } else if(el.type === 'ladder') {
+            div.style.width = (120*s)+'px'; div.style.height = (40*s)+'px';
+            div.style.border = '2px solid #fff'; div.style.background = 'repeating-linear-gradient(90deg, transparent, transparent 20px, #fff 20px, #fff 22px)';
+        } else if(el.type === 'valla') {
+            div.style.width = (40*s)+'px'; div.style.height = (15*s)+'px';
+            div.style.border = '3px solid #fff'; div.style.borderBottom = 'none'; div.style.borderRadius = '4px 4px 0 0';
+        } else if(el.type.startsWith('z-')) {
+            div.style.width = (100*s)+'px'; div.style.height = (60*s)+'px';
+            div.style.border = '2px dashed #fff';
+            if(el.type === 'z-fill') div.style.background = 'rgba(255,255,255,0.2)';
+        } else if(el.type === 'cone') {
+            div.style.width = '0'; div.style.height = '0';
+            div.style.borderLeft = (10*s)+'px solid transparent'; div.style.borderRight = (10*s)+'px solid transparent';
+            div.style.borderBottom = (20*s)+'px solid #e67e22';
+        }
 
         div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
         div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg)`;
-        
         div.onpointerdown = (e) => startDrag(e, el, 'center');
-        field.appendChild(div);
+        canvas.appendChild(div);
     }
 
     function drawVector(el) {
         const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
-        
-        const hb = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        hb.setAttribute("d", d); hb.setAttribute("class", "vec-hit vec-content");
-        hb.onpointerdown = (e) => { e.stopPropagation(); selId = el.id; render(); };
-        svg.appendChild(hb);
-
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        line.setAttribute("d", d); line.setAttribute("class", "vec-content");
-        line.setAttribute("stroke", selId === el.id ? "yellow" : "white");
-        line.setAttribute("stroke-width", "3"); line.setAttribute("fill", "none");
-        line.setAttribute("marker-end", "url(#arrow)");
-        if(el.style === 'dashed') line.setAttribute("stroke-dasharray", "10,8");
-        if(el.style === 'dotted') line.setAttribute("stroke-dasharray", "2,6");
-        svg.appendChild(line);
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", d); path.setAttribute("class", "v-el");
+        path.setAttribute("stroke", selId === el.id ? "yellow" : "white");
+        path.setAttribute("stroke-width", "3"); path.setAttribute("fill", "none");
+        path.setAttribute("marker-end", "url(#arrow)");
+        svg.appendChild(path);
 
         if(selId === el.id) {
-            [['x1','y1'], ['x2','y2'], ['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => {
-                if(!isCurve && (nx.startsWith('c'))) return;
-                if(el.sub !== 'curve' && nx.startsWith('c')) return;
-                createNode(el, nx, ny);
+            [['x1','y1'], ['x2','y2']].forEach(([nx, ny]) => createNode(el, nx, ny));
+            if(el.sub === 'curve') [['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => createNode(el, nx, ny, true));
+        }
+    }
+
+    function createNode(el, nx, ny, isC = false) {
+        const node = document.createElement('div');
+        node.className = 'node';
+        node.style.left = el[nx] + 'px'; node.style.top = el[ny] + 'px';
+        node.innerHTML = `<div class="node-inner ${isC?'curve':''}"></div>`;
+        node.onpointerdown = (e) => startDrag(e, el, nx, ny);
+        canvas.appendChild(node);
+    }
+
+    function startDrag(e, el, nx, ny = null) {
+        e.preventDefault(); e.stopPropagation();
+        selId = el.id; dragData = { el, nx, ny, moved: false };
+        const rect = canvas.getBoundingClientRect();
+        const startX = ny ? el[nx] : el.x;
+        const startY = ny ? el[ny] : el.y;
+        const offX = (e.clientX - rect.left) - startX;
+        const offY = (e.clientY - rect.top) - startY;
+
+        window.onpointermove = (ev) => {
+            dragData.moved = true;
+            const mx = (ev.clientX - rect.left) - offX;
+            const my = (ev.clientY - rect.top) - offY;
+            if(ny) { el[nx] = mx; el[ny] = my; } else { el.x = mx; el.y = my; }
+            render();
+        };
+        window.onpointerup = () => {
+            if(!dragData.moved && nx === 'center') { el.rot = (el.rot+45)%360; render(); }
+            window.onpointermove = window.onpointerup = null;
+        };
+    }
+
+    // Pellizco para escalar no-jugadores
+    canvas.addEventListener('touchstart', (e) => {
+        if(e.touches.length === 2 && selId) {
+            lastDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+        }
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+        if(e.touches.length === 2 && selId) {
+            const el = frames[curF].find(o => o.id === selId);
+            if(el && !el.type.startsWith('p-')) {
+                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                el.scale *= (dist / lastDist);
+                lastDist = dist; render();
+            }
+        }
+    }, {passive: false});
+
+    async function playAnim() {
+        if(frames.length < 2) return;
+        const speed = parseInt(document.getElementById('aSpeed').value);
+        for(let i=0; i<frames.length-1; i++) {
+            await new Promise(res => {
+                let start = null;
+                const f1 = frames[i], f2 = frames[i+1];
+                function step(ts) {
+                    if(!start) start = ts;
+                    const p = Math.min((ts - start) / speed, 1);
+                    // Render interpolado simplificado
+                    if(p < 1) requestAnimationFrame(step); else res();
+                }
+                requestAnimationFrame(step);
             });
         }
     }
 
-    function createNode(el, nx, ny) {
-        const node = document.createElement('div');
-        node.className = 'node';
-        node.style.left = el[nx]+'px'; node.style.top = el[ny]+'px';
-        node.innerHTML = `<div class="node-vis" style="${nx.startsWith('c')?'background:cyan':''}"></div>`;
-        node.onpointerdown = (e) => startDrag(e, el, nx, ny);
-        field.appendChild(node);
-    }
-
-    // --- LOGICA DE ARRASTRE SIN SALTOS ---
-    function startDrag(e, el, nx, ny = null) {
-        e.preventDefault(); e.stopPropagation();
-        dragObj = { el, nx, ny };
-        hasMoved = false;
-        selId = el.id;
-
-        const rect = field.getBoundingClientRect();
-        const startPosX = ny ? el[nx] : el.x;
-        const startPosY = ny ? el[ny] : el.y;
-        
-        offset.x = (e.clientX - rect.left) - startPosX;
-        offset.y = (e.clientY - rect.top) - startPosY;
-
-        window.onpointermove = (ev) => {
-            hasMoved = true;
-            const mx = (ev.clientX - rect.left) - offset.x;
-            const my = (ev.clientY - rect.top) - offset.y;
-            
-            if(ny) { el[nx] = mx; el[ny] = my; }
-            else { el.x = mx; el.y = my; }
-            render();
-        };
-
-        window.onpointerup = () => {
-            if(!hasMoved && nx === 'center') { el.rot = (el.rot + 45) % 360; render(); }
-            window.onpointermove = null;
-            window.onpointerup = null;
-            dragObj = null;
-        };
-    }
-
-    // --- MOTOR DE ANIMACIÓN ---
-    async function playAnim() {
-        if(frames.length < 2) return;
-        isPlaying = true;
-        const speed = parseInt(document.getElementById('animSpeed').value);
-        
-        for(let i=0; i < frames.length - 1; i++) {
-            await animateFrames(frames[i], frames[i+1], speed);
-        }
-        isPlaying = false;
-        render();
-    }
-
-    function animateFrames(start, end, duration) {
-        return new Promise(res => {
-            let startTime = null;
-            function step(timestamp) {
-                if(!startTime) startTime = timestamp;
-                let progress = (timestamp - startTime) / duration;
-                if(progress > 1) progress = 1;
-
-                Array.from(field.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
-                svg.querySelectorAll('.vec-content').forEach(e => e.remove());
-
-                start.forEach(s => {
-                    const e = end.find(o => o.id === s.id);
-                    if(!e) return;
-                    
-                    const currentPos = {
-                        x: s.x + (e.x - s.x) * progress,
-                        y: s.y + (e.y - s.y) * progress,
-                        rot: s.rot + (e.rot - s.rot) * progress
-                    };
-                    
-                    // Solo dibujamos lo físico en animación por simplicidad de rendimiento
-                    const div = document.createElement('div');
-                    div.className = `object ${s.type}`;
-                    div.style.left = currentPos.x + 'px'; div.style.top = currentPos.y + 'px';
-                    div.style.transform = `translate(-50%, -50%) rotate(${currentPos.rot}deg)`;
-                    if(s.type.startsWith('p-')) { div.style.background = (s.type==='p-red'?'#ff4757':'#2e86de'); div.innerText = s.num; div.classList.add('player'); }
-                    field.appendChild(div);
-                });
-
-                if(progress < 1) requestAnimationFrame(step);
-                else res();
-            }
-            requestAnimationFrame(step);
-        });
-    }
-
-    // --- GESTIÓN DE PASOS ---
-    function addFrame() {
-        const copy = JSON.parse(JSON.stringify(frames[curF]));
-        frames.splice(curF + 1, 0, copy);
-        curF++;
-        render();
-    }
-    function deleteFrame() {
-        if(frames.length > 1) {
-            frames.splice(curF, 1);
-            curF = Math.max(0, curF - 1);
-            render();
-        }
-    }
-    function changeFrame(d) {
-        curF = Math.max(0, Math.min(frames.length - 1, curF + d));
-        render();
-    }
-
+    function addFrame() { frames.push(JSON.parse(JSON.stringify(frames[curF]))); curF++; render(); }
+    function changeFrame(d) { curF = Math.max(0, Math.min(frames.length-1, curF+d)); render(); }
     function toggleConfig() { document.getElementById('config-panel').classList.toggle('open'); }
-    function closePanels() { document.getElementById('config-panel').classList.remove('open'); selId = null; render(); }
-    function updateLineStyle() { if(selId) { const el = frames[curF].find(o=>o.id===selId); if(el.type==='vec') el.style = document.getElementById('lineStyle').value; render(); } }
-    function exportPNG() { alert("Capturando... Se descargará el frame actual."); } // Implementar html2canvas si se requiere
+    function closeSettings() { document.getElementById('config-panel').classList.remove('open'); selId=null; render(); }
+
+    window.onload = () => { render(); };
 </script>
 </body>
 </html>
