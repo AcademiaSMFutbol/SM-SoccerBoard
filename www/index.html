@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v27</title>
+    <title>SoccerBoard Pro v28</title>
+    
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#12171b">
+
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -15,8 +18,8 @@
     <div id="app-root">
         <div id="top-bar">
             <div class="btn-group">
-                <button class="btn" onclick="toggleFullScreen()">⛶</button>
-                <button class="btn" onclick="undo()" id="undoBtn">⟲</button>
+                <button class="btn" onclick="toggleFullScreen()" title="Pantalla Completa">⛶</button>
+                <button class="btn" onclick="undo()" id="undoBtn" title="Deshacer">⟲</button>
                 <div class="divider"></div>
                 <button class="btn" onclick="navStep(-1)">◀</button>
                 <span id="step-label">1/1</span>
@@ -52,10 +55,12 @@
                 <div class="tool" onclick="createPlayer('p-green')" style="background:#2ecc71">1</div>
                 <div class="cat-label">Zonas</div>
                 <div class="tool" onclick="createZone('fill')">🟩</div>
+                <div class="tool" onclick="createZone('line')">⬜</div>
                 <div class="cat-label">Material</div>
                 <div class="tool" onclick="createItem('ball')">⚽</div>
                 <div class="tool" onclick="createItem('cone')">▲</div>
                 <div class="tool" onclick="createItem('valla')">⊓</div>
+                <div class="tool" onclick="createItem('ladder')">🪜</div>
             </div>
 
             <div id="viewport" onpointerdown="handleGlobalDown(event)" onpointermove="handleGlobalMove(event)" onpointerup="handleGlobalEnd()">
