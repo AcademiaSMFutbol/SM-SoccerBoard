@@ -15,7 +15,7 @@ const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
 const svg = document.getElementById('svg-layer');
 
-// --- PANTALLA COMPLETA ---
+// --- PANTALLA COMPLETA FORZADA ---
 function setForceFS(val) { forceFS = val; if(val) requestFS(); }
 function requestFS() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(() => {}); } }
 
@@ -33,7 +33,7 @@ function undo() {
     render();
 }
 
-// --- MODALES (RESET / TEXTO) ---
+// --- MENÚS INTERNOS ---
 function openResetMenu() { document.getElementById('reset-modal').style.display = 'flex'; }
 function closeResetMenu() { document.getElementById('reset-modal').style.display = 'none'; }
 function resetAction(type) {
@@ -78,7 +78,6 @@ function resizeField() {
     const vw = viewport.clientWidth, vh = viewport.clientHeight;
     let sX = vw / 1050, sY = vh / 680;
     const diff = Math.abs(sX - sY) / Math.min(sX, sY);
-    // Escalado que rellena pantalla pero no corta
     let finalX = (diff < 0.2) ? sX : Math.min(sX, sY);
     let finalY = (diff < 0.2) ? sY : Math.min(sX, sY);
     fMaster.style.transform = `scale(${finalX}, ${finalY})`;
@@ -123,7 +122,6 @@ function handleGlobalMove(e) {
     const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoomY;
     if (Math.hypot(dx, dy) > 0.5) dragInfo.moved = true;
     if (!dragInfo.moved) return;
-
     if(dragInfo.isZS) { dragInfo.el.w = Math.max(30, dragInfo.el.w + dx); dragInfo.el.h = Math.max(30, dragInfo.el.h + dy); }
     else if(dragInfo.el.type === 'vec' && dragInfo.nx === 'x') {
         ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
@@ -148,8 +146,7 @@ function createPlayer(type) {
 
 function createItem(type) {
     saveState(); const id = Date.now();
-    let color = "#ffffff";
-    if(type==='cone') color = "#e67e22"; if(type==='pica' || type==='ladder') color = "#f1c40f"; if(type==='valla') color = "#e74c3c";
+    let color = (type==='cone') ? "#e67e22" : (type==='valla' ? "#e74c3c" : "#f1c40f");
     steps[curStep].push({ id, type, x: 150, y: 150, rot: 0, scale: 1, color: color });
     activeId = id; render();
 }
@@ -237,9 +234,7 @@ function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
 }
 
 fMaster.addEventListener('touchstart', (e) => {
-    if(e.touches.length === 2 && activeId) {
-        saveState(); pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    }
+    if(e.touches.length === 2 && activeId) { saveState(); pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
 }, {passive: false});
 
 fMaster.addEventListener('touchmove', (e) => {
