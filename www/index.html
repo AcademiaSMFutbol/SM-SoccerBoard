@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v33</title>
+    <title>SoccerBoard Pro v35</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -36,9 +36,9 @@
 
         <div id="config-modal">
             <div class="modal-content">
-                <h3>Configuración</h3>
+                <h3>Ajustes de Pizarra</h3>
                 <div class="config-item">
-                    <label>VELOCIDAD ANIMACIÓN</label>
+                    <label>VELOCIDAD DE MOVIMIENTO</label>
                     <input type="range" min="200" max="2000" step="100" value="800" oninput="updateSpeed(this.value)">
                 </div>
                 <div class="config-item">
@@ -51,14 +51,14 @@
                     </div>
                 </div>
                 <div class="config-item">
-                    <label>TIPO DE CAMPO</label>
+                    <label>FONDO DE CAMPO</label>
                     <select onchange="changeField(this.value)">
-                        <option value="entero">Campo Entero</option>
+                        <option value="entero">Campo Completo</option>
                         <option value="medio">Medio Campo</option>
-                        <option value="ejercicio">Área de Ejercicio</option>
+                        <option value="ejercicio">Zona de Ejercicio</option>
                     </select>
                 </div>
-                <button class="btn btn-accent close-btn" onclick="toggleConfig()">CERRAR Y GUARDAR</button>
+                <button class="btn btn-accent close-btn" onclick="toggleConfig()">LISTO</button>
             </div>
         </div>
 
@@ -81,7 +81,7 @@
 
         <div id="main-area">
             <div id="sidebar">
-                <div class="cat-label">Dibujo</div>
+                <div class="cat-label">Líneas</div>
                 <div class="tool" onclick="createVector('line')">⎯</div>
                 <div class="tool" onclick="createVector('curve')">⤴</div>
                 <div class="cat-label">Equipos</div>
