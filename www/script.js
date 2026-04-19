@@ -15,13 +15,6 @@ let teamColors = {
     'p-green': '#2ecc71'
 };
 
-let memory = {
-    player: { rot: 0, scale: 1 },
-    material: { rot: 0, scale: 1, color: "#ffffff" },
-    vector: { color: "#ffffff", weight: 3, arrow: true, lineType: "solid" },
-    zone: { color: "#ffa500", w: 150, h: 100 }
-};
-
 const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
 const svg = document.getElementById('svg-layer');
@@ -39,8 +32,7 @@ function undo() {
 }
 
 function clearField() {
-    if(steps[curStep].length === 0) return;
-    if(confirm("¿Seguro que quieres limpiar este paso?")) {
+    if(confirm("¿Limpiar todo el campo?")) {
         saveState();
         steps[curStep] = [];
         deselect();
@@ -49,17 +41,11 @@ function clearField() {
 
 function toggleConfig() {
     const modal = document.getElementById('config-modal');
-    if (modal.style.display === 'flex') {
-        modal.style.display = 'none';
-        setTimeout(resizeField, 50); 
-    } else {
-        modal.style.display = 'flex';
-    }
+    modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+    if(modal.style.display === 'none') setTimeout(resizeField, 50);
 }
 
-function updateSpeed(val) {
-    animationSpeed = parseInt(val);
-}
+function updateSpeed(val) { animationSpeed = parseInt(val); }
 
 function updateTeamColor(team, color) {
     teamColors[team] = color;
@@ -71,11 +57,7 @@ function updateTeamColor(team, color) {
 }
 
 function changeField(type) {
-    const images = {
-        'entero': 'campoentero.png',
-        'medio': 'mediocampo.png',
-        'ejercicio': 'campoejercicio.png'
-    };
+    const images = { 'entero': 'campoentero.png', 'medio': 'mediocampo.png', 'ejercicio': 'campoejercicio.png' };
     fMaster.style.backgroundImage = `url('${images[type]}')`;
 }
 
@@ -115,9 +97,7 @@ function handleGlobalDown(e) {
             nx: (hit && hit.dataset.nx) || 'x', 
             ny: (hit && hit.dataset.ny) || 'y', 
             isZS: hit && hit.classList.contains('node-zs'),
-            moved: false, 
-            lastX: e.clientX, 
-            lastY: e.clientY, 
+            moved: false, lastX: e.clientX, lastY: e.clientY, 
             zoom: rect.width / 1050 
         };
         saveState();
@@ -130,9 +110,7 @@ function handleGlobalMove(e) {
     const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoom;
     const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoom;
 
-    // Reducimos umbral para zonas
-    const threshold = (dragInfo.el.type === 'zone' || dragInfo.isZS) ? 0.5 : 3;
-    if (Math.hypot(dx, dy) > threshold) dragInfo.moved = true;
+    if (Math.hypot(dx, dy) > 0.5) dragInfo.moved = true;
     if (!dragInfo.moved) return;
 
     if(dragInfo.isZS) {
@@ -145,8 +123,7 @@ function handleGlobalMove(e) {
         dragInfo.el[dragInfo.nx] += dx; 
         dragInfo.el[dragInfo.ny] += dy;
     }
-    dragInfo.lastX = e.clientX; 
-    dragInfo.lastY = e.clientY;
+    dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY;
     render();
 }
 
@@ -155,8 +132,6 @@ function handleGlobalEnd() {
         history.pop(); 
         if(wasSelectedBefore && !['zone','vec'].includes(dragInfo.el.type)) {
             dragInfo.el.rot = (dragInfo.el.rot + 45) % 360;
-            if(dragInfo.el.type.startsWith('p-')) memory.player.rot = dragInfo.el.rot;
-            else memory.material.rot = dragInfo.el.rot;
         }
     }
     dragInfo = null; render();
@@ -165,27 +140,35 @@ function handleGlobalEnd() {
 function createPlayer(type) {
     saveState();
     const id = Date.now();
-    steps[curStep].push({ id, type, x: 100, y: 100, rot: memory.player.rot, scale: memory.player.scale, color: teamColors[type], num: steps[curStep].filter(o=>o.type===type).length+1 });
+    steps[curStep].push({ id, type, x: 100, y: 100, rot: 0, scale: 1, color: teamColors[type], num: steps[curStep].filter(o=>o.type===type).length+1 });
     activeId = id; render();
 }
+
 function createItem(type) {
     saveState();
     const id = Date.now();
-    steps[curStep].push({ id, type, x: 150, y: 150, rot: memory.material.rot, scale: memory.material.scale, color: (type==='cone'?'#e67e22':memory.material.color) });
+    let color = "#ffffff";
+    if(type==='cone') color = "#e67e22";
+    if(type==='pica' || type==='ladder') color = "#f1c40f";
+    if(type==='valla') color = "#e74c3c";
+    steps[curStep].push({ id, type, x: 150, y: 150, rot: 0, scale: 1, color: color });
     activeId = id; render();
 }
+
 function createVector(sub) {
     saveState();
     const id = Date.now();
-    steps[curStep].push({ id, type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: memory.vector.color, weight: 3, arrow: true, lineType: memory.vector.lineType });
+    steps[curStep].push({ id, type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: "#000000", weight: 3, arrow: true, lineType: "solid" });
     activeId = id; render();
 }
+
 function createZone(sub) {
     saveState();
     const id = Date.now();
-    steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: memory.zone.color });
+    steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: "#ffa500" });
     activeId = id; render();
 }
+
 function duplicateActive() {
     if(!activeId) return;
     saveState();
@@ -208,7 +191,7 @@ function drawPhysical(el) {
         div.classList.add(el.type);
         if(el.type === 'cone') div.style.borderBottomColor = el.color;
         else if (el.type === 'pica') div.style.backgroundColor = el.color;
-        else div.style.borderColor = el.color; 
+        else if (el.type === 'valla') div.style.borderColor = el.color; 
         div.style.color = el.color;
     }
     div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
@@ -237,11 +220,8 @@ function drawZone(el) {
     const div = document.createElement('div');
     div.className = `zone ${el.sub==='fill'?'zone-fill':'zone-line'} ${activeId === el.id ? 'selected' : ''}`;
     div.dataset.id = el.id;
-    // FIJACIÓN DE PROPIEDADES DIRECTAS
-    div.style.left = el.x + 'px';
-    div.style.top = el.y + 'px';
-    div.style.width = el.w + 'px';
-    div.style.height = el.h + 'px';
+    div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
+    div.style.width = el.w + 'px'; div.style.height = el.h + 'px';
     div.style.borderColor = el.color;
     if(el.sub === 'fill') div.style.backgroundColor = el.color + '66';
     fMaster.appendChild(div);
@@ -261,17 +241,18 @@ fMaster.addEventListener('touchstart', (e) => {
         pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     }
 }, {passive: false});
+
 fMaster.addEventListener('touchmove', (e) => {
     if(pinchDist > 0 && e.touches.length === 2) {
         const el = steps[curStep].find(o=>o.id === activeId);
         if(el) {
             const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
             el.scale *= (dist / pinchDist); pinchDist = dist;
-            if(el.type.startsWith('p-')) memory.player.scale = el.scale; else memory.material.scale = el.scale;
             render();
         }
     }
 }, {passive: false});
+
 fMaster.addEventListener('touchend', () => pinchDist = 0);
 
 function toggleFullScreen() {
@@ -281,7 +262,7 @@ function toggleFullScreen() {
 
 function modifyProp(p, v) { 
     saveState();
-    const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; if(el.type.startsWith('p-')) memory.player[p]=v; else if(el.type==='vec') memory.vector[p]=v; else if(el.type==='zone') memory.zone[p]=v; else memory.material[p]=v; render(); }
+    const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); }
 }
 
 function updateInspector() { 
@@ -310,7 +291,6 @@ function exportStepPNG() {
 async function runAnimation() {
     if (steps.length < 2) return;
     isPlaying = true; deselect();
-
     for (let i = 0; i < steps.length - 1; i++) {
         await new Promise(res => {
             let start = null; const f1 = steps[i], f2 = steps[i + 1];
@@ -325,8 +305,7 @@ async function runAnimation() {
                         return;
                     }
                     const div = document.createElement('div');
-                    div.className = `object ${o.type}`;
-                    if (o.type.startsWith('p-')) div.classList.add('player');
+                    div.className = `object ${o.type} player`;
                     const x = o.x + (target.x - o.x) * p;
                     const y = o.y + (target.y - o.y) * p;
                     const r = o.rot + (target.rot - o.rot) * p;
@@ -334,7 +313,7 @@ async function runAnimation() {
                     if (o.type.startsWith('p-')) {
                         div.style.background = teamColors[o.type]; div.innerText = o.num;
                     } else if (o.type === 'ball') {
-                        div.innerText = '⚽'; div.style.fontSize = '18px';
+                        div.innerText = '⚽'; div.style.fontSize = '18px'; div.classList.remove('player');
                     }
                     div.style.left = x + 'px'; div.style.top = y + 'px';
                     div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`;
