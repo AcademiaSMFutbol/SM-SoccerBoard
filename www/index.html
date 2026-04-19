@@ -2,140 +2,115 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SoccerBoard Pro - Multi-Campo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SoccerBoard Pro - Precision Edition</title>
     <style>
-        :root { 
-            --panel: #1e272e; 
-            --accent: #3498db; 
-            --top: #161d23; 
-            --bg-field: #27ae60;
+        :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --bg-field: #27ae60; }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: #000; position: fixed;
+            font-family: sans-serif; touch-action: none;
         }
-        
-        body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        /* Bloqueo Horizontal */
-        @media screen and (orientation: portrait) { #rotate-msg { display: flex !important; } }
-        #rotate-msg { display: none; position: fixed; inset: 0; background: var(--panel); z-index: 2000; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; }
 
-        /* Estructura */
-        #top-bar { height: 60px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 2px solid #000; box-sizing: border-box; }
-        #main { display: flex; height: calc(100vh - 60px); width: 100%; }
-        
-        /* Barra Lateral */
-        #sidebar { width: 80px; background: var(--panel); overflow-y: auto; display: flex; flex-direction: column; border-right: 1px solid #000; flex-shrink: 0; }
-        .tool-label { font-size: 9px; color: #84817a; text-align: center; margin-top: 10px; text-transform: uppercase; font-weight: bold; }
-        .tool { width: 50px; height: 50px; margin: 8px auto; border-radius: 10px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; }
+        #top-bar { 
+            height: 50px; background: var(--top); display: flex; 
+            align-items: center; justify-content: space-between; 
+            padding: 0 10px; z-index: 100;
+        }
 
-        /* Escenario */
+        #main { display: flex; height: calc(100% - 50px); width: 100%; }
+        
+        #sidebar { 
+            width: 70px; background: var(--panel); display: flex; 
+            flex-direction: column; border-right: 1px solid #000; overflow-y: auto;
+        }
+
+        .tool { 
+            width: 45px; height: 45px; margin: 8px auto; border-radius: 8px; 
+            border: 1px solid #3d3d3d; background: #2d3436; color: white; 
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+
         #field-container { 
-            flex: 1; 
-            position: relative; 
-            background-color: var(--bg-field);
-            background-repeat: no-repeat;
-            background-size: contain; 
-            background-position: center;
-            overflow: hidden;
-            box-shadow: inset 0 0 100px rgba(0,0,0,0.2);
+            flex: 1; position: relative; background-color: var(--bg-field);
+            background-repeat: no-repeat; background-size: contain; 
+            background-position: center; overflow: hidden;
         }
 
-        /* Objetos (Jugadores/Balón) */
         .object {
-            position: absolute;
-            width: 42px; height: 42px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 15px;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.4);
-            cursor: move;
-            touch-action: none;
-            user-select: none;
-            border: 2.5px solid white;
-            z-index: 10;
+            position: absolute; width: 40px; height: 40px;
+            border-radius: 50%; display: flex; align-items: center; 
+            justify-content: center; font-weight: bold; font-size: 14px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4); border: 2px solid white;
+            z-index: 10; color: white; transform-origin: center center;
         }
 
-        /* Indicador Dirección (Rotación de 8) */
-        .object::before {
-            content: '';
-            position: absolute; top: -12px;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            border-bottom: 10px solid white;
+        /* Indicador de rotación */
+        .object::after {
+            content: ''; position: absolute; top: -10px;
+            border-left: 5px solid transparent; border-right: 5px solid transparent;
+            border-bottom: 8px solid white;
         }
 
-        .selected { border: 3px solid yellow !important; z-index: 20; }
+        .selected { border: 3px solid yellow !important; box-shadow: 0 0 15px yellow; }
 
         /* Panel Configuración */
         #config-panel { 
-            position: absolute; top: 0; right: -300px; width: 280px; height: 100%; 
-            background: var(--panel); border-left: 2px solid #000; transition: 0.3s; 
-            z-index: 500; padding: 20px; box-sizing: border-box; color: white;
+            position: absolute; top: 0; right: -280px; width: 260px; height: 100%; 
+            background: var(--panel); border-left: 2px solid #000; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 500; padding: 20px; color: white;
         }
         #config-panel.open { right: 0; }
-        .setting-group { margin-bottom: 20px; border-bottom: 1px solid #3d3d3d; padding-bottom: 15px; }
-        .setting-group label { display: block; margin-bottom: 8px; color: var(--accent); font-weight: bold; font-size: 13px; }
+        
+        .setting-group { margin-bottom: 20px; }
+        .setting-group label { display: block; margin-bottom: 8px; color: var(--accent); font-size: 12px; font-weight: bold; }
         
         select, input[type="range"] { width: 100%; background: #2d3436; color: white; border: 1px solid #3d3d3d; padding: 8px; border-radius: 5px; }
 
-        /* Botones UI */
-        .btn { background: #2d3436; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
-        .btn-accent { background: var(--accent); }
+        .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
     </style>
 </head>
 <body>
 
-<div id="rotate-msg">
-    <div style="font-size: 50px;">🔄</div>
-    <p>Por favor, gira tu dispositivo<br>para usar la pizarra táctica.</p>
-</div>
-
 <div id="top-bar">
-    <div style="display: flex; gap: 8px; align-items: center;">
+    <div style="display: flex; gap: 5px;">
         <button class="btn" onclick="navFrame(-1)">◀</button>
-        <span id="label-step" style="min-width: 60px; text-align: center; font-weight: bold;">PASO 1/1</span>
+        <span id="label-step" style="color:white; font-size:12px; padding: 5px;">1/1</span>
         <button class="btn" onclick="navFrame(1)">▶</button>
-        <button class="btn btn-accent" onclick="addFrame()">+ PASO</button>
+        <button class="btn" style="background:var(--accent)" onclick="addFrame()">+</button>
     </div>
-    <div style="display: flex; gap: 8px;">
-        <button class="btn" style="background:#e67e22" onclick="save()">EXPORTAR PNG</button>
-        <button class="btn" onclick="toggleSettings()">⚙️ AJUSTES</button>
-        <button class="btn" style="background:#e74c3c" onclick="resetApp()">RESET</button>
-    </div>
+    <button class="btn" id="btn-settings" onclick="toggleSettings(event)">⚙️ AJUSTES</button>
 </div>
 
 <div id="main">
     <div id="sidebar">
-        <div class="tool-label">Locales</div>
         <div class="tool" onclick="createObj('p-red')" style="background:#ff4757">1</div>
-        <div class="tool-label">Visitantes</div>
         <div class="tool" onclick="createObj('p-blue')" style="background:#2e86de">1</div>
-        <div class="tool-label">Especial</div>
         <div class="tool" onclick="createObj('p-yellow')" style="background:#f1c40f; color:black">1</div>
         <div class="tool" onclick="createObj('ball')">⚽</div>
-        <div class="tool" onclick="createObj('cone')" style="background:#e67e22; color:white; font-size:14px;">▲</div>
     </div>
     
-    <div id="field-container" id="field">
+    <div id="field-container" onclick="closeSettings()">
         </div>
 
-    <div id="config-panel">
-        <h3>Ajustes de Pizarra</h3>
-        
+    <div id="config-panel" onclick="event.stopPropagation()">
+        <h3>Ajustes</h3>
         <div class="setting-group">
-            <label>TIPO DE CAMPO</label>
+            <label>FONDO DEL CAMPO</label>
             <select id="bgSelect" onchange="updateBackground()">
                 <option value="campoentero.png">Campo Entero</option>
                 <option value="mediocampo.png">Medio Campo</option>
-                <option value="campoejercicio.png">Campo de Ejercicio</option>
+                <option value="campoejercicio.png">Campo Ejercicio</option>
             </select>
         </div>
-
         <div class="setting-group">
-            <label>TAMAÑO JUGADORES</label>
-            <input type="range" id="sizeRange" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateScales()">
+            <label>TAMAÑO GENERAL</label>
+            <input type="range" id="sizeRange" min="0.5" max="1.8" step="0.1" value="1.0" oninput="render()">
         </div>
-
-        <button class="btn" style="width: 100%;" onclick="toggleSettings()">CERRAR</button>
+        <button class="btn" style="width: 100%; background:#e74c3c" onclick="toggleSettings(event)">CERRAR PANEL</button>
     </div>
 </div>
 
@@ -143,30 +118,29 @@
     let frames = [ [] ];
     let curF = 0;
     let selId = null;
+    let isDragging = false;
+    let lastTouchTime = 0;
 
-    // Actualizar fondo
     function updateBackground() {
         const bg = document.getElementById('bgSelect').value;
         document.getElementById('field-container').style.backgroundImage = `url('${bg}')`;
     }
 
-    function toggleSettings() {
+    function toggleSettings(e) {
+        e.stopPropagation();
         document.getElementById('config-panel').classList.toggle('open');
+    }
+
+    function closeSettings() {
+        document.getElementById('config-panel').classList.remove('open');
     }
 
     function createObj(type) {
         const id = Date.now();
-        const obj = {
-            id, type, 
-            x: 150, y: 150, 
-            rot: 0, 
-            num: frames[curF].filter(o => o.type === type).length + 1
-        };
+        const obj = { id, type, x: 100, y: 100, rot: 0, num: frames[curF].filter(o => o.type === type).length + 1 };
         frames[curF].push(obj);
         render();
     }
-
-    function updateScales() { render(); }
 
     function render() {
         const container = document.getElementById('field-container');
@@ -177,58 +151,71 @@
             const div = document.createElement('div');
             div.className = `object ${selId === el.id ? 'selected' : ''}`;
             
-            // Estilos por tipo
             if(el.type === 'p-red') div.style.background = '#ff4757';
-            if(el.type === 'p-blue') div.style.background = '#2e86de';
-            if(el.type === 'p-yellow') { div.style.background = '#f1c40f'; div.style.color = 'black'; }
-            if(el.type === 'ball') { div.style.background = 'white'; div.style.color = 'black'; div.innerText = '⚽'; div.style.fontSize = '20px'; }
-            else if(el.type === 'cone') { div.style.background = '#e67e22'; div.innerText = '▲'; }
+            else if(el.type === 'p-blue') div.style.background = '#2e86de';
+            else if(el.type === 'p-yellow') { div.style.background = '#f1c40f'; div.style.color = 'black'; }
+            else if(el.type === 'ball') { div.style.background = 'white'; div.style.color = 'black'; div.innerText = '⚽'; }
             else { div.innerText = el.num; }
 
-            // Aplicar Transformación
-            div.style.left = el.x + 'px';
-            div.style.top = el.y + 'px';
+            div.style.left = `${el.x}px`;
+            div.style.top = `${el.y}px`;
             div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${globalScale})`;
 
-            // Eventos
             div.addEventListener('touchstart', (e) => handleStart(e, el.id), {passive: false});
             div.addEventListener('mousedown', (e) => handleStart(e, el.id));
 
             container.appendChild(div);
         });
-        document.getElementById('label-step').innerText = `PASO ${curF+1}/${frames.length}`;
+        document.getElementById('label-step').innerText = `${curF+1}/${frames.length}`;
     }
 
     function handleStart(e, id) {
         e.preventDefault();
-        const isTouch = e.type === 'touchstart';
+        e.stopPropagation();
         
-        // Rotación de 8: Si ya está seleccionado, rotar 45 grados
-        if(selId === id) {
-            const el = frames[curF].find(o => o.id === id);
-            el.rot = (el.rot + 45) % 360;
+        const now = Date.now();
+        const el = frames[curF].find(o => o.id === id);
+        
+        // Lógica de Rotación: Si ya está seleccionado y es un toque rápido (no arrastre)
+        if (selId === id && (now - lastTouchTime < 300)) {
+            // No hacemos nada aquí, esperamos al 'touchend' para confirmar que no hubo movimiento
         }
+
         selId = id;
-        
+        isDragging = false;
+        render();
+
         const move = (me) => {
+            isDragging = true;
             const clientX = me.touches ? me.touches[0].clientX : me.clientX;
             const clientY = me.touches ? me.touches[0].clientY : me.clientY;
-            const el = frames[curF].find(o => o.id === id);
             const rect = document.getElementById('field-container').getBoundingClientRect();
             
             el.x = clientX - rect.left;
             el.y = clientY - rect.top;
-            render();
+            
+            // Actualización optimizada (sin recrear todo el DOM para fluidez)
+            const div = e.target.closest('.object');
+            div.style.left = `${el.x}px`;
+            div.style.top = `${el.y}px`;
         };
 
         const stop = () => {
-            window.removeEventListener(isTouch ? 'touchmove' : 'mousemove', move);
-            window.removeEventListener(isTouch ? 'touchend' : 'mouseup', stop);
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('touchmove', move);
+            
+            // Si NO se arrastró, rotamos
+            if (!isDragging) {
+                el.rot = (el.rot + 45) % 360;
+                render();
+            }
+            lastTouchTime = Date.now();
         };
 
-        window.addEventListener(isTouch ? 'touchmove' : 'mousemove', move, {passive: false});
-        window.addEventListener(isTouch ? 'touchend' : 'mouseup', stop);
-        render();
+        window.addEventListener('mousemove', move);
+        window.addEventListener('touchmove', move, {passive: false});
+        window.addEventListener('mouseup', stop, {once: true});
+        window.addEventListener('touchend', stop, {once: true});
     }
 
     function addFrame() {
@@ -242,13 +229,6 @@
         render();
     }
 
-    function resetApp() {
-        if(confirm("¿Seguro que quieres borrar toda la táctica?")) {
-            location.reload();
-        }
-    }
-
-    // Inicializar
     window.onload = () => {
         updateBackground();
         render();
