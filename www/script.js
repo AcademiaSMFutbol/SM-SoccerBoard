@@ -15,22 +15,11 @@ const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
 const svg = document.getElementById('svg-layer');
 
-// --- SISTEMA DE FULLSCREEN ---
-function setForceFS(val) {
-    forceFS = val;
-    if(val) requestFS();
-}
+// --- PANTALLA COMPLETA ---
+function setForceFS(val) { forceFS = val; if(val) requestFS(); }
+function requestFS() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(() => {}); } }
 
-function requestFS() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-    }
-}
-
-// Reintento de FS en cualquier interacción si está forzado
-document.addEventListener('pointerdown', () => {
-    if(forceFS) requestFS();
-});
+document.addEventListener('pointerdown', () => { if(forceFS) requestFS(); });
 
 function saveState() {
     if (history.length > 30) history.shift();
@@ -44,7 +33,7 @@ function undo() {
     render();
 }
 
-// --- MODALES INTERNOS (ADIÓS PROMPTS) ---
+// --- MODALES (RESET / TEXTO) ---
 function openResetMenu() { document.getElementById('reset-modal').style.display = 'flex'; }
 function closeResetMenu() { document.getElementById('reset-modal').style.display = 'none'; }
 function resetAction(type) {
@@ -89,6 +78,7 @@ function resizeField() {
     const vw = viewport.clientWidth, vh = viewport.clientHeight;
     let sX = vw / 1050, sY = vh / 680;
     const diff = Math.abs(sX - sY) / Math.min(sX, sY);
+    // Escalado que rellena pantalla pero no corta
     let finalX = (diff < 0.2) ? sX : Math.min(sX, sY);
     let finalY = (diff < 0.2) ? sY : Math.min(sX, sY);
     fMaster.style.transform = `scale(${finalX}, ${finalY})`;
@@ -117,9 +107,7 @@ function handleGlobalDown(e) {
 
     if(activeId) {
         const el = steps[curStep].find(o => o.id === activeId);
-        if(el.type === 'zone' && el.locked && !e.target.closest('.node')) {
-            dragInfo = null; return;
-        }
+        if(el.type === 'zone' && el.locked && !e.target.closest('.node')) { dragInfo = null; return; }
         const rect = fMaster.getBoundingClientRect();
         dragInfo = { el, nx: (hit && hit.dataset.nx) || 'x', ny: (hit && hit.dataset.ny) || 'y', 
             isZS: hit && hit.classList.contains('node-zs'),
@@ -136,72 +124,56 @@ function handleGlobalMove(e) {
     if (Math.hypot(dx, dy) > 0.5) dragInfo.moved = true;
     if (!dragInfo.moved) return;
 
-    if(dragInfo.isZS) {
-        dragInfo.el.w = Math.max(30, dragInfo.el.w + dx); 
-        dragInfo.el.h = Math.max(30, dragInfo.el.h + dy);
-    } else if(dragInfo.el.type === 'vec' && dragInfo.nx === 'x') {
+    if(dragInfo.isZS) { dragInfo.el.w = Math.max(30, dragInfo.el.w + dx); dragInfo.el.h = Math.max(30, dragInfo.el.h + dy); }
+    else if(dragInfo.el.type === 'vec' && dragInfo.nx === 'x') {
         ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
         ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
-    } else {
-        dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy;
-    }
+    } else { dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy; }
     dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY; render();
 }
 
 function handleGlobalEnd() {
     if(dragInfo && !dragInfo.moved) {
         history.pop(); 
-        if(wasSelectedBefore && !['zone','vec','text'].includes(dragInfo.el.type)) {
-            dragInfo.el.rot = (dragInfo.el.rot + 45) % 360;
-        }
+        if(wasSelectedBefore && !['zone','vec','text'].includes(dragInfo.el.type)) { dragInfo.el.rot = (dragInfo.el.rot + 45) % 360; }
     }
     dragInfo = null; render();
 }
 
 function createPlayer(type) {
-    saveState();
-    const id = Date.now();
+    saveState(); const id = Date.now();
     steps[curStep].push({ id, type, x: 100, y: 100, rot: 0, scale: 1, color: teamColors[type], num: steps[curStep].filter(o=>o.type===type).length+1 });
     activeId = id; render();
 }
 
 function createItem(type) {
-    saveState();
-    const id = Date.now();
+    saveState(); const id = Date.now();
     let color = "#ffffff";
-    if(type==='cone') color = "#e67e22";
-    if(type==='pica' || type==='ladder') color = "#f1c40f";
-    if(type==='valla') color = "#e74c3c";
+    if(type==='cone') color = "#e67e22"; if(type==='pica' || type==='ladder') color = "#f1c40f"; if(type==='valla') color = "#e74c3c";
     steps[curStep].push({ id, type, x: 150, y: 150, rot: 0, scale: 1, color: color });
     activeId = id; render();
 }
 
 function createVector(sub) {
-    saveState();
-    const id = Date.now();
+    saveState(); const id = Date.now();
     steps[curStep].push({ id, type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: "#000000", weight: 3, arrow: true, lineType: "solid" });
     activeId = id; render();
 }
 
 function createZone(sub) {
-    saveState();
-    const id = Date.now();
+    saveState(); const id = Date.now();
     steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: "#ffa500", locked: false });
     activeId = id; render();
 }
 
 function toggleZoneLock() {
     const el = steps[curStep].find(o => o.id === activeId);
-    if(el && el.type === 'zone') {
-        saveState();
-        el.locked = !el.locked; render();
-    }
+    if(el && el.type === 'zone') { saveState(); el.locked = !el.locked; render(); }
 }
 
 function duplicateActive() {
     if(!activeId) return;
-    saveState();
-    const target = steps[curStep].find(o => o.id === activeId);
+    saveState(); const target = steps[curStep].find(o => o.id === activeId);
     const clone = JSON.parse(JSON.stringify(target));
     clone.id = Date.now(); clone.x += 40; clone.y += 40;
     if(clone.num) clone.num = steps[curStep].filter(o=>o.type===clone.type).length + 1;
@@ -212,11 +184,9 @@ function drawPhysical(el) {
     const div = document.createElement('div');
     div.className = `object ${el.type} ${activeId === el.id ? 'selected' : ''}`;
     div.dataset.id = el.id;
-    if(el.type.startsWith('p-')) {
-        div.style.background = teamColors[el.type]; div.innerText = el.num; div.classList.add('player');
-    } else if(el.type === 'ball') {
-        div.innerText = '⚽'; div.style.fontSize = '18px';
-    } else {
+    if(el.type.startsWith('p-')) { div.style.background = teamColors[el.type]; div.innerText = el.num; div.classList.add('player'); }
+    else if(el.type === 'ball') { div.innerText = '⚽'; div.style.fontSize = '18px'; }
+    else {
         div.classList.add(el.type);
         if(el.type === 'cone') div.style.borderBottomColor = el.color;
         else if (el.type === 'pica') div.style.backgroundColor = el.color;
@@ -224,17 +194,14 @@ function drawPhysical(el) {
         div.style.color = el.color;
     }
     div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
-    div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${el.scale})`;
-    fMaster.appendChild(div);
+    div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${el.scale})`; fMaster.appendChild(div);
 }
 
 function drawText(el) {
-    const div = document.createElement('div');
-    div.className = `object text-item ${activeId === el.id ? 'selected' : ''}`;
+    const div = document.createElement('div'); div.className = `object text-item ${activeId === el.id ? 'selected' : ''}`;
     div.dataset.id = el.id; div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
     div.style.color = el.color; div.innerText = el.content;
-    div.style.transform = `translate(-50%, -50%) scale(${el.scale})`;
-    fMaster.appendChild(div);
+    div.style.transform = `translate(-50%, -50%) scale(${el.scale})`; fMaster.appendChild(div);
 }
 
 function drawVector(el) {
@@ -266,8 +233,7 @@ function drawZone(el) {
 function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
     const node = document.createElement('div'); node.className = `node ${isZS?'node-zs':''}`; 
     node.style.left = fx+'px'; node.style.top = fy+'px'; node.dataset.id = el.id; node.dataset.nx = nx; node.dataset.ny = ny;
-    node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`;
-    fMaster.appendChild(node);
+    node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`; fMaster.appendChild(node);
 }
 
 fMaster.addEventListener('touchstart', (e) => {
@@ -279,23 +245,13 @@ fMaster.addEventListener('touchstart', (e) => {
 fMaster.addEventListener('touchmove', (e) => {
     if(pinchDist > 0 && e.touches.length === 2) {
         const el = steps[curStep].find(o=>o.id === activeId);
-        if(el) {
-            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-            el.scale *= (dist / pinchDist); pinchDist = dist; render();
-        }
+        if(el) { const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); el.scale *= (dist / pinchDist); pinchDist = dist; render(); }
     }
 }, {passive: false});
 
 fMaster.addEventListener('touchend', () => pinchDist = 0);
 
-function toggleFullScreen() {
-    if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } 
-    else { document.exitFullscreen(); }
-}
-
-function modifyProp(p, v) { 
-    saveState(); const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); }
-}
+function modifyProp(p, v) { saveState(); const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); } }
 
 function updateInspector() { 
     const ins = document.getElementById('top-inspector'); 
@@ -306,18 +262,10 @@ function updateInspector() {
     ins.style.display = 'flex'; 
     document.getElementById('ins-color').value = el.color || '#ffffff';
     document.getElementById('ins-vec-extras').style.display = (el.type==='vec')?'flex':'none'; 
-    
-    // UI según tipo
     textBox.style.display = (el.type === 'text') ? 'flex' : 'none';
     if(el.type === 'text') document.getElementById('ins-text-val').value = el.content;
-    
     zoneLock.style.display = (el.type === 'zone') ? 'flex' : 'none';
     if(el.type === 'zone') document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR" : "🔒 BLOQUEAR";
-
-    if(el.type==='vec') {
-        document.getElementById('ins-line-type').value = el.lineType || 'solid';
-        document.getElementById('ins-arrow').checked = el.arrow;
-    }
 }
 
 function exportStepPNG() {
