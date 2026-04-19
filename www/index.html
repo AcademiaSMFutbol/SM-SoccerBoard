@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v24 - Auditoría Senior</title>
+    <title>SoccerBoard Pro v25</title>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         :root { --panel: #1e272e; --accent: #3498db; --top: #12171b; --grass: #27ae60; --danger: #e74c3c; --edit: #f39c12; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
+        
+        /* Uso de dvh para evitar cortes en móviles */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100dvh; overflow: hidden; background: #000; font-family: sans-serif; }
 
-        #app-root { display: flex; flex-direction: column; width: 100vw; height: 100vh; }
+        #app-root { display: flex; flex-direction: column; width: 100vw; height: 100dvh; }
         
         #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 2000; border-bottom: 1px solid #333; flex-shrink: 0; }
         
-        /* INSPECTOR FLOTANTE (Overlay) */
         #top-inspector { 
             position: absolute; top: 50px; left: 0; width: 100%; height: 48px; 
-            background: rgba(18, 23, 27, 0.95); display: none; 
+            background: rgba(18, 23, 27, 0.98); display: none; 
             align-items: center; justify-content: center; gap: 12px; 
             border-bottom: 2px solid var(--edit); z-index: 1500; backdrop-filter: blur(10px);
         }
@@ -26,18 +27,18 @@
         #sidebar { width: 65px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 100; scrollbar-width: none; }
         
         .tool { width: 42px; height: 42px; margin: 6px auto; border-radius: 10px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; flex-shrink: 0; }
-        .cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 10px 0 2px; text-transform: uppercase; font-weight: 800; }
+        .cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 8px 0 2px; text-transform: uppercase; font-weight: 800; }
 
-        /* VIEWPORT QUE ASEGURA CAMPO COMPLETO */
-        #viewport { flex: 1; background: #0a0a0a; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; touch-action: none; padding: 10px; }
+        #viewport { flex: 1; background: #0a0a0a; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; touch-action: none; padding: 5px; }
         
+        /* CAMPO AUTOSCALE SEGURO */
         #field-master { 
             position: relative; 
-            width: 100%; height: 100%;
-            max-width: 1100px; max-height: 700px;
+            width: 1050px; height: 680px;
             background: var(--grass) url('campoentero.png') no-repeat center / contain;
             box-shadow: 0 0 50px rgba(0,0,0,0.8); overflow: hidden;
-            aspect-ratio: 1050 / 680;
+            transform-origin: center center;
+            flex-shrink: 0;
         }
 
         .object { position: absolute; z-index: 100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
@@ -47,14 +48,11 @@
 
         .cone { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 24px solid; }
         .valla { width: 44px; height: 20px; border: 4px solid; border-bottom: none !important; border-radius: 5px 5px 0 0; }
-        .ladder { width: 120px; height: 35px; border: 2px solid; background: repeating-linear-gradient(90deg, transparent, transparent 18px, currentColor 18px, currentColor 20px); }
-
-        .zone { position: absolute; z-index: 10; transform: translate(0,0); border-width: 3px; }
-        #svg-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
-        .vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 35; fill: none; }
         
+        #svg-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+        .vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 40; fill: none; }
         .node { position: absolute; width: 40px; height: 40px; z-index: 1100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
-        .node-in { width: 14px; height: 14px; background: white; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 5px black; }
+        .node-in { width: 14px; height: 14px; background: white; border: 2px solid var(--accent); border-radius: 50%; }
 
         .btn { background: #2d3436; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; }
     </style>
@@ -63,13 +61,14 @@
 
 <div id="app-root">
     <div id="top-bar">
-        <div style="display: flex; gap: 6px; align-items: center;">
+        <div style="display: flex; gap: 5px;">
+            <button class="btn" onclick="toggleFullScreen()">⛶</button>
             <button class="btn" onclick="navStep(-1)">◀</button>
             <span id="step-label" style="font-weight: 800; min-width: 35px; text-align: center; color: var(--accent);">1/1</span>
             <button class="btn" onclick="navStep(1)">▶</button>
             <button class="btn" style="background:var(--accent)" onclick="addStep()">+ PASO</button>
         </div>
-        <div style="display: flex; gap: 6px;">
+        <div style="display: flex; gap: 5px;">
             <button class="btn" style="background:#2ecc71" onclick="runAnimation()">▶ PLAY</button>
             <button class="btn" onclick="exportStepPNG()" style="background:#e67e22">💾 PNG</button>
             <button class="btn" style="background:var(--danger)" onclick="removeActive()">🗑️</button>
@@ -98,15 +97,13 @@
             <div class="tool" onclick="createPlayer('p-green')" style="background:#2ecc71">1</div>
             <div class="cat-label">Zonas</div>
             <div class="tool" onclick="createZone('fill')">🟩</div>
-            <div class="tool" onclick="createZone('line')">⬜</div>
             <div class="cat-label">Material</div>
             <div class="tool" onclick="createItem('ball')">⚽</div>
             <div class="tool" onclick="createItem('cone')">▲</div>
             <div class="tool" onclick="createItem('valla')">⊓</div>
-            <div class="tool" onclick="createItem('ladder')">🪜</div>
         </div>
 
-        <div id="viewport" onpointerdown="handleViewportDown(event)" onpointermove="handleViewportMove(event)" onpointerup="handleViewportEnd()">
+        <div id="viewport" onpointerdown="handleGlobalDown(event)" onpointermove="handleGlobalMove(event)" onpointerup="handleGlobalEnd()" onpointerleave="handleGlobalEnd()">
             <div id="field-master">
                 <svg id="svg-layer">
                     <defs><marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" /></marker></defs>
@@ -123,16 +120,25 @@
     let dragInfo = null;
     let pinchDist = 0;
     
-    // ADN de Objetos (Herencia de propiedades)
-    let dna = {
+    let memory = {
         player: { rot: 0, scale: 1 },
         material: { rot: 0, scale: 1, color: "#ffffff" },
         vector: { color: "#ffffff", weight: 3, arrow: true },
         zone: { color: "#ffa500", w: 150, h: 100 }
     };
 
+    const viewport = document.getElementById('viewport');
     const fMaster = document.getElementById('field-master');
     const svg = document.getElementById('svg-layer');
+
+    function resizeField() {
+        const vw = viewport.clientWidth - 20;
+        const vh = viewport.clientHeight - 20;
+        const scale = Math.min(vw / 1050, vh / 680);
+        fMaster.style.transform = `scale(${scale})`;
+    }
+    window.addEventListener('resize', resizeField);
+    setTimeout(resizeField, 100);
 
     function render() {
         Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
@@ -146,65 +152,63 @@
         updateInspector();
     }
 
-    // --- GESTIÓN DE EVENTOS MAESTRA (Modo Trackpad) ---
-    function handleViewportDown(e) {
-        if(isPlaying) return;
-        
-        // ¿Estamos tocando un objeto o nodo directamente?
-        const hitObject = e.target.closest('.object, .vec-hit, .zone, .node');
-        
-        if(hitObject && hitObject.dataset.id) {
-            activeId = Number(hitObject.dataset.id);
-            const el = steps[curStep].find(o => o.id === activeId);
-            
-            const rect = fMaster.getBoundingClientRect();
-            const zoom = rect.width / fMaster.offsetWidth;
-
-            dragInfo = { 
-                el, 
-                nx: hitObject.dataset.nx || 'x', 
-                ny: hitObject.dataset.ny || 'y', 
-                isZS: hitObject.classList.contains('node-zs'),
-                moved: false, 
-                lastX: e.clientX, 
-                lastY: e.clientY, 
-                zoom 
-            };
-            render();
-        } else if(activeId) {
-            // Si hay algo seleccionado, permitimos moverlo desde el fondo (Trackpad)
-            const el = steps[curStep].find(o => o.id === activeId);
-            const rect = fMaster.getBoundingClientRect();
-            dragInfo = { el, nx:'x', ny:'y', moved:false, lastX:e.clientX, lastY:e.clientY, zoom: rect.width / fMaster.offsetWidth };
+    // --- FULLSCREEN ---
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(e => {
+                alert(`Error al intentar pantalla completa: ${e.message}`);
+            });
+        } else {
+            document.exitFullscreen();
         }
     }
 
-    function handleViewportMove(e) {
+    // --- MOVIMIENTO REMOTO MEJORADO ---
+    function handleGlobalDown(e) {
+        if(isPlaying) return;
+        const hit = e.target.closest('.object, .vec-hit, .zone, .node');
+        if(hit && hit.dataset.id) {
+            activeId = Number(hit.dataset.id);
+        }
+        
+        if(activeId) {
+            const el = steps[curStep].find(o => o.id === activeId);
+            const rect = fMaster.getBoundingClientRect();
+            dragInfo = { 
+                el, 
+                nx: (hit && hit.dataset.nx) || 'x', 
+                ny: (hit && hit.dataset.ny) || 'y', 
+                isZS: hit && hit.classList.contains('node-zs'),
+                moved: false, lastX: e.clientX, lastY: e.clientY, 
+                zoom: rect.width / 1050 
+            };
+            render();
+        }
+    }
+
+    function handleGlobalMove(e) {
         if(!dragInfo || pinchDist > 0) return;
         dragInfo.moved = true;
         const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoom;
         const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoom;
 
         if(dragInfo.isZS) {
-            dragInfo.el.w = Math.max(30, dragInfo.el.w + dx);
-            dragInfo.el.h = Math.max(30, dragInfo.el.h + dy);
-            dna.zone.w = dragInfo.el.w; dna.zone.h = dragInfo.el.h;
+            dragInfo.el.w = Math.max(30, dragInfo.el.w + dx); dragInfo.el.h = Math.max(30, dragInfo.el.h + dy);
         } else if(dragInfo.el.type === 'vec' && dragInfo.nx === 'x') {
             ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
             ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
         } else {
-            dragInfo.el[dragInfo.nx] += dx;
-            dragInfo.el[dragInfo.ny] += dy;
+            dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy;
         }
         dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY;
         render();
     }
 
-    function handleViewportEnd() {
+    function handleGlobalEnd() {
         if(dragInfo && !dragInfo.moved && dragInfo.nx === 'x' && !['zone','vec'].includes(dragInfo.el.type)) {
             dragInfo.el.rot = (dragInfo.el.rot + 45) % 360; 
-            if(dragInfo.el.type.startsWith('p-')) dna.player.rot = dragInfo.el.rot;
-            else dna.material.rot = dragInfo.el.rot;
+            if(dragInfo.el.type.startsWith('p-')) memory.player.rot = dragInfo.el.rot;
+            else memory.material.rot = dragInfo.el.rot;
         }
         dragInfo = null; render();
     }
@@ -212,34 +216,33 @@
     // --- CREACIÓN ---
     function createPlayer(type) {
         const id = Date.now();
-        steps[curStep].push({ id, type, x: 100, y: 100, rot: dna.player.rot, scale: dna.player.scale, num: steps[curStep].filter(o=>o.type===type).length+1 });
+        steps[curStep].push({ id, type, x: 100, y: 100, rot: memory.player.rot, scale: memory.player.scale, num: steps[curStep].filter(o=>o.type===type).length+1 });
         activeId = id; render();
     }
     function createItem(type) {
         const id = Date.now();
-        steps[curStep].push({ id, type, x: 150, y: 150, rot: dna.material.rot, scale: dna.material.scale, color: (type==='cone' && dna.material.color==='#ffffff' ? '#e67e22' : dna.material.color) });
+        steps[curStep].push({ id, type, x: 150, y: 150, rot: memory.material.rot, scale: memory.material.scale, color: (type==='cone'?'#e67e22':memory.material.color) });
         activeId = id; render();
     }
     function createVector(sub) {
         const id = Date.now();
-        steps[curStep].push({ id, type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: dna.vector.color, weight: dna.vector.weight, arrow: dna.vector.arrow });
+        steps[curStep].push({ id, type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: memory.vector.color, weight: 3, arrow: true });
         activeId = id; render();
     }
     function createZone(sub) {
         const id = Date.now();
-        steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: dna.zone.w, h: dna.zone.h, color: dna.zone.color });
+        steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: memory.zone.w, h: memory.zone.h, color: memory.zone.color });
         activeId = id; render();
     }
     function duplicateActive() {
         if(!activeId) return;
         const target = steps[curStep].find(o => o.id === activeId);
         const clone = JSON.parse(JSON.stringify(target));
-        clone.id = Date.now(); clone.x += 30; clone.y += 30;
+        clone.id = Date.now(); clone.x += 40; clone.y += 40;
         if(clone.num) clone.num = steps[curStep].filter(o=>o.type===clone.type).length + 1;
         steps[curStep].push(clone); activeId = clone.id; render();
     }
 
-    // --- DIBUJO ---
     function drawPhysical(el) {
         const div = document.createElement('div');
         div.className = `object ${el.type} ${activeId === el.id ? 'selected' : ''}`;
@@ -265,7 +268,7 @@
         svg.appendChild(hit);
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("d", d); path.setAttribute("class", "v-el");
-        path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", el.weight); path.setAttribute("fill", "none");
+        path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3"); path.setAttribute("fill", "none");
         if(el.arrow) path.setAttribute("marker-end", "url(#arrow)");
         svg.appendChild(path);
         if(activeId === el.id) {
@@ -291,31 +294,28 @@
         fMaster.appendChild(node);
     }
 
-    // --- PELLIZCO (Zoom individual de cualquier objeto) ---
+    // PELLIZCO
     fMaster.addEventListener('touchstart', (e) => {
         if(e.touches.length === 2 && activeId) pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     }, {passive: false});
-
     fMaster.addEventListener('touchmove', (e) => {
         if(pinchDist > 0 && e.touches.length === 2) {
             const el = steps[curStep].find(o=>o.id === activeId);
             if(el) {
                 const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 el.scale *= (dist / pinchDist); pinchDist = dist;
-                if(el.type.startsWith('p-')) dna.player.scale = el.scale; else dna.material.scale = el.scale;
+                if(el.type.startsWith('p-')) memory.player.scale = el.scale; else memory.material.scale = el.scale;
                 render();
             }
         }
     }, {passive: false});
-
     fMaster.addEventListener('touchend', () => pinchDist = 0);
 
-    // --- UTILIDADES ---
     function modifyProp(p, v) { 
-        const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; if(el.type.startsWith('p-')) dna.player[p]=v; else if(el.type==='vec') dna.vector[p]=v; else if(el.type==='zone') dna.zone[p]=v; else dna.material[p]=v; render(); }
+        const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; if(el.type.startsWith('p-')) memory.player[p]=v; else if(el.type==='vec') memory.vector[p]=v; else if(el.type==='zone') memory.zone[p]=v; else memory.material[p]=v; render(); }
     }
     function updateInspector() { const ins = document.getElementById('top-inspector'); if(!activeId) { ins.style.display = 'none'; return; } ins.style.display = 'flex'; document.getElementById('ins-vec-extras').style.display = (steps[curStep].find(o=>o.id===activeId).type==='vec')?'flex':'none'; }
-    function exportStepPNG() { deselect(); setTimeout(() => html2canvas(fMaster, {backgroundColor:null, scale:2, useCORS:true}).then(c=>{const a=document.createElement('a');a.download=`tactica_${curStep+1}.png`;a.href=c.toDataURL();a.click();}), 100); }
+    function exportStepPNG() { deselect(); setTimeout(() => html2canvas(fMaster, {backgroundColor:null, scale:2.5, useCORS:true}).then(c=>{const a=document.createElement('a');a.download=`tactica_${curStep+1}.png`;a.href=c.toDataURL();a.click();}), 100); }
     
     let isPlaying = false;
     async function runAnimation() {
@@ -327,10 +327,10 @@
                     if(!s) s = ts; const p = Math.min((ts-s)/800, 1);
                     Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
                     f1.forEach(o => {
-                        const t = f2.find(x => x.id === o.id); if(!t || o.type==='vec' || o.type==='zone') return;
+                        const target = f2.find(x => x.id === o.id); if(!target || o.type==='vec' || o.type==='zone') return;
                         const div = document.createElement('div'); div.className=`object ${o.type}`; if(o.type.startsWith('p-')) div.classList.add('player');
-                        div.style.left=(o.x+(t.x-o.x)*p)+'px'; div.style.top=(o.y+(t.y-o.y)*p)+'px';
-                        div.style.transform=`translate(-50%,-50%) rotate(${o.rot+(t.rot-o.rot)*p}deg) scale(${o.scale})`;
+                        div.style.left=(o.x+(target.x-o.x)*p)+'px'; div.style.top=(o.y+(target.y-o.y)*p)+'px';
+                        div.style.transform=`translate(-50%,-50%) rotate(${o.rot+(target.rot-o.rot)*p}deg) scale(${o.scale})`;
                         fMaster.appendChild(div);
                     });
                     if(p < 1) requestAnimationFrame(animate); else res();
@@ -340,8 +340,8 @@
         }
         isPlaying = false; render();
     }
-    function addStep() { steps.push(JSON.parse(JSON.stringify(steps[curStep]))); curStep++; render(); }
-    function navStep(d) { curStep = Math.max(0, Math.min(steps.length-1, curStep+d)); deselect(); }
+    function addStep() { steps.push(JSON.parse(JSON.stringify(steps[curStep]))); curStep++; render(); resizeField(); }
+    function navStep(d) { curStep = Math.max(0, Math.min(steps.length-1, curStep+d)); deselect(); resizeField(); }
     function removeActive() { if(activeId) { steps[curStep] = steps[curStep].filter(o=>o.id!==activeId); deselect(); } }
     function deselect() { activeId = null; render(); }
     window.onload = render;
