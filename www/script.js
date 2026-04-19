@@ -6,7 +6,14 @@ let dragInfo = null;
 let pinchDist = 0;
 let wasSelectedBefore = false;
 let isPlaying = false;
-let animationSpeed = 800;
+let animationSpeed = 800; // Global
+
+let teamColors = {
+    'p-red': '#ff4757',
+    'p-blue': '#2e86de',
+    'p-yellow': '#f1c40f',
+    'p-green': '#2ecc71'
+};
 
 let memory = {
     player: { rot: 0, scale: 1 },
@@ -40,8 +47,34 @@ function clearField() {
     }
 }
 
+// --- CONFIGURACIÓN ---
+function toggleConfig() {
+    const modal = document.getElementById('config-modal');
+    modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+}
+
 function updateSpeed(val) {
     animationSpeed = parseInt(val);
+}
+
+function updateTeamColor(team, color) {
+    teamColors[team] = color;
+    // Actualizar icono de barra lateral
+    document.getElementById(`tool-${team}`).style.background = color;
+    // Actualizar todos los jugadores en todos los pasos
+    steps.forEach(step => {
+        step.forEach(el => { if(el.type === team) el.color = color; });
+    });
+    render();
+}
+
+function changeField(type) {
+    const images = {
+        'entero': 'campoentero.png',
+        'medio': 'mediocampo.png',
+        'ejercicio': 'campoejercicio.png'
+    };
+    fMaster.style.backgroundImage = `url('${images[type]}')`;
 }
 
 function resizeField() {
@@ -123,7 +156,7 @@ function handleGlobalEnd() {
 function createPlayer(type) {
     saveState();
     const id = Date.now();
-    steps[curStep].push({ id, type, x: 100, y: 100, rot: memory.player.rot, scale: memory.player.scale, num: steps[curStep].filter(o=>o.type===type).length+1 });
+    steps[curStep].push({ id, type, x: 100, y: 100, rot: memory.player.rot, scale: memory.player.scale, color: teamColors[type], num: steps[curStep].filter(o=>o.type===type).length+1 });
     activeId = id; render();
 }
 function createItem(type) {
@@ -159,8 +192,7 @@ function drawPhysical(el) {
     div.className = `object ${el.type} ${activeId === el.id ? 'selected' : ''}`;
     div.dataset.id = el.id;
     if(el.type.startsWith('p-')) {
-        const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f', 'p-green':'#2ecc71'};
-        div.style.background = colors[el.type]; div.innerText = el.num; div.classList.add('player');
+        div.style.background = teamColors[el.type]; div.innerText = el.num; div.classList.add('player');
     } else if(el.type === 'ball') {
         div.innerText = '⚽'; div.style.fontSize = '18px';
     } else {
@@ -245,7 +277,6 @@ function updateInspector() {
     const el = steps[curStep].find(o=>o.id===activeId);
     ins.style.display = 'flex'; 
     document.getElementById('ins-color').value = el.color || '#ffffff';
-    document.getElementById('ins-speed').value = animationSpeed;
     document.getElementById('ins-vec-extras').style.display = (el.type==='vec')?'flex':'none'; 
     if(el.type==='vec') {
         document.getElementById('ins-line-type').value = el.lineType || 'solid';
@@ -263,7 +294,7 @@ function exportStepPNG() {
     }, 150);
 }
 
-// --- ANIMACIÓN CORREGIDA (SOLO JUGADORES Y BALÓN) ---
+// --- ANIMACIÓN ---
 async function runAnimation() {
     if (steps.length < 2) return;
     isPlaying = true; deselect();
@@ -272,16 +303,16 @@ async function runAnimation() {
         await new Promise(res => {
             let start = null; const f1 = steps[i], f2 = steps[i + 1];
             function animate(ts) {
-                if (!start) start = ts; const p = Math.min((ts - start) / animationSpeed, 1);
+                if (!start) start = ts; 
+                // Usar animationSpeed global para el cálculo de progreso
+                const p = Math.min((ts - start) / animationSpeed, 1);
                 
-                // Limpiar solo los objetos animados
                 Array.from(fMaster.children).forEach(c => { if (c.id !== 'svg-layer') fMaster.removeChild(c); });
                 
                 f1.forEach(o => {
                     const target = f2.find(x => x.id === o.id);
-                    // FILTRO CRÍTICO: Solo animamos jugadores y balón
+                    // Solo animamos jugadores y balón
                     if (!target || !(o.type.startsWith('p-') || o.type === 'ball')) {
-                        // El material estático se redibuja en su posición del frame actual f1
                         if (target) drawPhysical(o);
                         return;
                     }
@@ -296,8 +327,7 @@ async function runAnimation() {
                     const s = o.scale + (target.scale - o.scale) * p;
 
                     if (o.type.startsWith('p-')) {
-                        const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f', 'p-green':'#2ecc71'};
-                        div.style.background = colors[o.type]; div.innerText = o.num;
+                        div.style.background = teamColors[o.type]; div.innerText = o.num;
                     } else if (o.type === 'ball') {
                         div.innerText = '⚽'; div.style.fontSize = '18px';
                     }
