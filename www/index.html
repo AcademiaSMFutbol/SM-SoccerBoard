@@ -3,78 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v13 - Top Inspector</title>
+    <title>SoccerBoard Pro v14</title>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         :root { --panel: #1e272e; --accent: #3498db; --top: #12171b; --grass: #27ae60; --danger: #e74c3c; --edit: #f39c12; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
 
-        #app-root { display: flex; flex-direction: column; width: 100vw; height: 100vh; }
+        #app-root { display: flex; flex-direction: column; width: 100vw; height: 100vh; position: relative; }
         
-        /* BARRA SUPERIOR PRINCIPAL */
-        #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 1000; border-bottom: 1px solid #000; flex-shrink: 0; }
+        /* TOP BAR FIJA */
+        #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 1000; border-bottom: 1px solid #000; }
         
-        /* INSPECTOR SUB-MENÚ (SUPERIOR) */
+        /* INSPECTOR COMO OVERLAY (No empuja el campo) */
         #top-inspector { 
-            height: 45px; background: #1a2025; display: none; 
-            align-items: center; justify-content: center; gap: 20px; 
-            border-bottom: 2px solid var(--edit); z-index: 999; padding: 0 15px;
+            position: absolute; top: 50px; left: 0; width: 100%; height: 45px; 
+            background: rgba(26, 32, 37, 0.9); display: none; 
+            align-items: center; justify-content: center; gap: 15px; 
+            border-bottom: 2px solid var(--edit); z-index: 999; backdrop-filter: blur(5px);
         }
 
         #main-area { display: flex; flex: 1; overflow: hidden; }
 
-        #sidebar { width: 70px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; flex-shrink: 0; scrollbar-width: none; }
-        .tool { width: 44px; height: 44px; margin: 6px auto; border-radius: 10px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; flex-shrink: 0; }
-        .cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 8px 0 2px; text-transform: uppercase; font-weight: 800; }
+        #sidebar { width: 65px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; scrollbar-width: none; }
+        .tool { width: 40px; height: 40px; margin: 6px auto; border-radius: 8px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; }
 
-        #viewport { flex: 1; background: #111; display: flex; align-items: center; justify-content: center; padding: 5px; position: relative; overflow: hidden; }
+        #viewport { flex: 1; background: #111; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
         
+        /* EL MARCO DE CAPTURA */
         #field-master { 
-            position: relative; width: 100%; height: 100%; max-width: 1050px; max-height: 700px;
+            position: relative; width: 100%; height: 100%; max-width: 1000px; max-height: 650px;
             background: var(--grass) url('campoentero.png') no-repeat center / contain;
             box-shadow: 0 0 50px rgba(0,0,0,0.7); overflow: hidden;
         }
 
-        /* OBJETOS */
-        .object { position: absolute; z-index: 100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
-        .player { width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid white; font-weight: bold; font-size: 14px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .player::after { content: ''; position: absolute; top: -11px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid white; }
-        .selected { outline: 3px solid yellow; outline-offset: 5px; z-index: 500 !important; }
+        .object { position: absolute; z-index: 100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
+        .player { width: 36px; height: 36px; border-radius: 50%; border: 2px solid white; font-weight: bold; font-size: 14px; color: white; }
+        .player::after { content: ''; position: absolute; top: -10px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid white; }
+        .selected { outline: 3px solid yellow; outline-offset: 4px; z-index: 500 !important; }
 
-        /* MATERIAL */
-        .cone { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 22px solid #e67e22; }
-        .valla { width: 42px; height: 18px; border: 3px solid white; border-bottom: none; border-radius: 4px 4px 0 0; }
-        .zone { position: absolute; z-index: 10; opacity: 0.9; transform: translate(0,0); }
+        .cone { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid #e67e22; }
+        .valla { width: 40px; height: 18px; border: 3px solid white; border-bottom: none; border-radius: 4px 4px 0 0; }
+        .zone { position: absolute; z-index: 10; opacity: 0.8; transform: translate(0,0); }
 
         #svg-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
         .vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 30; fill: none; }
         
-        .node { position: absolute; width: 32px; height: 32px; z-index: 1000; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
-        .node-in { width: 12px; height: 12px; background: white; border: 2px solid var(--accent); border-radius: 50%; }
+        .node { position: absolute; width: 35px; height: 35px; z-index: 1000; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
+        .node-in { width: 14px; height: 14px; background: white; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 5px black; }
 
-        /* BOTONES */
-        .btn { background: #2d3436; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; }
-        .btn-play { background: #2ecc71; }
-        
-        /* PANEL AJUSTES */
-        #config-panel { position: absolute; top: 0; right: -320px; width: 300px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 3000; padding: 25px; color: white; }
-        #config-panel.open { right: 0; }
+        .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; }
     </style>
 </head>
 <body>
 
 <div id="app-root">
     <div id="top-bar">
-        <div style="display: flex; gap: 6px; align-items: center;">
+        <div style="display: flex; gap: 5px; align-items: center;">
             <button class="btn" onclick="navStep(-1)">◀</button>
             <span id="step-label" style="font-weight: 800; min-width: 35px; text-align: center; color: var(--accent);">1/1</span>
             <button class="btn" onclick="navStep(1)">▶</button>
             <button class="btn" style="background:var(--accent)" onclick="addStep()">+ PASO</button>
         </div>
-        
-        <div style="display: flex; gap: 6px;">
-            <button class="btn btn-play" onclick="runAnimation()">▶ PLAY</button>
+        <div style="display: flex; gap: 5px;">
+            <button class="btn" style="background:#2ecc71" onclick="runAnimation()">▶ PLAY</button>
             <button class="btn" onclick="exportStepPNG()" style="background:#e67e22">💾 PNG</button>
             <button class="btn" onclick="toggleConfig()">⚙️</button>
             <button class="btn" style="background:var(--danger)" onclick="removeActive()">🗑️</button>
@@ -82,51 +74,38 @@
     </div>
 
     <div id="top-inspector">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <label style="font-size: 10px; color: #aaa;">COLOR:</label>
-            <input type="color" id="ins-color" oninput="modifyProp('color', this.value)" style="height: 30px; width: 40px; border: none; background: transparent;">
+        <input type="color" id="ins-color" oninput="modifyProp('color', this.value)" style="width:40px; height:30px; border:none; background:none;">
+        <div id="ins-vec-extras" style="display:none; align-items:center; gap:10px;">
+            <input type="range" min="1" max="10" value="3" oninput="modifyProp('weight', this.value)">
+            <label style="color:white; font-size:10px;">FLECHA: <input type="checkbox" id="ins-arrow" onchange="modifyProp('arrow', this.checked)"></label>
         </div>
-        <div id="ins-vec-extras" style="display: flex; align-items: center; gap: 15px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <label style="font-size: 10px; color: #aaa;">GROSOR:</label>
-                <input type="range" min="1" max="12" value="3" oninput="modifyProp('weight', this.value)">
-            </div>
-            <label style="font-size: 10px; color: #fff;">FLECHA: <input type="checkbox" id="ins-arrow" onchange="modifyProp('arrow', this.checked)"></label>
-        </div>
-        <button class="btn" style="padding: 4px 10px; background: #444;" onclick="deselect()">OK</button>
+        <button class="btn" style="padding:4px 8px;" onclick="deselect()">OK</button>
     </div>
 
     <div id="main-area">
         <div id="sidebar">
-            <div class="cat-label">Líneas</div>
+            <div class="cat-label">VECTORES</div>
             <div class="tool" onclick="createVector('line')">⎯</div>
             <div class="tool" onclick="createVector('curve')">⤴</div>
-            <div class="cat-label">Equipos</div>
+            <div class="cat-label">EQUIPOS</div>
             <div class="tool" onclick="createPlayer('p-red')" style="background:#ff4757">1</div>
             <div class="tool" onclick="createPlayer('p-blue')" style="background:#2e86de">1</div>
             <div class="tool" onclick="createPlayer('p-yellow')" style="background:#f1c40f; color:0">1</div>
             <div class="tool" onclick="createPlayer('p-green')" style="background:#2ecc71">1</div>
-            <div class="cat-label">Extra</div>
+            <div class="cat-label">EXTRA</div>
             <div class="tool" onclick="createItem('cone')">▲</div>
             <div class="tool" onclick="createItem('valla')">⊓</div>
             <div class="tool" onclick="createItem('ball')">⚽</div>
             <div class="tool" onclick="createZone('shade')">🟧</div>
         </div>
 
-        <div id="viewport" onclick="deselect()">
+        <div id="viewport" onpointermove="handleRemoteMove(event)" onpointerup="handleRemoteEnd()" onpointerleave="handleRemoteEnd()">
             <div id="field-master">
                 <svg id="svg-layer">
                     <defs><marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" /></marker></defs>
                 </svg>
             </div>
         </div>
-    </div>
-
-    <div id="config-panel">
-        <h3>Ajustes</h3>
-        <label style="font-size: 10px; color: var(--accent);">TAMAÑO JUGADORES</label>
-        <input type="range" id="global-pScale" min="0.5" max="2.0" step="0.1" value="1.0" oninput="render()">
-        <button class="btn" style="width: 100%; margin-top: 30px; background: var(--danger);" onclick="toggleConfig()">CERRAR</button>
     </div>
 </div>
 
@@ -135,68 +114,125 @@
     let curStep = 0;
     let activeId = null;
     let dragInfo = null;
-    let initialPinchDist = 0;
+    let isPinching = false;
+    let initialDist = 0;
 
     const fMaster = document.getElementById('field-master');
     const svg = document.getElementById('svg-layer');
 
     function render() {
+        if(isPlaying) return;
         Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
         svg.querySelectorAll('.v-el').forEach(e => e.remove());
-        const pScale = document.getElementById('global-pScale').value;
         steps[curStep].forEach(el => {
             if(el.type === 'vec') drawVector(el);
             else if(el.type === 'zone') drawZone(el);
-            else drawPhysical(el, pScale);
+            else drawPhysical(el);
         });
         document.getElementById('step-label').innerText = `${curStep+1}/${steps.length}`;
         updateInspector();
     }
 
-    function createPlayer(type) {
-        const id = Date.now();
-        steps[curStep].push({ id, type, x:60, y:60, rot:0, scale:1, num: steps[curStep].filter(o=>o.type===type).length+1 });
-        activeId = id; render();
-    }
-
-    function createVector(sub) {
-        const id = Date.now();
-        steps[curStep].push({ id, type:'vec', sub, x1:20, y1:20, x2:120, y2:20, cx1:40, cy1:80, cx2:80, cy2:80, color:'#ffffff', weight:3, arrow:true });
-        activeId = id; render();
-    }
-
-    function createItem(type) {
-        const id = Date.now();
-        steps[curStep].push({ id, type, x:80, y:80, rot:0, scale:1 });
-        activeId = id; render();
-    }
-
-    function createZone(sub) {
-        const id = Date.now();
-        steps[curStep].push({ id, type:'zone', sub, x:30, y:30, w:150, h:100, color:'#ffa500' });
-        activeId = id; render();
-    }
-
-    function drawPhysical(el, pScale) {
+    function drawPhysical(el) {
         const div = document.createElement('div');
         div.className = `object ${el.type} ${activeId === el.id ? 'selected' : ''}`;
-        const s = el.type.startsWith('p-') ? pScale : el.scale;
         if(el.type.startsWith('p-')) {
             const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f', 'p-green':'#2ecc71'};
-            div.classList.add('player'); div.style.background = colors[el.type]; div.innerText = el.num;
+            div.style.background = colors[el.type]; div.innerText = el.num;
         } else if(el.type === 'ball') div.innerText = '⚽';
         else div.classList.add(el.type);
         div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
-        div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${s})`;
-        div.onpointerdown = (e) => startDrag(e, el, 'x', 'y');
+        div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${el.scale})`;
+        
+        // Iniciamos el arrastre desde el objeto
+        div.onpointerdown = (e) => startRemoteDrag(e, el, 'x', 'y');
         fMaster.appendChild(div);
     }
 
+    // --- LÓGICA DE MOVIMIENTO REMOTO (Sin tapar el objeto) ---
+    function startRemoteDrag(e, el, nx, ny, isZS = false) {
+        e.preventDefault(); e.stopPropagation();
+        activeId = el.id;
+        dragInfo = { el, nx, ny, isZS, moved: false, lastX: e.clientX, lastY: e.clientY };
+        render();
+    }
+
+    function handleRemoteMove(e) {
+        if(!dragInfo || isPinching) return;
+        dragInfo.moved = true;
+        const dx = e.clientX - dragInfo.lastX;
+        const dy = e.clientY - dragInfo.lastY;
+        
+        if(dragInfo.isZS) {
+            dragInfo.el.w = Math.max(20, dragInfo.el.w + dx);
+            dragInfo.el.h = Math.max(20, dragInfo.el.h + dy);
+        } else {
+            dragInfo.el[dragInfo.nx] += dx;
+            dragInfo.el[dragInfo.ny] += dy;
+        }
+        
+        dragInfo.lastX = e.clientX;
+        dragInfo.lastY = e.clientY;
+        render();
+    }
+
+    function handleRemoteEnd() {
+        if(dragInfo && !dragInfo.moved && dragInfo.nx === 'x' && dragInfo.el.type !== 'zone') {
+            dragInfo.el.rot = (dragInfo.el.rot + 45) % 360; render();
+        }
+        dragInfo = null;
+    }
+
+    // --- PELLIZCO (Multitouch) ---
+    document.addEventListener('touchstart', (e) => {
+        if(e.touches.length === 2 && activeId) {
+            isPinching = true;
+            initialDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        }
+    }, {passive: false});
+
+    document.addEventListener('touchmove', (e) => {
+        if(isPinching && e.touches.length === 2) {
+            const el = steps[curStep].find(o=>o.id === activeId);
+            if(el && !el.type.startsWith('p-')) {
+                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                el.scale *= (dist / initialDist);
+                initialDist = dist; render();
+            }
+        }
+    }, {passive: false});
+
+    document.addEventListener('touchend', () => { isPinching = false; initialDist = 0; });
+
+    // --- EXPORTACIÓN PNG LIMPIA ---
+    function exportStepPNG() {
+        deselect();
+        // Forzamos el render a un tamaño fijo para evitar distorsiones de pantalla
+        html2canvas(fMaster, { 
+            backgroundColor: null, 
+            scale: 2, 
+            useCORS: true,
+            width: fMaster.offsetWidth,
+            height: fMaster.offsetHeight
+        }).then(c => {
+            const a = document.createElement('a');
+            a.download = `tactica_paso_${curStep+1}.png`;
+            a.href = c.toDataURL("image/png");
+            a.click();
+        });
+    }
+
+    // --- EL RESTO DE FUNCIONES (Vectores, Animación, etc.) SE MANTIENEN ---
+    function createVector(sub) {
+        const id = Date.now();
+        steps[curStep].push({ id, type:'vec', sub, x1:50, y1:50, x2:150, y2:50, cx1:75, cy1:100, cx2:125, cy2:100, color:'#ffffff', weight:3, arrow:true });
+        activeId = id; render();
+    }
     function drawVector(el) {
         const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
         const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
         hit.setAttribute("d", d); hit.setAttribute("class", "vec-hit v-el");
-        hit.onpointerdown = (e) => { e.stopPropagation(); activeId = el.id; render(); };
+        hit.onpointerdown = (e) => startRemoteDrag(e, el, 'x1', 'y1'); // Selecciona y permite mover remoto
         svg.appendChild(hit);
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("d", d); path.setAttribute("class", "v-el");
@@ -208,90 +244,35 @@
             if(el.sub==='curve') [['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny], true));
         }
     }
-
-    function drawZone(el) {
-        const div = document.createElement('div');
-        div.className = `zone ${activeId === el.id ? 'selected' : ''}`;
-        div.style.cssText = `left:${el.x}px; top:${el.y}px; width:${el.w}px; height:${el.h}px; background:${el.color}66; border:2px solid ${el.color};`;
-        div.onpointerdown = (e) => startDrag(e, el, 'x', 'y');
-        fMaster.appendChild(div);
-        if(activeId === el.id) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
-    }
-
     function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
         const node = document.createElement('div');
         node.className = 'node'; node.style.left = fx+'px'; node.style.top = fy+'px';
         node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`;
-        node.onpointerdown = (e) => { e.stopPropagation(); startDrag(e, el, nx, ny, isZS); };
+        node.onpointerdown = (e) => startRemoteDrag(e, el, nx, ny, isZS);
         fMaster.appendChild(node);
     }
-
-    function startDrag(e, el, nx, ny, isZS=false) {
-        e.preventDefault(); activeId = el.id;
-        dragInfo = { el, nx, ny, isZS, moved:false, sx:e.clientX, sy:e.clientY, ix:el[nx], iy:el[ny], iw:el.w, ih:el.h };
+    function createItem(type) { const id = Date.now(); steps[curStep].push({ id, type, x:80, y:80, rot:0, scale:1 }); activeId = id; render(); }
+    function createZone(sub) { const id = Date.now(); steps[curStep].push({ id, type:'zone', sub, x:50, y:50, w:150, h:100, color:'#ffa500' }); activeId = id; render(); }
+    function drawZone(el) {
+        const div = document.createElement('div'); div.className = `zone ${activeId === el.id ? 'selected' : ''}`;
+        div.style.cssText = `left:${el.x}px; top:${el.y}px; width:${el.w}px; height:${el.h}px; background:${el.color}66; border:2px solid ${el.color};`;
+        div.onpointerdown = (e) => startRemoteDrag(e, el, 'x', 'y');
+        fMaster.appendChild(div);
+        if(activeId === el.id) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
     }
-
-    window.onpointermove = (e) => {
-        if(!dragInfo) return;
-        dragInfo.moved = true;
-        const dx = e.clientX - dragInfo.sx; const dy = e.clientY - dragInfo.sy;
-        if(dragInfo.isZS) { dragInfo.el.w = Math.max(20, dragInfo.iw + dx); dragInfo.el.h = Math.max(20, dragInfo.ih + dy); }
-        else { dragInfo.el[dragInfo.nx] = dragInfo.ix + dx; dragInfo.el[dragInfo.ny] = dragInfo.iy + dy; }
-        render();
-    };
-
-    window.onpointerup = () => {
-        if(dragInfo && !dragInfo.moved && dragInfo.nx === 'x' && dragInfo.el.type !== 'zone') {
-            dragInfo.el.rot = (dragInfo.el.rot + 45) % 360; render();
-        }
-        dragInfo = null;
-    };
-
-    // PELLIZCO
-    fMaster.ontouchmove = (e) => {
-        if(e.touches.length === 2 && activeId) {
-            const el = steps[curStep].find(o=>o.id === activeId);
-            if(el && !el.type.startsWith('p-')) {
-                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                if(initialPinchDist > 0) { el.scale *= (dist / initialPinchDist); render(); }
-                initialPinchDist = dist;
-            }
-        }
-    };
-    fMaster.ontouchend = () => initialPinchDist = 0;
-
+    function updateInspector() { const ins = document.getElementById('top-inspector'); const extras = document.getElementById('ins-vec-extras'); if(!activeId) { ins.style.display='none'; return; } const el = steps[curStep].find(o=>o.id===activeId); ins.style.display='flex'; extras.style.display = el.type==='vec'?'flex':'none'; }
     function modifyProp(p, v) { const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); } }
-    
-    function updateInspector() {
-        const ins = document.getElementById('top-inspector');
-        const extras = document.getElementById('ins-vec-extras');
-        if(!activeId) { ins.style.display = 'none'; return; }
-        const el = steps[curStep].find(o=>o.id===activeId);
-        ins.style.display = 'flex';
-        document.getElementById('ins-color').value = el.color || '#ffffff';
-        extras.style.display = el.type === 'vec' ? 'flex' : 'none';
-    }
-
-    function exportStepPNG() {
-        deselect();
-        html2canvas(fMaster, { backgroundColor: null, scale: 2, useCORS: true }).then(c => {
-            const a = document.createElement('a'); a.download = `tactica_${curStep+1}.png`;
-            a.href = c.toDataURL(); a.click();
-        });
-    }
-
     async function runAnimation() {
         if(steps.length < 2) return;
-        const speed = 800; deselect();
+        isPlaying = true; deselect();
         for(let i=0; i < steps.length-1; i++) {
             await new Promise(res => {
                 let s = null; const f1 = steps[i], f2 = steps[i+1];
                 function animate(ts) {
-                    if(!s) s = ts; const p = Math.min((ts-s)/speed, 1);
+                    if(!s) s = ts; const p = Math.min((ts-s)/800, 1);
                     Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
                     f1.forEach(o => {
-                        const t = f2.find(x => x.id === o.id);
-                        if(!t || o.type==='vec') return;
+                        const t = f2.find(x => x.id === o.id); if(!t || o.type==='vec') return;
                         const div = document.createElement('div'); div.className=`object ${o.type}`;
                         div.style.left=(o.x+(t.x-o.x)*p)+'px'; div.style.top=(o.y+(t.y-o.y)*p)+'px';
                         div.style.transform=`translate(-50%,-50%) rotate(${o.rot+(t.rot-o.rot)*p}deg) scale(${o.scale})`;
@@ -302,9 +283,8 @@
                 requestAnimationFrame(animate);
             });
         }
-        render();
+        isPlaying = false; render();
     }
-
     function addStep() { steps.push(JSON.parse(JSON.stringify(steps[curStep]))); curStep++; render(); }
     function navStep(d) { curStep = Math.max(0, Math.min(steps.length-1, curStep+d)); deselect(); }
     function removeActive() { if(activeId) { steps[curStep] = steps[curStep].filter(o=>o.id!==activeId); deselect(); } }
