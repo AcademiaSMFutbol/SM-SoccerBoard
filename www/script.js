@@ -5,6 +5,7 @@ let activeId = null;
 let dragInfo = null;
 let pinchDist = 0;
 let wasSelectedBefore = false;
+let isPlaying = false;
 
 let memory = {
     player: { rot: 0, scale: 1 },
@@ -30,13 +31,14 @@ function undo() {
 }
 
 function resizeField() {
-    const vw = viewport.clientWidth - 20;
-    const vh = viewport.clientHeight - 20;
+    const vw = viewport.clientWidth - 30;
+    const vh = viewport.clientHeight - 30;
     const scale = Math.min(vw / 1050, vh / 680);
     fMaster.style.transform = `scale(${scale})`;
 }
 
 function render() {
+    if (isPlaying) return;
     Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
     svg.querySelectorAll('.v-el').forEach(e => e.remove());
     steps[curStep].forEach(el => {
@@ -48,8 +50,8 @@ function render() {
     updateInspector();
 }
 
-// --- CONTROL DE EVENTOS ---
 function handleGlobalDown(e) {
+    if(isPlaying) return;
     const hit = e.target.closest('.object, .vec-hit, .zone, .node');
     let hitId = hit ? Number(hit.dataset.id) : null;
     
@@ -92,7 +94,7 @@ function handleGlobalMove(e) {
 
 function handleGlobalEnd() {
     if(dragInfo && !dragInfo.moved) {
-        history.pop(); // Limpiar historial si no hubo movimiento real
+        history.pop(); 
         if(wasSelectedBefore && !['zone','vec'].includes(dragInfo.el.type)) {
             dragInfo.el.rot = (dragInfo.el.rot + 45) % 360;
             if(dragInfo.el.type.startsWith('p-')) memory.player.rot = dragInfo.el.rot;
@@ -102,7 +104,6 @@ function handleGlobalEnd() {
     dragInfo = null; render();
 }
 
-// --- CREACIÓN ---
 function createPlayer(type) {
     saveState();
     const id = Date.now();
@@ -144,8 +145,9 @@ function drawPhysical(el) {
     if(el.type.startsWith('p-')) {
         const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f', 'p-green':'#2ecc71'};
         div.style.background = colors[el.type]; div.innerText = el.num; div.classList.add('player');
-    } else if(el.type === 'ball') div.innerText = '⚽';
-    else {
+    } else if(el.type === 'ball') {
+        div.innerText = '⚽'; div.style.fontSize = '18px';
+    } else {
         div.classList.add(el.type);
         if(el.type === 'cone') div.style.borderBottomColor = el.color;
         else div.style.borderColor = el.color; div.style.color = el.color;
@@ -188,7 +190,6 @@ function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
     fMaster.appendChild(node);
 }
 
-// --- PELLIZCO ---
 fMaster.addEventListener('touchstart', (e) => {
     if(e.touches.length === 2 && activeId) {
         saveState();
@@ -231,21 +232,43 @@ function exportStepPNG() {
 }
 
 async function runAnimation() {
-    if(steps.length < 2) return; isPlaying = true; deselect();
-    for(let i=0; i < steps.length-1; i++) {
+    if (steps.length < 2) return;
+    isPlaying = true; deselect();
+    const speed = 800;
+
+    for (let i = 0; i < steps.length - 1; i++) {
         await new Promise(res => {
-            let s = null; const f1 = steps[i], f2 = steps[i+1];
+            let start = null; const f1 = steps[i], f2 = steps[i + 1];
             function animate(ts) {
-                if(!s) s = ts; const p = Math.min((ts-s)/800, 1);
-                Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
+                if (!start) start = ts; const p = Math.min((ts - start) / speed, 1);
+                Array.from(fMaster.children).forEach(c => { if (c.id !== 'svg-layer') fMaster.removeChild(c); });
                 f1.forEach(o => {
-                    const target = f2.find(x => x.id === o.id); if(!target || o.type==='vec' || o.type==='zone') return;
-                    const div = document.createElement('div'); div.className=`object ${o.type}`; if(o.type.startsWith('p-')) div.classList.add('player');
-                    div.style.left=(o.x+(target.x-o.x)*p)+'px'; div.style.top=(o.y+(target.y-o.y)*p)+'px';
-                    div.style.transform=`translate(-50%,-50%) rotate(${o.rot+(target.rot-o.rot)*p}deg) scale(${o.scale})`;
+                    const target = f2.find(x => x.id === o.id);
+                    if (!target || o.type === 'vec' || o.type === 'zone') return;
+                    const div = document.createElement('div');
+                    div.className = `object ${o.type}`;
+                    if (o.type.startsWith('p-')) div.classList.add('player');
+                    
+                    const x = o.x + (target.x - o.x) * p;
+                    const y = o.y + (target.y - o.y) * p;
+                    const r = o.rot + (target.rot - o.rot) * p;
+                    const s = o.scale + (target.scale - o.scale) * p;
+
+                    if (o.type.startsWith('p-')) {
+                        const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f', 'p-green':'#2ecc71'};
+                        div.style.background = colors[o.type]; div.innerText = o.num;
+                    } else if (o.type === 'ball') {
+                        div.innerText = '⚽'; div.style.fontSize = '18px';
+                    } else {
+                        if (o.type === 'cone') div.style.borderBottomColor = o.color;
+                        else div.style.borderColor = o.color;
+                        div.style.color = o.color;
+                    }
+                    div.style.left = x + 'px'; div.style.top = y + 'px';
+                    div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`;
                     fMaster.appendChild(div);
                 });
-                if(p < 1) requestAnimationFrame(animate); else res();
+                if (p < 1) requestAnimationFrame(animate); else res();
             }
             requestAnimationFrame(animate);
         });
