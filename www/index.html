@@ -3,114 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro - Precision Edition</title>
+    <title>SoccerBoard Pro - Elite Edition</title>
     <style>
         :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --bg-field: #27ae60; }
-        
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background: #000; position: fixed;
-            font-family: sans-serif; touch-action: none;
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
 
-        #top-bar { 
-            height: 50px; background: var(--top); display: flex; 
-            align-items: center; justify-content: space-between; 
-            padding: 0 10px; z-index: 100;
-        }
-
+        /* UI Structure */
+        #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 100; border-bottom: 1px solid #000; }
         #main { display: flex; height: calc(100% - 50px); width: 100%; }
+        #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; }
         
-        #sidebar { 
-            width: 70px; background: var(--panel); display: flex; 
-            flex-direction: column; border-right: 1px solid #000; overflow-y: auto;
-        }
+        .cat-label { font-size: 8px; color: #84817a; text-align: center; padding: 8px 0 2px; text-transform: uppercase; font-weight: bold; }
+        .tool { width: 45px; height: 45px; margin: 5px auto; border-radius: 8px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
 
-        .tool { 
-            width: 45px; height: 45px; margin: 8px auto; border-radius: 8px; 
-            border: 1px solid #3d3d3d; background: #2d3436; color: white; 
-            display: flex; align-items: center; justify-content: center; font-size: 18px;
-        }
+        /* Field Area */
+        #field-container { flex: 1; position: relative; background-color: var(--bg-field); background-repeat: no-repeat; background-size: cover; background-position: center; overflow: hidden; }
+        
+        /* Objects */
+        .object { position: absolute; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); border: 2.5px solid white; z-index: 10; color: white; user-select: none; }
+        .object.player::after { content: ''; position: absolute; top: -12px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid white; }
+        .object.selected { border-color: yellow; box-shadow: 0 0 15px yellow; z-index: 20; }
+        
+        /* Material Específico */
+        .cone { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); background: #e67e22 !important; border: none !important; }
+        .pica { width: 6px !important; height: 40px !important; background: #f1c40f !important; border: 1px solid #000 !important; border-radius: 2px !important; }
+        .valla { width: 40px !important; height: 20px !important; border-radius: 4px 4px 0 0 !important; border: 3px solid white !important; border-bottom: none !important; background: transparent !important; }
 
-        #field-container { 
-            flex: 1; position: relative; background-color: var(--bg-field);
-            background-repeat: no-repeat; background-size: contain; 
-            background-position: center; overflow: hidden;
-        }
+        /* Líneas Vectoriales */
+        .line-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
 
-        .object {
-            position: absolute; width: 40px; height: 40px;
-            border-radius: 50%; display: flex; align-items: center; 
-            justify-content: center; font-weight: bold; font-size: 14px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.4); border: 2px solid white;
-            z-index: 10; color: white; transform-origin: center center;
-        }
-
-        /* Indicador de rotación */
-        .object::after {
-            content: ''; position: absolute; top: -10px;
-            border-left: 5px solid transparent; border-right: 5px solid transparent;
-            border-bottom: 8px solid white;
-        }
-
-        .selected { border: 3px solid yellow !important; box-shadow: 0 0 15px yellow; }
-
-        /* Panel Configuración */
-        #config-panel { 
-            position: absolute; top: 0; right: -280px; width: 260px; height: 100%; 
-            background: var(--panel); border-left: 2px solid #000; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            z-index: 500; padding: 20px; color: white;
-        }
+        /* Config */
+        #config-panel { position: absolute; top: 0; right: -280px; width: 260px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; }
         #config-panel.open { right: 0; }
-        
-        .setting-group { margin-bottom: 20px; }
-        .setting-group label { display: block; margin-bottom: 8px; color: var(--accent); font-size: 12px; font-weight: bold; }
-        
-        select, input[type="range"] { width: 100%; background: #2d3436; color: white; border: 1px solid #3d3d3d; padding: 8px; border-radius: 5px; }
-
-        .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; }
     </style>
 </head>
 <body>
 
 <div id="top-bar">
-    <div style="display: flex; gap: 5px;">
+    <div style="display: flex; gap: 6px;">
         <button class="btn" onclick="navFrame(-1)">◀</button>
-        <span id="label-step" style="color:white; font-size:12px; padding: 5px;">1/1</span>
+        <span id="label-step" style="font-size:12px; margin-top:5px; font-weight:bold; color:white;">1/1</span>
         <button class="btn" onclick="navFrame(1)">▶</button>
         <button class="btn" style="background:var(--accent)" onclick="addFrame()">+</button>
     </div>
-    <button class="btn" id="btn-settings" onclick="toggleSettings(event)">⚙️ AJUSTES</button>
+    <div style="display: flex; gap: 6px;">
+        <button class="btn" onclick="toggleSettings(event)">⚙️ AJUSTES</button>
+        <button class="btn" style="background:#e74c3c" onclick="location.reload()">RESET</button>
+    </div>
 </div>
 
 <div id="main">
     <div id="sidebar">
+        <div class="cat-label">Equipos</div>
         <div class="tool" onclick="createObj('p-red')" style="background:#ff4757">1</div>
         <div class="tool" onclick="createObj('p-blue')" style="background:#2e86de">1</div>
         <div class="tool" onclick="createObj('p-yellow')" style="background:#f1c40f; color:black">1</div>
         <div class="tool" onclick="createObj('ball')">⚽</div>
+        
+        <div class="cat-label">Entreno</div>
+        <div class="tool" onclick="createObj('cone')">▲</div>
+        <div class="tool" onclick="createObj('pica')" style="color:#f1c40f">┃</div>
+        <div class="tool" onclick="createObj('valla')">⊓</div>
+        
+        <div class="cat-label">Líneas</div>
+        <div class="tool" onclick="createObj('l-recta')">―</div>
+        <div class="tool" onclick="createObj('l-dash')">--</div>
+        <div class="tool" onclick="createObj('l-curve')">⤴</div>
     </div>
     
     <div id="field-container" onclick="closeSettings()">
-        </div>
+        <svg class="line-svg" id="svg-layer"></svg>
+    </div>
 
     <div id="config-panel" onclick="event.stopPropagation()">
-        <h3>Ajustes</h3>
-        <div class="setting-group">
-            <label>FONDO DEL CAMPO</label>
-            <select id="bgSelect" onchange="updateBackground()">
-                <option value="campoentero.png">Campo Entero</option>
-                <option value="mediocampo.png">Medio Campo</option>
-                <option value="campoejercicio.png">Campo Ejercicio</option>
-            </select>
-        </div>
-        <div class="setting-group">
-            <label>TAMAÑO GENERAL</label>
-            <input type="range" id="sizeRange" min="0.5" max="1.8" step="0.1" value="1.0" oninput="render()">
-        </div>
-        <button class="btn" style="width: 100%; background:#e74c3c" onclick="toggleSettings(event)">CERRAR PANEL</button>
+        <h3 style="margin-top:0">Ajustes</h3>
+        <label style="font-size:10px; color:var(--accent)">VISTA CAMPO</label>
+        <select id="bgSelect" onchange="updateBackground()" style="width:100%; background:#2d3436; color:white; padding:8px; margin:10px 0;">
+            <option value="campoentero.png">Campo Entero</option>
+            <option value="mediocampo.png">Medio Campo</option>
+            <option value="campoejercicio.png">Campo Ejercicio</option>
+        </select>
+        <label style="font-size:10px; color:var(--accent)">TAMAÑO JUGADORES</label>
+        <input type="range" id="sizeRange" min="0.5" max="1.8" step="0.1" value="1.0" oninput="render()" style="width:100%; margin:15px 0;">
+        <button class="btn" style="width: 100%; background:#e74c3c; margin-top:20px;" onclick="toggleSettings(event)">CERRAR</button>
     </div>
 </div>
 
@@ -118,83 +95,110 @@
     let frames = [ [] ];
     let curF = 0;
     let selId = null;
-    let isDragging = false;
-    let lastTouchTime = 0;
+    let isMoving = false;
+    let startX, startY;
 
     function updateBackground() {
         const bg = document.getElementById('bgSelect').value;
         document.getElementById('field-container').style.backgroundImage = `url('${bg}')`;
     }
 
-    function toggleSettings(e) {
-        e.stopPropagation();
-        document.getElementById('config-panel').classList.toggle('open');
-    }
-
-    function closeSettings() {
-        document.getElementById('config-panel').classList.remove('open');
-    }
+    function toggleSettings(e) { e.stopPropagation(); document.getElementById('config-panel').classList.toggle('open'); }
+    function closeSettings() { document.getElementById('config-panel').classList.remove('open'); }
 
     function createObj(type) {
         const id = Date.now();
-        const obj = { id, type, x: 100, y: 100, rot: 0, num: frames[curF].filter(o => o.type === type).length + 1 };
+        let obj = { id, type, x: 100, y: 100, rot: 0, scale: 1, num: frames[curF].filter(o => o.type === type).length + 1 };
+        
+        // Propiedades especiales para líneas
+        if(type.startsWith('l-')) {
+            obj.x2 = 200; obj.y2 = 150; // Punto final
+        }
+        
         frames[curF].push(obj);
         render();
     }
 
     function render() {
         const container = document.getElementById('field-container');
+        const svg = document.getElementById('svg-layer');
         const globalScale = document.getElementById('sizeRange').value;
-        container.innerHTML = ''; 
+        
+        // Limpiar pero mantener el SVG
+        Array.from(container.children).forEach(child => { if(child.id !== 'svg-layer') child.remove(); });
+        svg.innerHTML = ''; 
         
         frames[curF].forEach(el => {
-            const div = document.createElement('div');
-            div.className = `object ${selId === el.id ? 'selected' : ''}`;
-            
-            if(el.type === 'p-red') div.style.background = '#ff4757';
-            else if(el.type === 'p-blue') div.style.background = '#2e86de';
-            else if(el.type === 'p-yellow') { div.style.background = '#f1c40f'; div.style.color = 'black'; }
-            else if(el.type === 'ball') { div.style.background = 'white'; div.style.color = 'black'; div.innerText = '⚽'; }
-            else { div.innerText = el.num; }
+            if(el.type.startsWith('l-')) {
+                renderLine(el, svg);
+            } else {
+                const div = document.createElement('div');
+                div.className = `object ${el.type} ${selId === el.id ? 'selected' : ''}`;
+                if(el.type.startsWith('p-')) div.classList.add('player');
+                
+                // Contenido visual
+                if(el.type === 'ball') div.innerText = '⚽';
+                else if(el.type === 'cone') div.innerText = '';
+                else if(el.type === 'valla' || el.type === 'pica') div.innerText = '';
+                else if(el.type.startsWith('p-')) div.innerText = el.num;
 
-            div.style.left = `${el.x}px`;
-            div.style.top = `${el.y}px`;
-            div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${globalScale})`;
+                // Colores de equipo
+                if(el.type === 'p-red') div.style.background = '#ff4757';
+                if(el.type === 'p-blue') div.style.background = '#2e86de';
+                if(el.type === 'p-yellow') { div.style.background = '#f1c40f'; div.style.color = 'black'; }
 
-            div.addEventListener('touchstart', (e) => handleStart(e, el.id), {passive: false});
-            div.addEventListener('mousedown', (e) => handleStart(e, el.id));
+                div.style.left = `${el.x}px`;
+                div.style.top = `${el.y}px`;
+                div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${globalScale})`;
 
-            container.appendChild(div);
+                div.addEventListener('touchstart', (e) => handleStart(e, el.id), {passive: false});
+                div.addEventListener('mousedown', (e) => handleStart(e, el.id));
+                container.appendChild(div);
+            }
         });
         document.getElementById('label-step').innerText = `${curF+1}/${frames.length}`;
     }
 
-    function handleStart(e, id) {
-        e.preventDefault();
-        e.stopPropagation();
+    function renderLine(el, svg) {
+        const line = document.createElementNS("http://www.w3.org/2000/svg", el.type === 'l-curve' ? "path" : "line");
+        line.setAttribute("stroke", "white");
+        line.setAttribute("stroke-width", "3");
+        if(el.type === 'l-dash') line.setAttribute("stroke-dasharray", "8,8");
         
-        const now = Date.now();
+        if(el.type === 'l-curve') {
+            const midX = (el.x + el.x2) / 2 + 50;
+            const midY = (el.y + el.y2) / 2 - 50;
+            line.setAttribute("d", `M ${el.x} ${el.y} Q ${midX} ${midY} ${el.x2} ${el.y2}`);
+            line.setAttribute("fill", "none");
+        } else {
+            line.setAttribute("x1", el.x); line.setAttribute("y1", el.y);
+            line.setAttribute("x2", el.x2); line.setAttribute("y2", el.y2);
+        }
+        svg.appendChild(line);
+    }
+
+    // --- MOTOR DE INTERACCIÓN CORREGIDO ---
+    function handleStart(e, id) {
+        e.preventDefault(); e.stopPropagation();
+        const touch = e.touches ? e.touches[0] : e;
         const el = frames[curF].find(o => o.id === id);
         
-        // Lógica de Rotación: Si ya está seleccionado y es un toque rápido (no arrastre)
-        if (selId === id && (now - lastTouchTime < 300)) {
-            // No hacemos nada aquí, esperamos al 'touchend' para confirmar que no hubo movimiento
-        }
-
-        selId = id;
-        isDragging = false;
-        render();
+        startX = touch.clientX;
+        startY = touch.clientY;
+        isMoving = false; // Reset de bandera de arrastre
 
         const move = (me) => {
-            isDragging = true;
-            const clientX = me.touches ? me.touches[0].clientX : me.clientX;
-            const clientY = me.touches ? me.touches[0].clientY : me.clientY;
+            const t = me.touches ? me.touches[0] : me;
+            const dx = Math.abs(t.clientX - startX);
+            const dy = Math.abs(t.clientY - startY);
+            
+            if(dx > 5 || dy > 5) isMoving = true; // Si se mueve más de 5px es arrastre
+
             const rect = document.getElementById('field-container').getBoundingClientRect();
+            el.x = t.clientX - rect.left;
+            el.y = t.clientY - rect.top;
             
-            el.x = clientX - rect.left;
-            el.y = clientY - rect.top;
-            
-            // Actualización optimizada (sin recrear todo el DOM para fluidez)
+            // Renderizado en tiempo real (solo posición) para fluidez
             const div = e.target.closest('.object');
             div.style.left = `${el.x}px`;
             div.style.top = `${el.y}px`;
@@ -204,12 +208,13 @@
             window.removeEventListener('mousemove', move);
             window.removeEventListener('touchmove', move);
             
-            // Si NO se arrastró, rotamos
-            if (!isDragging) {
+            // LÓGICA DE ROTACIÓN: Solo si NO hubo movimiento y ya estaba seleccionado
+            if (!isMoving && selId === id) {
                 el.rot = (el.rot + 45) % 360;
-                render();
             }
-            lastTouchTime = Date.now();
+            
+            selId = id; // Seleccionar siempre al final
+            render();
         };
 
         window.addEventListener('mousemove', move);
@@ -218,22 +223,10 @@
         window.addEventListener('touchend', stop, {once: true});
     }
 
-    function addFrame() {
-        frames.push(JSON.parse(JSON.stringify(frames[curF])));
-        curF = frames.length - 1;
-        render();
-    }
+    function addFrame() { frames.push(JSON.parse(JSON.stringify(frames[curF]))); curF++; render(); }
+    function navFrame(d) { curF = Math.max(0, Math.min(frames.length - 1, curF + d)); render(); }
 
-    function navFrame(dir) {
-        curF = Math.max(0, Math.min(frames.length - 1, curF + dir));
-        render();
-    }
-
-    window.onload = () => {
-        updateBackground();
-        render();
-    };
+    window.onload = () => { updateBackground(); render(); };
 </script>
-
 </body>
 </html>
