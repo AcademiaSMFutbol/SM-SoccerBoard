@@ -3,198 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v10 - Senior Audit</title>
+    <title>SoccerBoard Pro - Senior Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gifshot/build/gifshot.min.js"></script>
     <style>
-        :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --grass: #27ae60; --danger: #e74c3c; --white: #ffffff; }
+        :root { --panel: #1e272e; --accent: #3498db; --top: #12171b; --grass: #27ae60; --danger: #e74c3c; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Inter', system-ui, sans-serif; touch-action: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Roboto, sans-serif; touch-action: none; }
 
-        /* Estructura Maestra */
-        #app-wrapper { display: flex; flex-direction: column; width: 100vw; height: 100vh; }
-        #app-wrapper.portrait { flex-direction: column; } /* Bloqueo manual vía JS */
+        /* Estructura Principal */
+        #app-root { display: flex; flex-direction: column; width: 100vw; height: 100vh; }
+        #top-bar { height: 55px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 1px solid #000; z-index: 1000; }
+        #main-area { display: flex; flex: 1; overflow: hidden; }
 
-        #top-bar { height: 55px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 100; border-bottom: 1px solid #000; }
-        
-        #main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
-        
-        /* Sidebar Refinado */
-        #sidebar { width: 70px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; }
-        .tool { width: 42px; height: 42px; margin: 6px auto; border-radius: 8px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
+        /* Sidebar con Scroll Suave */
+        #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+        .tool { width: 48px; height: 48px; margin: 8px auto; border-radius: 12px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
         .tool:active { transform: scale(0.9); background: var(--accent); }
-        .cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 10px 0 2px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
+        .cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 12px 0 2px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; }
 
-        /* Area de Juego */
-        #field-viewport { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; padding: 10px; position: relative; }
+        /* El Campo (Viewport) */
+        #viewport { flex: 1; background: #111; display: flex; align-items: center; justify-content: center; padding: 10px; position: relative; }
         #field-master { 
             position: relative; width: 100%; height: 100%; max-width: 1050px; max-height: 700px;
             background: var(--grass) url('campoentero.png') no-repeat center / contain;
-            box-shadow: 0 0 50px rgba(0,0,0,0.8); overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.7); overflow: hidden;
         }
 
-        /* Objetos Dinámicos */
-        .object { position: absolute; z-index: 20; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); pointer-events: auto; }
-        .player { width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); color: white; }
+        /* Objetos e Interacción */
+        .object { position: absolute; z-index: 100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+        .player { width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid white; font-weight: bold; font-size: 14px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .player::after { content: ''; position: absolute; top: -11px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid white; }
-        
-        /* Material */
+        .selected { outline: 3px solid yellow; outline-offset: 5px; z-index: 500 !important; }
+
+        /* Materiales Vectoriales */
         .cone { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 22px solid #e67e22; }
-        .valla { width: 42px; height: 20px; border: 3px solid white; border-bottom: none; border-radius: 4px 4px 0 0; }
-        .ladder { width: 120px; height: 35px; border: 2px solid white; background: repeating-linear-gradient(90deg, transparent, transparent 18px, white 18px, white 20px); }
+        .valla { width: 42px; height: 18px; border: 3px solid white; border-bottom: none; border-radius: 4px 4px 0 0; }
+        .goal-mini { width: 45px; height: 25px; border: 2px solid white; background: rgba(255,255,255,0.1); }
 
-        /* Zonas y Vectores */
-        .zone { position: absolute; transform: translate(0,0); z-index: 15; opacity: 0.8; }
-        .node { position: absolute; width: 34px; height: 34px; z-index: 200; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
-        .node-in { width: 12px; height: 12px; background: white; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 8px black; }
+        /* Zonas */
+        .zone { position: absolute; z-index: 10; opacity: 0.9; transform: translate(0,0); }
+
+        /* Capa Vectorial */
+        #svg-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+        .vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 25; fill: none; cursor: pointer; }
         
-        .selected { outline: 3px solid yellow; outline-offset: 6px; z-index: 100 !important; }
+        /* Nodos de Control */
+        .node { position: absolute; width: 32px; height: 32px; z-index: 1000; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
+        .node-in { width: 12px; height: 12px; background: white; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 8px black; }
 
-        /* Inspector de Propiedades (NUEVO) */
+        /* Inspector Flotante */
         #inspector { 
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(26, 26, 26, 0.95); padding: 10px 20px; border-radius: 50px;
-            display: none; gap: 15px; align-items: center; z-index: 300; border: 1px solid #444;
-            backdrop-filter: blur(10px); color: white;
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(18, 23, 27, 0.95); padding: 12px 25px; border-radius: 50px;
+            display: none; gap: 15px; align-items: center; z-index: 2000; border: 1px solid #444;
+            backdrop-filter: blur(10px); color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        /* Paneles */
-        .side-panel { position: absolute; top: 0; right: -300px; width: 280px; height: 100%; background: var(--panel); border-left: 1px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; overflow-y: auto; }
-        .side-panel.open { right: 0; }
-        
-        .btn { background: #2d3436; color: white; border: none; padding: 10px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; transition: 0.2s; }
-        .btn-play { background: #2ecc71; }
-        .btn-danger { background: var(--danger); }
+        /* Configuración */
+        .panel { position: absolute; top: 0; right: -320px; width: 300px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 3000; padding: 25px; color: white; }
+        .panel.open { right: 0; }
+        .btn { background: #2d3436; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; transition: 0.2s; }
+        .btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
-<div id="app-wrapper">
+<div id="app-root">
     <div id="top-bar">
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div style="display: flex; gap: 10px; align-items: center;">
             <button class="btn" onclick="navStep(-1)">◀</button>
-            <b id="step-count" style="min-width:40px; text-align:center;">1/1</b>
+            <span id="step-label" style="font-weight: 800; min-width: 45px; text-align: center; color: var(--accent);">1 / 1</span>
             <button class="btn" onclick="navStep(1)">▶</button>
             <button class="btn" style="background:var(--accent)" onclick="addStep()">+ PASO</button>
         </div>
-        <div style="display: flex; gap: 8px;">
-            <button class="btn btn-play" id="playBtn" onclick="playFullAnim()">▶ PLAY</button>
-            <button class="btn" onclick="togglePanel('config-panel')">⚙️</button>
-            <button class="btn btn-danger" onclick="removeSelected()">🗑️</button>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn" style="background:#2ecc71" onclick="runAnimation()">▶ PLAY</button>
+            <button class="btn" onclick="toggleConfig()">⚙️</button>
+            <button class="btn" style="background:var(--danger)" onclick="removeActive()">🗑️</button>
         </div>
     </div>
 
-    <div id="main-content">
+    <div id="main-area">
         <div id="sidebar">
             <div class="cat-label">Dibujo</div>
-            <div class="tool" onclick="spawnVector('line')">⎯</div>
-            <div class="tool" onclick="spawnVector('curve')">⤴</div>
+            <div class="tool" onclick="createVector('line')">⎯</div>
+            <div class="tool" onclick="createVector('curve')">⤴</div>
             <div class="cat-label">Equipos</div>
-            <div class="tool" onclick="spawnPlayer('p-red')" style="background:#ff4757">1</div>
-            <div class="tool" onclick="spawnPlayer('p-blue')" style="background:#2e86de">1</div>
-            <div class="tool" onclick="spawnPlayer('p-yellow')" style="background:#f1c40f; color:0">1</div>
-            <div class="tool" onclick="spawnPlayer('p-green')" style="background:#2ecc71">1</div>
+            <div class="tool" onclick="createPlayer('p-red')" style="background:#ff4757">1</div>
+            <div class="tool" onclick="createPlayer('p-blue')" style="background:#2e86de">1</div>
+            <div class="tool" onclick="createPlayer('p-yellow')" style="background:#f1c40f; color:0">1</div>
+            <div class="tool" onclick="createPlayer('p-green')" style="background:#2ecc71">1</div>
             <div class="cat-label">Material</div>
-            <div class="tool" onclick="spawnItem('cone')">▲</div>
-            <div class="tool" onclick="spawnItem('valla')">⊓</div>
-            <div class="tool" onclick="spawnItem('ladder')">🪜</div>
-            <div class="tool" onclick="spawnItem('ball')">⚽</div>
+            <div class="tool" onclick="createItem('cone')">▲</div>
+            <div class="tool" onclick="createItem('valla')">⊓</div>
+            <div class="tool" onclick="createItem('goal-mini')">🥅</div>
+            <div class="tool" onclick="createItem('ball')">⚽</div>
             <div class="cat-label">Zonas</div>
-            <div class="tool" onclick="spawnZone('shade')">🟧</div>
-            <div class="tool" onclick="spawnZone('outline')">🟨</div>
+            <div class="tool" onclick="createZone('shade')">🟧</div>
+            <div class="tool" onclick="createZone('outline')">🟨</div>
         </div>
 
-        <div id="field-viewport" onclick="deselectAll()">
+        <div id="viewport" onclick="deselect()">
             <div id="field-master">
-                <svg id="vector-layer" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:15;">
-                    <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" /></marker></defs>
+                <svg id="svg-layer">
+                    <defs><marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" /></marker></defs>
                 </svg>
             </div>
 
             <div id="inspector">
-                <span id="ins-label" style="font-size:10px; opacity:0.7">EDITAR:</span>
-                <input type="color" id="ins-color" oninput="applyProperty('color', this.value)">
-                <label style="font-size:10px">Flecha: <input type="checkbox" id="ins-arrow" onchange="applyProperty('arrow', this.checked)"></label>
-                <button class="btn" style="padding:4px 8px" onclick="deselectAll()">OK</button>
+                <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
+                <label style="font-size:10px;">Grosor: <input type="range" min="1" max="10" value="3" oninput="modifyProp('weight', this.value)"></label>
+                <button class="btn" style="padding:5px 10px" onclick="deselect()">CERRAR</button>
             </div>
         </div>
 
-        <div id="config-panel" class="side-panel">
-            <h3>Configuración Senior</h3>
-            <label style="color:var(--accent); font-size:10px;">ORIENTACIÓN</label>
-            <select id="set-orient" onchange="setOrientation(this.value)" style="width:100%; background:#2d3436; color:white; padding:8px; margin:10px 0;">
-                <option value="landscape">Horizontal (Fijo)</option>
-                <option value="portrait">Vertical (Fijo)</option>
-            </select>
-            <label style="color:var(--accent); font-size:10px;">ESCALA JUGADORES</label>
-            <input type="range" id="set-pScale" min="0.5" max="2.0" step="0.1" value="1.0" oninput="render()">
-            <hr>
-            <label style="color:var(--accent); font-size:10px;">EXPORTACIÓN</label>
-            <button class="btn" style="width:100%; margin-bottom:8px;" onclick="exportGIF()">Generar Animación GIF</button>
-            <button class="btn" style="width:100%;" onclick="exportPNG()">Capturar Imagen (PNG)</button>
-            <button class="btn btn-danger" style="width:100%; margin-top:30px;" onclick="togglePanel('config-panel')">CERRAR</button>
+        <div id="config-panel" class="panel">
+            <h2 style="margin-top:0">Configuración</h2>
+            <label style="font-size:10px; color:var(--accent)">ESCALA JUGADORES</label>
+            <input type="range" id="global-pScale" min="0.5" max="2.2" step="0.1" value="1.0" oninput="render()">
+            <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
+            <label style="font-size:10px; color:var(--accent)">EXPORTAR</label>
+            <button class="btn" style="width:100%; margin:10px 0;" onclick="exportAsPNG()">Capturar Imagen (PNG)</button>
+            <button class="btn" style="width:100%; background:var(--accent);" onclick="alert('Exportando secuencia...')">Procesar MP4/GIF</button>
+            <button class="btn" style="width:100%; margin-top:30px; background:var(--danger)" onclick="toggleConfig()">CERRAR</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- ESTADO GLOBAL ---
+    // --- ESTADO Y PERSISTENCIA ---
     let steps = [ [] ];
-    let currentStep = 0;
-    let selectedId = null;
-    let isPlaying = false;
-    let dragData = { active: false, target: null, nx: null, ny: null };
-    let lastProps = { player: { rot:0, scale:1 }, vector: { color: '#ffffff', arrow: true }, zone: { color: '#ffa500' } };
+    let curStep = 0;
+    let activeId = null;
+    let isMoving = false;
+    let dragInfo = null;
 
-    const field = document.getElementById('field-master');
-    const svg = document.getElementById('vector-layer');
+    const fMaster = document.getElementById('field-master');
+    const svg = document.getElementById('svg-layer');
 
-    // --- MOTOR DE CREACIÓN ---
-    function spawnPlayer(type) {
+    // --- FUNCIONES DE CREACIÓN ---
+    function createPlayer(type) {
         const id = Date.now();
-        const obj = { id, type, x:50, y:50, rot: lastProps.player.rot, scale: 1, num: steps[currentStep].filter(o=>o.type===type).length+1 };
-        steps[currentStep].push(obj); select(id); render();
+        const obj = { id, type, x:50, y:50, rot:0, scale:1, num: steps[curStep].filter(o=>o.type===type).length+1 };
+        steps[curStep].push(obj); activeId = id; render();
     }
 
-    function spawnVector(sub) {
+    function createVector(sub) {
         const id = Date.now();
-        const vec = { id, type:'vec', sub, x1:20, y1:20, x2:120, y2:120, cx1:40, cy1:80, cx2:80, cy2:40, color: lastProps.vector.color, arrow: lastProps.vector.arrow };
-        steps[currentStep].push(vec); select(id); render();
+        const vec = { id, type:'vec', sub, x1:30, y1:30, x2:150, y2:30, cx1:60, cy1:100, cx2:120, cy2:100, color:'#ffffff', weight:3 };
+        steps[curStep].push(vec); activeId = id; render();
     }
 
-    function spawnZone(sub) {
+    function createZone(sub) {
         const id = Date.now();
-        const zone = { id, type:'zone', sub, x:30, y:30, w:150, h:100, color: lastProps.zone.color };
-        steps[currentStep].push(zone); select(id); render();
+        steps[curStep].push({ id, type:'zone', sub, x:30, y:30, w:180, h:120, color: (sub==='shade'?'#ffa500':'#ffff00') });
+        activeId = id; render();
     }
 
-    function spawnItem(type) {
+    function createItem(type) {
         const id = Date.now();
-        steps[currentStep].push({ id, type, x:80, y:80, rot:0, scale:1 });
-        select(id); render();
+        steps[curStep].push({ id, type, x:80, y:80, rot:0, scale:1 });
+        activeId = id; render();
     }
 
-    // --- RENDERIZADO CORE ---
+    // --- RENDERIZADO ---
     function render() {
         if(isPlaying) return;
-        Array.from(field.children).forEach(c => { if(c.id !== 'vector-layer') c.remove(); });
-        svg.querySelectorAll('.v-item').forEach(e => e.remove());
+        Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
+        svg.querySelectorAll('.v-el').forEach(e => e.remove());
         
-        const pScale = document.getElementById('set-pScale').value;
+        const pScale = document.getElementById('global-pScale').value;
 
-        steps[currentStep].forEach(el => {
+        steps[curStep].forEach(el => {
             if(el.type === 'vec') drawVector(el);
             else if(el.type === 'zone') drawZone(el);
             else drawPhysical(el, pScale);
         });
         
-        document.getElementById('step-count').innerText = `${currentStep+1}/${steps.length}`;
+        document.getElementById('step-label').innerText = `${curStep+1} / ${steps.length}`;
         updateInspector();
     }
 
     function drawPhysical(el, pScale) {
         const div = document.createElement('div');
-        div.className = `object ${el.type} ${selectedId === el.id ? 'selected' : ''}`;
+        div.className = `object ${el.type} ${activeId === el.id ? 'selected' : ''}`;
         const s = el.type.startsWith('p-') ? pScale : el.scale;
 
         if(el.type.startsWith('p-')) {
@@ -205,26 +197,25 @@
 
         div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
         div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${s})`;
-        
         div.onpointerdown = (e) => startDrag(e, el, 'x', 'y');
-        field.appendChild(div);
+        fMaster.appendChild(div);
     }
 
     function drawVector(el) {
         const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
         
         const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        hit.setAttribute("d", d); hit.setAttribute("class", "v-item"); hit.setAttribute("style", "pointer-events:stroke; stroke:transparent; stroke-width:25; fill:none; cursor:pointer;");
-        hit.onpointerdown = (e) => { e.stopPropagation(); select(el.id); render(); };
+        hit.setAttribute("d", d); hit.setAttribute("class", "vec-hit v-el");
+        hit.onpointerdown = (e) => { e.stopPropagation(); activeId = el.id; render(); };
         svg.appendChild(hit);
 
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("d", d); path.setAttribute("class", "v-item");
-        path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3"); path.setAttribute("fill", "none");
-        if(el.arrow) path.setAttribute("marker-end", "url(#arrowhead)");
+        path.setAttribute("d", d); path.setAttribute("class", "v-el");
+        path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", el.weight); path.setAttribute("fill", "none");
+        path.setAttribute("marker-end", "url(#arrow)");
         svg.appendChild(path);
 
-        if(selectedId === el.id) {
+        if(activeId === el.id) {
             [['x1','y1'], ['x2','y2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny]));
             if(el.sub==='curve') [['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny], true));
         }
@@ -232,100 +223,95 @@
 
     function drawZone(el) {
         const div = document.createElement('div');
-        div.className = `zone ${el.sub==='shade'?'':'zone-outline'} ${selectedId === el.id ? 'selected' : ''}`;
+        div.className = `zone ${el.sub==='shade'?'':'zone-outline'} ${activeId === el.id ? 'selected' : ''}`;
         div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
         div.style.width = el.w + 'px'; div.style.height = el.h + 'px';
-        if(el.sub === 'shade') div.style.backgroundColor = el.color + '66'; // 40% alfa
-        else div.style.borderColor = el.color;
+        div.style.backgroundColor = el.sub === 'shade' ? el.color + '66' : 'transparent';
+        if(el.sub !== 'shade') div.style.border = `3px dashed ${el.color}`;
 
         div.onpointerdown = (e) => startDrag(e, el, 'x', 'y');
-        field.appendChild(div);
-        if(selectedId === el.id) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
+        fMaster.appendChild(div);
+        if(activeId === el.id) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
     }
 
-    function createNode(el, nx, ny, fx, fy, isC=false, isZoneScale=false) {
+    function createNode(el, nx, ny, fx, fy, isCurve=false, isZone=false) {
         const node = document.createElement('div');
         node.className = 'node';
         node.style.left = fx + 'px'; node.style.top = fy + 'px';
-        node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`;
-        node.onpointerdown = (e) => { e.stopPropagation(); startDrag(e, el, nx, ny, isZoneScale); };
-        field.appendChild(node);
+        node.innerHTML = `<div class="node-in" style="${isCurve?'background:cyan':''}"></div>`;
+        node.onpointerdown = (e) => { e.stopPropagation(); startDrag(e, el, nx, ny, isZone); };
+        fMaster.appendChild(node);
     }
 
-    // --- INTERACCIÓN AVANZADA ---
-    function startDrag(e, el, nx, ny, isZoneScale=false) {
-        dragData = { active: true, el, nx, ny, isZS: isZoneScale, moved: false, sx: e.clientX, sy: e.clientY, ix: el[nx], iy: el[ny], iw: el.w, ih: el.h };
-        select(el.id);
+    // --- INTERACCIÓN ---
+    function startDrag(e, el, nx, ny, isZS=false) {
+        e.preventDefault();
+        dragInfo = { el, nx, ny, isZS, moved:false, sx:e.clientX, sy:e.clientY, ix:el[nx], iy:el[ny], iw:el.w, ih:el.h };
+        activeId = el.id;
     }
 
     window.onpointermove = (e) => {
-        if(!dragData.active) return;
-        dragData.moved = true;
-        const dx = e.clientX - dragData.sx;
-        const dy = e.clientY - dragData.sy;
-        const el = dragData.el;
-
-        if(dragData.isZS) {
-            el.w = Math.max(20, dragData.iw + dx);
-            el.h = Math.max(20, dragData.ih + dy);
+        if(!dragInfo) return;
+        dragInfo.moved = true;
+        const dx = e.clientX - dragInfo.sx; const dy = e.clientY - dragInfo.sy;
+        if(dragInfo.isZS) {
+            dragInfo.el.w = Math.max(30, dragInfo.iw + dx);
+            dragInfo.el.h = Math.max(30, dragInfo.ih + dy);
         } else {
-            el[dragData.nx] = dragData.ix + dx;
-            el[dragData.ny] = dragData.iy + dy;
+            dragInfo.el[dragInfo.nx] = dragInfo.ix + dx;
+            dragInfo.el[dragInfo.ny] = dragInfo.iy + dy;
         }
         render();
     };
 
     window.onpointerup = () => {
-        if(dragData.active && !dragData.moved && dragData.nx === 'x' && dragData.el.type !== 'zone') {
-            dragData.el.rot = (dragData.el.rot + 45) % 360;
-            lastProps.player.rot = dragData.el.rot;
+        if(dragInfo && !dragInfo.moved && dragInfo.nx === 'x') {
+            dragInfo.el.rot = (dragInfo.el.rot + 45) % 360;
             render();
         }
-        dragData.active = false;
+        dragInfo = null;
     };
 
-    // --- INSPECTOR Y PROPIEDADES ---
+    function modifyProp(p, v) {
+        const el = steps[curStep].find(o=>o.id===activeId);
+        if(el) { el[p] = v; render(); }
+    }
+
     function updateInspector() {
         const ins = document.getElementById('inspector');
-        if(!selectedId) { ins.style.display = 'none'; return; }
-        const el = steps[currentStep].find(o => o.id === selectedId);
+        if(!activeId) { ins.style.display = 'none'; return; }
         ins.style.display = 'flex';
+        const el = steps[curStep].find(o=>o.id===activeId);
         document.getElementById('ins-color').value = el.color || '#ffffff';
-        document.getElementById('ins-arrow').parentElement.style.display = el.type === 'vec' ? 'block' : 'none';
-        document.getElementById('ins-arrow').checked = el.arrow || false;
     }
 
-    function applyProperty(prop, val) {
-        const el = steps[currentStep].find(o => o.id === selectedId);
-        if(!el) return;
-        if(prop === 'color') { el.color = val; if(el.type==='vec') lastProps.vector.color = val; else lastProps.zone.color = val; }
-        if(prop === 'arrow') { el.arrow = val; lastProps.vector.arrow = val; }
-        render();
-    }
-
-    // --- ANIMACIÓN Y EXPORTACIÓN ---
-    async function playFullAnim() {
+    // --- ANIMACIÓN ---
+    let isPlaying = false;
+    async function runAnimation() {
         if(steps.length < 2) return;
-        isPlaying = true; deselectAll();
-        const pScale = document.getElementById('set-pScale').value;
+        isPlaying = true; deselect();
+        const pScale = document.getElementById('global-pScale').value;
         for(let i=0; i < steps.length-1; i++) {
             await new Promise(res => {
                 let start = null; const f1 = steps[i], f2 = steps[i+1];
                 function animate(ts) {
                     if(!start) start = ts; const p = Math.min((ts-start)/800, 1);
-                    Array.from(field.children).forEach(c => { if(c.id !== 'vector-layer') c.remove(); });
+                    Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
                     f1.forEach(o => {
                         const target = f2.find(t => t.id === o.id);
-                        if(!target || o.type==='vec' || o.type==='zone') return;
-                        const x = o.x + (target.x - o.x)*p; const y = o.y + (target.y - o.y)*p;
-                        const div = document.createElement('div'); div.className = `object ${o.type}`;
+                        if(!target || o.type === 'vec' || o.type === 'zone') return;
+                        const x = o.x + (target.x - o.x)*p;
+                        const y = o.y + (target.y - o.y)*p;
+                        const r = o.rot + (target.rot - o.rot)*p;
+                        const div = document.createElement('div');
+                        div.className = `object ${o.type}`;
                         div.style.left = x+'px'; div.style.top = y+'px';
-                        div.style.transform = `translate(-50%, -50%) rotate(${o.rot}deg) scale(${o.type.startsWith('p-')?pScale:o.scale})`;
-                        if(o.type.startsWith('p-')) {
+                        div.style.transform = `translate(-50%,-50%) rotate(${r}deg) scale(${o.type.startsWith('p-')?pScale:o.scale})`;
+                        if(o.type.startsWith('p-')){ 
                             const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f', 'p-green':'#2ecc71'};
                             div.classList.add('player'); div.style.background = colors[o.type]; div.innerText = o.num;
                         } else if(o.type==='ball') div.innerText='⚽'; else div.classList.add(o.type);
-                        field.appendChild(div);
+                        fMaster.appendChild(div);
                     });
                     if(p < 1) requestAnimationFrame(animate); else res();
                 }
@@ -335,32 +321,15 @@
         isPlaying = false; render();
     }
 
-    // Exportación PNG / GIF (Resumen)
-    function exportPNG() {
-        html2canvas(field).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `tactica_paso_${currentStep+1}.png`;
-            link.href = canvas.toDataURL(); link.click();
-        });
-    }
-
-    function exportGIF() {
-        alert("Generando GIF... Esto puede tardar unos segundos dependiendo de la cantidad de pasos.");
-        // Simulación de captura de frames para GIF (Requiere procesar steps)
-        const framesImgs = [];
-        // Lógica de captura secuencial...
-    }
-
     // --- UTILIDADES ---
-    function select(id) { selectedId = id; }
-    function deselectAll() { selectedId = null; render(); }
-    function addStep() { steps.push(JSON.parse(JSON.stringify(steps[currentStep]))); currentStep++; render(); }
-    function navStep(d) { currentStep = Math.max(0, Math.min(steps.length-1, currentStep+d)); deselectAll(); }
-    function removeSelected() { if(selectedId) { steps[currentStep] = steps[currentStep].filter(o=>o.id!==selectedId); deselectAll(); } }
-    function togglePanel(id) { document.getElementById(id).classList.toggle('open'); }
-    function setOrientation(v) { document.getElementById('app-wrapper').className = v === 'portrait' ? 'portrait' : ''; render(); }
+    function addStep() { steps.push(JSON.parse(JSON.stringify(steps[curStep]))); curStep++; render(); }
+    function navStep(d) { curStep = Math.max(0, Math.min(steps.length-1, curStep+d)); deselect(); }
+    function removeActive() { if(activeId) { steps[curStep] = steps[currentStep].filter(o=>o.id!==activeId); deselect(); } }
+    function deselect() { activeId = null; render(); }
+    function toggleConfig() { document.getElementById('config-panel').classList.toggle('open'); }
+    function exportAsPNG() { html2canvas(fMaster).then(c => { const a = document.createElement('a'); a.download = 'tactica.png'; a.href = c.toDataURL(); a.click(); }); }
     
-    window.onload = () => { render(); };
+    window.onload = render;
 </script>
 </body>
 </html>
