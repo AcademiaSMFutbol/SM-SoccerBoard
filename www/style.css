@@ -8,12 +8,12 @@ body, html { margin: 0; padding: 0; width: 100vw; height: 100dvh; overflow: hidd
 .divider { width: 1px; height: 20px; background: #555; margin: 0 8px; }
 
 #config-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 5000; backdrop-filter: blur(8px); }
-.modal-content { background: #1a2025; padding: 25px; border-radius: 15px; border: 1px solid #444; width: 90%; max-width: 360px; box-shadow: 0 15px 50px rgba(0,0,0,0.7); }
-.modal-content h3 { color: white; margin: 0 0 20px; font-size: 18px; text-align: center; }
+.modal-content { background: #1a2025; padding: 25px; border-radius: 15px; border: 1px solid #444; width: 90%; max-width: 360px; }
+.modal-content h3 { color: white; margin: 0 0 20px; text-align: center; }
 .config-item { margin-bottom: 25px; }
 .config-item label { display: block; color: #888; font-size: 10px; margin-bottom: 10px; font-weight: 800; }
 .team-colors { display: flex; justify-content: space-between; }
-.team-colors input { width: 48px; height: 40px; border: 2px solid #333; border-radius: 8px; background: none; cursor: pointer; }
+.team-colors input { width: 48px; height: 40px; border: 2px solid #333; border-radius: 8px; background: none; }
 .modal-content select { width: 100%; background: #2d3436; color: white; padding: 12px; border-radius: 8px; border: 1px solid #444; }
 
 #top-inspector { position: absolute; top: 50px; left: 0; width: 100%; height: 55px; background: rgba(18, 23, 27, 0.98); display: none; align-items: center; justify-content: center; gap: 15px; border-bottom: 2px solid var(--edit); z-index: 2000; backdrop-filter: blur(10px); }
@@ -26,7 +26,6 @@ body, html { margin: 0; padding: 0; width: 100vw; height: 100dvh; overflow: hidd
 .cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 10px 0 2px; text-transform: uppercase; font-weight: 800; }
 .tool { width: 42px; height: 42px; margin: 6px auto; border-radius: 10px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; flex-shrink: 0; }
 
-/* VIEWPORT AL MÁXIMO (PADDING 0) */
 #viewport { flex: 1; background: #0a0a0a; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; touch-action: none; padding: 0; }
 #field-master { position: relative; width: 1050px; height: 680px; background: var(--grass) url('campoentero.png') no-repeat center / 100% 100%; box-shadow: 0 0 50px rgba(0,0,0,0.8); overflow: hidden; transform-origin: center center; flex-shrink: 0; }
 
@@ -35,20 +34,19 @@ body, html { margin: 0; padding: 0; width: 100vw; height: 100dvh; overflow: hidd
 .player::after { content: ''; position: absolute; top: -11px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid white; }
 .selected { outline: 3px solid yellow; outline-offset: 5px; z-index: 1500 !important; }
 
+/* TEXTO */
+.text-item { white-space: nowrap; font-weight: bold; font-size: 18px; text-shadow: 0 0 3px rgba(0,0,0,0.5); }
+
+/* ZONAS */
 .zone { position: absolute; z-index: 10; border-width: 3px; pointer-events: auto; transform: translate(0,0); }
 .zone-fill { border-style: solid; }
 .zone-line { border-style: dashed; background: transparent !important; }
+.zone-locked { opacity: 0.8; }
 
 .cone { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 24px solid; color: #e67e22; }
 .valla { width: 44px; height: 20px; border: 4px solid; border-bottom: none !important; border-radius: 5px 5px 0 0; color: #e74c3c; }
 .pica { width: 6px; height: 45px; border: 1px solid rgba(0,0,0,0.2); border-radius: 2px; background: #f1c40f; }
-
-.ladder { 
-    width: 100px; height: 30px; 
-    border-left: 4px solid #000; border-right: 4px solid #000; 
-    background: repeating-linear-gradient(90deg, transparent, transparent 18px, #f1c40f 18px, #f1c40f 22px); 
-    border-top: none; border-bottom: none;
-}
+.ladder { width: 100px; height: 30px; border-left: 4px solid #000; border-right: 4px solid #000; background: repeating-linear-gradient(90deg, transparent, transparent 18px, #f1c40f 18px, #f1c40f 22px); border-top: none; border-bottom: none; }
 
 #svg-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
 .vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 40; fill: none !important; }
