@@ -15,10 +15,9 @@ const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
 const svg = document.getElementById('svg-layer');
 
-// --- PANTALLA COMPLETA FORZADA ---
+// --- PANTALLA COMPLETA ---
 function setForceFS(val) { forceFS = val; if(val) requestFS(); }
 function requestFS() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(() => {}); } }
-
 document.addEventListener('pointerdown', () => { if(forceFS) requestFS(); });
 
 function saveState() {
@@ -33,7 +32,7 @@ function undo() {
     render();
 }
 
-// --- MENÚS INTERNOS ---
+// --- MENÚS ---
 function openResetMenu() { document.getElementById('reset-modal').style.display = 'flex'; }
 function closeResetMenu() { document.getElementById('reset-modal').style.display = 'none'; }
 function resetAction(type) {
@@ -54,17 +53,14 @@ function confirmCreateText() {
     activeId = id; closeTextModal(); render();
 }
 
-function toggleConfig() {
-    const modal = document.getElementById('config-modal');
-    modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
-    if(modal.style.display === 'none') setTimeout(resizeField, 50);
-}
+function toggleConfig() { /* Ya no es necesario togglear, es fijo */ }
 
 function updateSpeed(val) { animationSpeed = parseInt(val); }
 
 function updateTeamColor(team, color) {
     teamColors[team] = color;
-    document.getElementById(`tool-${team}`).style.background = color;
+    const tool = document.getElementById(`tool-${team}`);
+    if(tool) tool.style.background = color;
     steps.forEach(step => { step.forEach(el => { if(el.type === team) el.color = color; }); });
     render();
 }
@@ -72,6 +68,7 @@ function updateTeamColor(team, color) {
 function changeField(type) {
     const images = { 'entero': 'campoentero.png', 'medio': 'mediocampo.png', 'ejercicio': 'campoejercicio.png' };
     fMaster.style.backgroundImage = `url('${images[type]}')`;
+    setTimeout(resizeField, 50);
 }
 
 function resizeField() {
@@ -207,7 +204,8 @@ function drawVector(el) {
     hit.setAttribute("d", d); hit.setAttribute("class", "vec-hit v-el"); hit.dataset.id = el.id; svg.appendChild(hit);
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", d); path.setAttribute("class", "v-el");
-    path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3"); path.setAttribute("fill", "none");
+    path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3"); 
+    path.setAttribute("fill", "none"); // FIX CRÍTICO
     if(el.lineType === "dashed") path.setAttribute("stroke-dasharray", "6,6");
     if(el.arrow) path.setAttribute("marker-end", "url(#arrow)");
     svg.appendChild(path);
@@ -249,18 +247,28 @@ fMaster.addEventListener('touchend', () => pinchDist = 0);
 function modifyProp(p, v) { saveState(); const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); } }
 
 function updateInspector() { 
-    const ins = document.getElementById('top-inspector'); 
+    const panel = document.getElementById('inspector-panel'); 
     const textBox = document.getElementById('ins-text-box');
     const zoneLock = document.getElementById('ins-zone-lock');
-    if(!activeId) { ins.style.display = 'none'; return; } 
+    const vecExtras = document.getElementById('ins-vec-extras');
+    
+    if(!activeId) { panel.style.display = 'none'; return; } 
+    
+    panel.style.display = 'block';
     const el = steps[curStep].find(o=>o.id===activeId);
-    ins.style.display = 'flex'; 
     document.getElementById('ins-color').value = el.color || '#ffffff';
-    document.getElementById('ins-vec-extras').style.display = (el.type==='vec')?'flex':'none'; 
-    textBox.style.display = (el.type === 'text') ? 'flex' : 'none';
+    
+    textBox.style.display = (el.type === 'text') ? 'block' : 'none';
     if(el.type === 'text') document.getElementById('ins-text-val').value = el.content;
-    zoneLock.style.display = (el.type === 'zone') ? 'flex' : 'none';
-    if(el.type === 'zone') document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR" : "🔒 BLOQUEAR";
+    
+    zoneLock.style.display = (el.type === 'zone') ? 'block' : 'none';
+    if(el.type === 'zone') document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR ÁREA" : "🔒 BLOQUEAR ÁREA";
+    
+    vecExtras.style.display = (el.type === 'vec') ? 'block' : 'none';
+    if(el.type==='vec') {
+        document.getElementById('ins-line-type').value = el.lineType || 'solid';
+        document.getElementById('ins-arrow').checked = el.arrow;
+    }
 }
 
 function exportStepPNG() {
