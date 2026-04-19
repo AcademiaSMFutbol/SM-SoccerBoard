@@ -61,9 +61,10 @@ function changeField(type) {
     fMaster.style.backgroundImage = `url('${images[type]}')`;
 }
 
+// ESCALADO AUMENTADO (REDUCIDO MARGEN DE 40 A 10)
 function resizeField() {
-    const vw = viewport.clientWidth - 40;
-    const vh = viewport.clientHeight - 40;
+    const vw = viewport.clientWidth - 10;
+    const vh = viewport.clientHeight - 10;
     const scale = Math.min(vw / 1050, vh / 680);
     fMaster.style.transform = `scale(${scale})`;
 }
