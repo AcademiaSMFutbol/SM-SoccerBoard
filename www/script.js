@@ -15,7 +15,7 @@ const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
 const svg = document.getElementById('svg-layer');
 
-// --- PANTALLA COMPLETA ---
+// --- SISTEMA FULLSCREEN ---
 function setForceFS(val) { forceFS = val; if(val) requestFS(); }
 function requestFS() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(() => {}); } }
 document.addEventListener('pointerdown', () => { if(forceFS) requestFS(); });
@@ -52,8 +52,6 @@ function confirmCreateText() {
     steps[curStep].push({ id, type: 'text', x: 200, y: 200, content: val, color: "#000000", scale: 1 });
     activeId = id; closeTextModal(); render();
 }
-
-function toggleConfig() { /* Ya no es necesario togglear, es fijo */ }
 
 function updateSpeed(val) { animationSpeed = parseInt(val); }
 
@@ -205,7 +203,7 @@ function drawVector(el) {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", d); path.setAttribute("class", "v-el");
     path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3"); 
-    path.setAttribute("fill", "none"); // FIX CRÍTICO
+    path.setAttribute("fill", "none"); // FIX CURVAS RELLENAS
     if(el.lineType === "dashed") path.setAttribute("stroke-dasharray", "6,6");
     if(el.arrow) path.setAttribute("marker-end", "url(#arrow)");
     svg.appendChild(path);
@@ -262,7 +260,7 @@ function updateInspector() {
     if(el.type === 'text') document.getElementById('ins-text-val').value = el.content;
     
     zoneLock.style.display = (el.type === 'zone') ? 'block' : 'none';
-    if(el.type === 'zone') document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR ÁREA" : "🔒 BLOQUEAR ÁREA";
+    if(el.type === 'zone') document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR" : "🔒 BLOQUEAR";
     
     vecExtras.style.display = (el.type === 'vec') ? 'block' : 'none';
     if(el.type==='vec') {
