@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v43</title>
+    <title>SoccerBoard Pro v44</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -34,17 +34,17 @@
 
         <div id="reset-modal" class="modal-overlay">
             <div class="modal-content reset-menu">
-                <h3>Reiniciar Proyecto</h3>
+                <h3>Opciones de Reinicio</h3>
                 <button class="btn btn-dark" onclick="resetAction('step')">LIMPIAR PASO ACTUAL</button>
-                <button class="btn btn-danger" onclick="resetAction('project')">BORRAR TODO EL PROYECTO</button>
+                <button class="btn btn-danger" onclick="resetAction('project')">BORRAR PROYECTO COMPLETO</button>
                 <button class="btn close-btn" onclick="closeResetMenu()">CANCELAR</button>
             </div>
         </div>
 
         <div id="text-modal" class="modal-overlay">
             <div class="modal-content">
-                <h3>Insertar Texto</h3>
-                <input type="text" id="text-input-field" placeholder="Nota táctica..." class="custom-input">
+                <h3>Insertar Nota</h3>
+                <input type="text" id="text-input-field" placeholder="Escribe aquí..." class="custom-input">
                 <div style="display:flex; gap:10px; margin-top:15px;">
                     <button class="btn btn-accent" style="flex:1" onclick="confirmCreateText()">OK</button>
                     <button class="btn btn-dark" style="flex:1" onclick="closeTextModal()">SALIR</button>
@@ -88,13 +88,13 @@
 
             <div id="sidebar-right">
                 <div id="inspector-panel" style="display:none">
-                    <div class="panel-header">ELEMENTO</div>
+                    <div class="panel-header">EDICIÓN</div>
                     <div class="side-item">
                         <label>COLOR</label>
                         <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
                     </div>
                     <div id="ins-text-box" class="side-item" style="display:none">
-                        <label>EDITAR TEXTO</label>
+                        <label>CONTENIDO</label>
                         <input type="text" id="ins-text-val" oninput="modifyProp('content', this.value)" class="custom-input small">
                     </div>
                     <div id="ins-zone-lock" class="side-item" style="display:none">
@@ -102,10 +102,10 @@
                     </div>
                     <div id="ins-vec-extras" style="display:none">
                         <div class="side-item">
-                            <label>ESTILO</label>
+                            <label>ESTILO LÍNEA</label>
                             <select id="ins-line-type" onchange="modifyProp('lineType', this.value)">
-                                <option value="solid">Línea Balón</option>
-                                <option value="dashed">Línea Jugador</option>
+                                <option value="solid">Balón</option>
+                                <option value="dashed">Jugador</option>
                             </select>
                         </div>
                         <div class="side-item flex-row">
@@ -114,24 +114,24 @@
                         </div>
                     </div>
                     <button class="btn btn-accent w-100" onclick="duplicateActive()">➕ DUPLICAR</button>
-                    <button class="btn btn-dark w-100" style="margin-top:8px" onclick="deselect()">OK</button>
-                    <div class="divider" style="margin: 15px 0"></div>
+                    <button class="btn btn-dark w-100" style="margin-top:10px" onclick="deselect()">OK / CERRAR</button>
+                    <div class="divider" style="margin: 20px 0"></div>
                 </div>
 
-                <div class="panel-header">AJUSTES PIZARRA</div>
+                <div class="panel-header">AJUSTES</div>
                 <div class="side-item">
-                    <label>VELOCIDAD ANIMACIÓN</label>
+                    <label>VELOCIDAD PLAY</label>
                     <input type="range" min="200" max="2000" step="100" value="800" oninput="updateSpeed(this.value)">
                 </div>
                 <div class="side-item flex-row">
-                    <label>FULLSCREEN FORZADO</label>
+                    <label>FULLSCREEN</label>
                     <input type="checkbox" id="force-fs-check" onchange="setForceFS(this.checked)">
                 </div>
                 <div class="side-item">
-                    <label>TIPO DE CAMPO</label>
+                    <label>CAMPO</label>
                     <select onchange="changeField(this.value)">
                         <option value="entero">Completo</option>
-                        <option value="medio">Medio Campo</option>
+                        <option value="medio">Medio</option>
                         <option value="ejercicio">Ejercicio</option>
                     </select>
                 </div>
