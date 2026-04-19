@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v30</title>
+    <title>SoccerBoard Pro v31</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -17,9 +17,10 @@
     <div id="app-root">
         <div id="top-bar">
             <div class="btn-group">
-                <button class="btn" onclick="toggleFullScreen()" title="Pantalla Completa">⛶</button>
-                <button class="btn" onclick="undo()" id="undoBtn" title="Deshacer">⟲</button>
-                <button class="btn btn-danger" onclick="clearField()" title="Limpiar Paso">✨</button>
+                <button class="btn" onclick="toggleFullScreen()">⛶</button>
+                <button class="btn btn-dark" onclick="toggleConfig()">⚙</button>
+                <button class="btn" onclick="undo()" id="undoBtn">⟲</button>
+                <button class="btn btn-danger" onclick="clearField()">✨</button>
                 <div class="divider"></div>
                 <button class="btn" onclick="navStep(-1)">◀</button>
                 <span id="step-label">1/1</span>
@@ -33,19 +34,41 @@
             </div>
         </div>
 
+        <div id="config-modal">
+            <div class="modal-content">
+                <h3>Configuración General</h3>
+                <hr>
+                <div class="config-item">
+                    <label>Velocidad de Animación</label>
+                    <input type="range" min="200" max="2000" step="100" value="800" oninput="updateSpeed(this.value)">
+                </div>
+                <div class="config-item">
+                    <label>Colores de Equipos</label>
+                    <div class="team-colors">
+                        <input type="color" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
+                        <input type="color" value="#2e86de" oninput="updateTeamColor('p-blue', this.value)">
+                        <input type="color" value="#f1c40f" oninput="updateTeamColor('p-yellow', this.value)">
+                        <input type="color" value="#2ecc71" oninput="updateTeamColor('p-green', this.value)">
+                    </div>
+                </div>
+                <div class="config-item">
+                    <label>Tipo de Campo</label>
+                    <select onchange="changeField(this.value)">
+                        <option value="entero">Campo Entero</option>
+                        <option value="medio">Medio Campo</option>
+                        <option value="ejercicio">Campo Ejercicio</option>
+                    </select>
+                </div>
+                <button class="btn btn-accent" style="width:100%; margin-top:10px;" onclick="toggleConfig()">CERRAR</button>
+            </div>
+        </div>
+
         <div id="top-inspector">
             <div class="ins-section">
-                <label>COLOR</label>
+                <label>COLOR MATERIAL</label>
                 <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
             </div>
-
-            <div class="ins-section">
-                <label>VELOCIDAD ANIM.</label>
-                <input type="range" min="200" max="2000" step="100" value="800" id="ins-speed" oninput="updateSpeed(this.value)">
-            </div>
-
             <button class="btn btn-accent" onclick="duplicateActive()">➕ DUPLICAR</button>
-
             <div id="ins-vec-extras">
                 <div class="divider"></div>
                 <select id="ins-line-type" onchange="modifyProp('lineType', this.value)">
@@ -54,7 +77,6 @@
                 </select>
                 <label>FLECHA <input type="checkbox" id="ins-arrow" onchange="modifyProp('arrow', this.checked)"></label>
             </div>
-            
             <button class="btn btn-dark" onclick="deselect()">OK</button>
         </div>
 
@@ -64,10 +86,10 @@
                 <div class="tool" onclick="createVector('line')">⎯</div>
                 <div class="tool" onclick="createVector('curve')">⤴</div>
                 <div class="cat-label">Equipos</div>
-                <div class="tool" onclick="createPlayer('p-red')" style="background:#ff4757">1</div>
-                <div class="tool" onclick="createPlayer('p-blue')" style="background:#2e86de">1</div>
-                <div class="tool" onclick="createPlayer('p-yellow')" style="background:#f1c40f; color:0">1</div>
-                <div class="tool" onclick="createPlayer('p-green')" style="background:#2ecc71">1</div>
+                <div id="tool-p-red" class="tool" onclick="createPlayer('p-red')" style="background:#ff4757">1</div>
+                <div id="tool-p-blue" class="tool" onclick="createPlayer('p-blue')" style="background:#2e86de">1</div>
+                <div id="tool-p-yellow" class="tool" onclick="createPlayer('p-yellow')" style="background:#f1c40f; color:#000;">1</div>
+                <div id="tool-p-green" class="tool" onclick="createPlayer('p-green')" style="background:#2ecc71">1</div>
                 <div class="cat-label">Zonas</div>
                 <div class="tool" onclick="createZone('fill')">🟩</div>
                 <div class="tool" onclick="createZone('line')">⬜</div>
