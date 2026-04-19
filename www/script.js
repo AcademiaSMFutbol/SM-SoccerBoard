@@ -61,12 +61,30 @@ function changeField(type) {
     fMaster.style.backgroundImage = `url('${images[type]}')`;
 }
 
-// ESCALADO AUMENTADO (REDUCIDO MARGEN DE 40 A 10)
+// ESCALADO AGRESIVO (MAXIMIZA ESPACIO SIN CORTE INFERIOR)
 function resizeField() {
-    const vw = viewport.clientWidth - 10;
-    const vh = viewport.clientHeight - 10;
-    const scale = Math.min(vw / 1050, vh / 680);
-    fMaster.style.transform = `scale(${scale})`;
+    const vw = viewport.clientWidth - 2; 
+    const vh = viewport.clientHeight - 2;
+    
+    // Calculamos escalas para ambos ejes
+    let sX = vw / 1050;
+    let sY = vh / 680;
+    
+    // Si la diferencia de ratio es aceptable (< 20%), estiramos para llenar
+    const diff = Math.abs(sX - sY) / Math.min(sX, sY);
+    
+    let finalX, finalY;
+    if (diff < 0.2) {
+        finalX = sX;
+        finalY = sY;
+    } else {
+        // Si no, usamos el máximo escalado uniforme posible
+        const scale = Math.min(sX, sY);
+        finalX = scale;
+        finalY = scale;
+    }
+    
+    fMaster.style.transform = `scale(${finalX}, ${finalY})`;
 }
 
 function render() {
@@ -99,7 +117,8 @@ function handleGlobalDown(e) {
             ny: (hit && hit.dataset.ny) || 'y', 
             isZS: hit && hit.classList.contains('node-zs'),
             moved: false, lastX: e.clientX, lastY: e.clientY, 
-            zoom: rect.width / 1050 
+            zoomX: rect.width / 1050,
+            zoomY: rect.height / 680
         };
         saveState();
         render();
@@ -108,8 +127,8 @@ function handleGlobalDown(e) {
 
 function handleGlobalMove(e) {
     if(!dragInfo || pinchDist > 0) return;
-    const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoom;
-    const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoom;
+    const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoomX;
+    const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoomY;
 
     if (Math.hypot(dx, dy) > 0.5) dragInfo.moved = true;
     if (!dragInfo.moved) return;
