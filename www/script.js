@@ -6,11 +6,12 @@ let dragInfo = null;
 let pinchDist = 0;
 let wasSelectedBefore = false;
 let isPlaying = false;
+let animationSpeed = 800;
 
 let memory = {
     player: { rot: 0, scale: 1 },
     material: { rot: 0, scale: 1, color: "#ffffff" },
-    vector: { color: "#ffffff", weight: 3, arrow: true },
+    vector: { color: "#ffffff", weight: 3, arrow: true, lineType: "solid" },
     zone: { color: "#ffa500", w: 150, h: 100 }
 };
 
@@ -32,11 +33,15 @@ function undo() {
 
 function clearField() {
     if(steps[curStep].length === 0) return;
-    if(confirm("¿Seguro que quieres limpiar todo el campo?")) {
+    if(confirm("¿Seguro que quieres limpiar este paso?")) {
         saveState();
         steps[curStep] = [];
         deselect();
     }
+}
+
+function updateSpeed(val) {
+    animationSpeed = parseInt(val);
 }
 
 function resizeField() {
@@ -130,7 +135,7 @@ function createItem(type) {
 function createVector(sub) {
     saveState();
     const id = Date.now();
-    steps[curStep].push({ id, type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: memory.vector.color, weight: 3, arrow: true });
+    steps[curStep].push({ id, type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: memory.vector.color, weight: 3, arrow: true, lineType: memory.vector.lineType });
     activeId = id; render();
 }
 function createZone(sub) {
@@ -161,7 +166,9 @@ function drawPhysical(el) {
     } else {
         div.classList.add(el.type);
         if(el.type === 'cone') div.style.borderBottomColor = el.color;
-        else div.style.borderColor = el.color; div.style.color = el.color;
+        else if (el.type === 'pica') div.style.backgroundColor = el.color;
+        else div.style.borderColor = el.color; 
+        div.style.color = el.color;
     }
     div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
     div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${el.scale})`;
@@ -176,6 +183,7 @@ function drawVector(el) {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", d); path.setAttribute("class", "v-el");
     path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3"); path.setAttribute("fill", "none");
+    if(el.lineType === "dashed") path.setAttribute("stroke-dasharray", "6,6");
     if(el.arrow) path.setAttribute("marker-end", "url(#arrow)");
     svg.appendChild(path);
     if(activeId === el.id) {
@@ -231,7 +239,19 @@ function modifyProp(p, v) {
     const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; if(el.type.startsWith('p-')) memory.player[p]=v; else if(el.type==='vec') memory.vector[p]=v; else if(el.type==='zone') memory.zone[p]=v; else memory.material[p]=v; render(); }
 }
 
-function updateInspector() { const ins = document.getElementById('top-inspector'); if(!activeId) { ins.style.display = 'none'; return; } ins.style.display = 'flex'; document.getElementById('ins-vec-extras').style.display = (steps[curStep].find(o=>o.id===activeId).type==='vec')?'flex':'none'; }
+function updateInspector() { 
+    const ins = document.getElementById('top-inspector'); 
+    if(!activeId) { ins.style.display = 'none'; return; } 
+    const el = steps[curStep].find(o=>o.id===activeId);
+    ins.style.display = 'flex'; 
+    document.getElementById('ins-color').value = el.color || '#ffffff';
+    document.getElementById('ins-speed').value = animationSpeed;
+    document.getElementById('ins-vec-extras').style.display = (el.type==='vec')?'flex':'none'; 
+    if(el.type==='vec') {
+        document.getElementById('ins-line-type').value = el.lineType || 'solid';
+        document.getElementById('ins-arrow').checked = el.arrow;
+    }
+}
 
 function exportStepPNG() {
     deselect();
@@ -243,20 +263,29 @@ function exportStepPNG() {
     }, 150);
 }
 
+// --- ANIMACIÓN CORREGIDA (SOLO JUGADORES Y BALÓN) ---
 async function runAnimation() {
     if (steps.length < 2) return;
     isPlaying = true; deselect();
-    const speed = 800;
 
     for (let i = 0; i < steps.length - 1; i++) {
         await new Promise(res => {
             let start = null; const f1 = steps[i], f2 = steps[i + 1];
             function animate(ts) {
-                if (!start) start = ts; const p = Math.min((ts - start) / speed, 1);
+                if (!start) start = ts; const p = Math.min((ts - start) / animationSpeed, 1);
+                
+                // Limpiar solo los objetos animados
                 Array.from(fMaster.children).forEach(c => { if (c.id !== 'svg-layer') fMaster.removeChild(c); });
+                
                 f1.forEach(o => {
                     const target = f2.find(x => x.id === o.id);
-                    if (!target || o.type === 'vec' || o.type === 'zone') return;
+                    // FILTRO CRÍTICO: Solo animamos jugadores y balón
+                    if (!target || !(o.type.startsWith('p-') || o.type === 'ball')) {
+                        // El material estático se redibuja en su posición del frame actual f1
+                        if (target) drawPhysical(o);
+                        return;
+                    }
+                    
                     const div = document.createElement('div');
                     div.className = `object ${o.type}`;
                     if (o.type.startsWith('p-')) div.classList.add('player');
@@ -271,12 +300,8 @@ async function runAnimation() {
                         div.style.background = colors[o.type]; div.innerText = o.num;
                     } else if (o.type === 'ball') {
                         div.innerText = '⚽'; div.style.fontSize = '18px';
-                    } else {
-                        if (o.type === 'cone') div.style.borderBottomColor = o.color;
-                        else if (o.type === 'pica') div.style.backgroundColor = o.color;
-                        else div.style.borderColor = o.color;
-                        div.style.color = o.color;
                     }
+                    
                     div.style.left = x + 'px'; div.style.top = y + 'px';
                     div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`;
                     fMaster.appendChild(div);
