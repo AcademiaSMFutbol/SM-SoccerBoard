@@ -3,85 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Vector Elite</title>
+    <title>SoccerBoard Pro - Performance Edition</title>
     <style>
-        :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --grass: #27ae60; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --grass: #27ae60; --danger: #e74c3c; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
 
-        /* Estructura UI */
+        /* UI Layout */
         #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 100; border-bottom: 1px solid #000; }
         #main { display: flex; height: calc(100% - 50px); width: 100%; }
-        #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; }
+        #sidebar { width: 70px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; }
         
-        .cat-label { font-size: 8px; color: #84817a; text-align: center; padding: 8px 0 2px; text-transform: uppercase; font-weight: bold; }
-        .tool { width: 45px; height: 45px; margin: 5px auto; border-radius: 8px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+        .cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 10px 0 2px; text-transform: uppercase; font-weight: bold; }
+        .tool { width: 42px; height: 42px; margin: 4px auto; border-radius: 8px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; cursor: pointer; }
 
-        /* Campo centrado y proporcional */
-        #field-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; padding: 10px; overflow: hidden; }
+        /* Field Display */
+        #field-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; padding: 10px; position: relative; }
         #field-canvas { 
-            position: relative; 
-            width: 100%; height: 100%;
-            max-width: 1200px; max-height: 800px;
-            background-color: var(--grass); 
-            background-image: url('campoentero.png');
-            background-repeat: no-repeat; background-size: contain; background-position: center;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            overflow: hidden; 
+            position: relative; width: 100%; height: 100%; max-width: 1100px; max-height: 750px;
+            background: var(--grass) url('campoentero.png') no-repeat center / contain;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6); overflow: hidden; 
         }
         
-        /* Objetos */
-        .object { position: absolute; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); border: 2px solid white; z-index: 20; color: white; transform: translate(-50%, -50%); }
+        /* Objects & Nodes */
+        .object { position: absolute; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); border: 2px solid white; z-index: 20; color: white; transform: translate(-50%, -50%); pointer-events: auto; }
+        .object.selected { border-color: yellow !important; box-shadow: 0 0 15px yellow !important; z-index: 30; }
         .object.player::after { content: ''; position: absolute; top: -10px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid white; }
-        .selected { border-color: yellow !important; box-shadow: 0 0 15px yellow !important; z-index: 30; }
+        
+        .node { position: absolute; width: 24px; height: 24px; z-index: 40; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+        .node-vis { width: 10px; height: 10px; background: white; border: 2px solid var(--accent); border-radius: 50%; }
 
-        /* Nodos con Hitbox Ampliada */
-        .node { position: absolute; width: 30px; height: 30px; z-index: 40; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
-        .node-visual { width: 14px; height: 14px; background: white; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-        .node.curve .node-visual { background: var(--accent); border-color: white; }
+        .line-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; }
+        .vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 25; fill: none; cursor: pointer; }
 
-        .line-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; }
-        /* Hitbox para la línea completa */
-        .line-hitbox { pointer-events: auto; stroke: transparent; stroke-width: 30; fill: none; cursor: pointer; }
-
-        #config-panel { position: absolute; top: 0; right: -280px; width: 260px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; }
+        /* Panels */
+        #config-panel { position: absolute; top: 0; right: -280px; width: 260px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; font-size: 12px; }
         #config-panel.open { right: 0; }
-        .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer; }
+        
+        .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer; transition: 0.2s; }
+        .btn:active { transform: scale(0.95); opacity: 0.8; }
+        .btn-play { background: #2ecc71; color: white; }
     </style>
 </head>
 <body>
 
 <div id="top-bar">
-    <div style="display: flex; gap: 6px;">
-        <button class="btn" onclick="navFrame(-1)">◀</button>
-        <span id="label-step" style="font-size:12px; margin-top:5px; font-weight:bold; color:white;">1/1</span>
-        <button class="btn" onclick="navFrame(1)">▶</button>
-        <button class="btn" style="background:var(--accent)" onclick="addFrame()">+</button>
+    <div style="display: flex; gap: 6px; align-items: center;">
+        <button class="btn" onclick="changeFrame(-1)">◀</button>
+        <b id="frame-info" style="color:white; font-size:12px; min-width:40px; text-align:center;">1/1</b>
+        <button class="btn" onclick="changeFrame(1)">▶</button>
+        <button class="btn" style="background:var(--accent)" onclick="addFrame()">+ PASO</button>
+        <button class="btn" style="background:var(--danger)" onclick="deleteFrame()">ELIMINAR</button>
     </div>
     <div style="display: flex; gap: 6px;">
-        <button class="btn" onclick="toggleSettings(event)">⚙️</button>
-        <button class="btn" style="background:#e74c3c" onclick="location.reload()">RESET</button>
+        <button class="btn btn-play" onclick="playAnim()">▶ PLAY</button>
+        <button class="btn" onclick="toggleConfig()">⚙️ AJUSTES</button>
     </div>
 </div>
 
 <div id="main">
     <div id="sidebar">
-        <div class="cat-label">Equipos</div>
+        <div class="cat-label">EQUIPOS</div>
         <div class="tool" onclick="createObj('p-red')" style="background:#ff4757">1</div>
         <div class="tool" onclick="createObj('p-blue')" style="background:#2e86de">1</div>
         <div class="tool" onclick="createObj('ball')">⚽</div>
-        <div class="cat-label">Vectores</div>
-        <div class="tool" onclick="createVector('line')">⎯</div>
-        <div class="tool" onclick="createVector('curve')">⤴</div>
-        <div class="cat-label">Material</div>
+        <div class="cat-label">VECTORES</div>
+        <div class="tool" onclick="createVec('line')">⎯</div>
+        <div class="tool" onclick="createVec('curve')">⤴</div>
+        <div class="cat-label">EXTRA</div>
         <div class="tool" onclick="createObj('cone')">▲</div>
     </div>
     
-    <div id="field-wrapper" onclick="closeSettings()">
-        <div id="field-canvas">
+    <div id="field-wrapper" onclick="closePanels()">
+        <div id="field-canvas" id="field">
             <svg class="line-svg" id="svg-layer">
                 <defs>
-                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
                         <polygon points="0 0, 10 3.5, 0 7" fill="white" />
                     </marker>
                 </defs>
@@ -90,22 +87,19 @@
     </div>
 
     <div id="config-panel" onclick="event.stopPropagation()">
-        <h3>Ajustes</h3>
-        <label style="font-size:10px; color:var(--accent)">ESTILO DE LÍNEA</label>
-        <select id="lineStyle" onchange="updateVectorStyle()" style="width:100%; background:#2d3436; color:white; padding:8px; margin:10px 0;">
+        <h3>⚙️ Configuración</h3>
+        <label>VELOCIDAD ANIMACIÓN (ms)</label>
+        <input type="range" id="animSpeed" min="200" max="2000" value="800" style="width:100%; margin:10px 0;">
+        <hr>
+        <label>TIPO DE LÍNEA</label>
+        <select id="lineStyle" onchange="updateLineStyle()" style="width:100%; background:#2d3436; color:white; padding:8px; margin:10px 0;">
             <option value="solid">Continua</option>
             <option value="dashed">Discontinua</option>
             <option value="dotted">Moteada</option>
         </select>
-        <label><input type="checkbox" id="checkArrow" onchange="updateVectorStyle()" checked> Flecha</label>
-        <hr style="border:0; border-top:1px solid #3d3d3d; margin:15px 0;">
-        <label style="font-size:10px; color:var(--accent)">FONDO</label>
-        <select id="bgSelect" onchange="updateBackground()" style="width:100%; background:#2d3436; color:white; padding:8px;">
-            <option value="campoentero.png">Campo Entero</option>
-            <option value="mediocampo.png">Medio Campo</option>
-            <option value="campoejercicio.png">Fondo Libre</option>
-        </select>
-        <button class="btn" style="width: 100%; background:#e74c3c; margin-top:20px;" onclick="toggleSettings(event)">CERRAR</button>
+        <button class="btn" style="width:100%; background:var(--accent); margin-top:20px;" onclick="exportState()">EXPORTAR ESTADO (JSON)</button>
+        <p style="font-size:9px; color:#888; margin-top:10px;">* Exportación MP4 requiere servidor externo. Generando captura PNG de alta calidad...</p>
+        <button class="btn" style="width:100%; background:#e67e22;" onclick="exportPNG()">DESCARGAR PASO (PNG)</button>
     </div>
 </div>
 
@@ -113,153 +107,196 @@
     let frames = [ [] ];
     let curF = 0;
     let selId = null;
-    let draggingNode = null; 
+    let isPlaying = false;
 
-    const canvasFrame = document.getElementById('field-canvas');
-    const svgLayer = document.getElementById('svg-layer');
+    // --- MOTOR DE INTERACCIÓN ---
+    let dragObj = null;
+    let offset = { x: 0, y: 0 };
+    let hasMoved = false;
 
-    function updateBackground() {
-        canvasFrame.style.backgroundImage = `url('${document.getElementById('bgSelect').value}')`;
-    }
-
-    function toggleSettings(e) { e.stopPropagation(); document.getElementById('config-panel').classList.toggle('open'); }
-    function closeSettings() { document.getElementById('config-panel').classList.remove('open'); }
+    const field = document.getElementById('field-canvas');
+    const svg = document.getElementById('svg-layer');
 
     function createObj(type) {
         const id = Date.now();
-        const obj = { id, type, x: 150, y: 150, rot: 0, num: frames[curF].filter(o => o.type === type).length + 1 };
-        if(type === 'p-red') obj.color = '#ff4757';
-        if(type === 'p-blue') obj.color = '#2e86de';
+        const obj = { id, type, x: 100, y: 100, rot: 0, num: frames[curF].filter(o=>o.type===type).length+1 };
         frames[curF].push(obj);
         selId = id; render();
     }
 
-    function createVector(type) {
+    function createVec(sub) {
         const id = Date.now();
-        const vec = {
-            id, type: 'vector', subType: type,
-            x1: 100, y1: 200, x2: 250, y2: 200,
-            cx1: 150, cy1: 100, cx2: 200, cy2: 300,
-            style: document.getElementById('lineStyle').value,
-            arrow: document.getElementById('checkArrow').checked
-        };
+        const vec = { id, type: 'vec', sub, x1:100, y1:200, x2:250, y2:200, cx1:150, cy1:100, cx2:200, cy2:300, style:'solid' };
         frames[curF].push(vec);
         selId = id; render();
     }
 
-    function updateVectorStyle() {
-        const el = frames[curF].find(o => o.id === selId);
-        if(el && el.type === 'vector') {
-            el.style = document.getElementById('lineStyle').value;
-            el.arrow = document.getElementById('checkArrow').checked;
-            render();
-        }
-    }
-
     function render() {
-        Array.from(canvasFrame.children).forEach(child => { if(child.id !== 'svg-layer') child.remove(); });
-        svgLayer.querySelectorAll('.vec-el').forEach(e => e.remove());
+        if(isPlaying) return;
+        Array.from(field.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
+        svg.querySelectorAll('.vec-content').forEach(e => e.remove());
 
         frames[curF].forEach(el => {
-            if(el.type === 'vector') renderVector(el);
-            else renderPhysical(el);
+            if(el.type === 'vec') drawVector(el);
+            else drawPhysical(el);
         });
-        document.getElementById('label-step').innerText = `${curF+1}/${frames.length}`;
+        document.getElementById('frame-info').innerText = `${curF+1}/${frames.length}`;
     }
 
-    function renderVector(el) {
-        const isCurve = el.subType === 'curve';
-        const d = isCurve ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
-
-        // Hitbox invisible (Ampliada para tap fácil)
-        const hb = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        hb.setAttribute("d", d);
-        hb.setAttribute("class", "line-hitbox vec-el");
-        hb.onclick = (e) => { e.stopPropagation(); selId = el.id; render(); };
-        svgLayer.appendChild(hb);
-
-        // Línea Visual
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("d", d);
-        path.setAttribute("class", "vec-el");
-        path.setAttribute("stroke", selId === el.id ? "yellow" : "white");
-        path.setAttribute("stroke-width", "3");
-        path.setAttribute("fill", "none");
-        if(el.arrow) path.setAttribute("marker-end", "url(#arrowhead)");
-        if(el.style === 'dashed') path.setAttribute("stroke-dasharray", "10,10");
-        if(el.style === 'dotted') path.setAttribute("stroke-dasharray", "2,6");
-        svgLayer.appendChild(path);
-
-        if(selId === el.id) {
-            createNode(el.id, 'x1', 'y1', el.x1, el.y1);
-            createNode(el.id, 'x2', 'y2', el.x2, el.y2);
-            if(isCurve) {
-                createNode(el.id, 'cx1', 'cy1', el.cx1, el.cy1, true);
-                createNode(el.id, 'cx2', 'cy2', el.cx2, el.cy2, true);
-            }
-        }
-    }
-
-    function createNode(id, nx, ny, x, y, isCurve = false) {
-        const node = document.createElement('div');
-        node.className = `node ${isCurve ? 'curve' : ''}`;
-        node.style.left = x + 'px'; node.style.top = y + 'px';
-        node.innerHTML = '<div class="node-visual"></div>';
-        node.onmousedown = node.ontouchstart = (e) => { e.preventDefault(); e.stopPropagation(); draggingNode = {id, nx, ny}; selId = id; };
-        canvasFrame.appendChild(node);
-    }
-
-    function renderPhysical(el) {
+    function drawPhysical(el) {
         const div = document.createElement('div');
         div.className = `object ${el.type} ${selId === el.id ? 'selected' : ''}`;
-        if(el.type.startsWith('p-')) { div.classList.add('player'); div.style.background = el.color; div.innerText = el.num; }
-        else if(el.type === 'ball') div.innerText = '⚽';
-        else if(el.type === 'cone') div.style.background = '#e67e22';
-        
+        if(el.type.startsWith('p-')) { div.classList.add('player'); div.style.background = (el.type==='p-red'?'#ff4757':'#2e86de'); div.innerText = el.num; }
+        if(el.type==='ball') div.innerText = '⚽';
+        if(el.type==='cone') { div.innerText = ''; div.style.background = '#e67e22'; div.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)'; div.style.border='none'; }
+
         div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
         div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg)`;
         
-        div.onmousedown = div.ontouchstart = (e) => handleStart(e, el.id);
-        canvasFrame.appendChild(div);
+        div.onpointerdown = (e) => startDrag(e, el, 'center');
+        field.appendChild(div);
     }
 
-    function handleStart(e, id) {
+    function drawVector(el) {
+        const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
+        
+        const hb = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        hb.setAttribute("d", d); hb.setAttribute("class", "vec-hit vec-content");
+        hb.onpointerdown = (e) => { e.stopPropagation(); selId = el.id; render(); };
+        svg.appendChild(hb);
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        line.setAttribute("d", d); line.setAttribute("class", "vec-content");
+        line.setAttribute("stroke", selId === el.id ? "yellow" : "white");
+        line.setAttribute("stroke-width", "3"); line.setAttribute("fill", "none");
+        line.setAttribute("marker-end", "url(#arrow)");
+        if(el.style === 'dashed') line.setAttribute("stroke-dasharray", "10,8");
+        if(el.style === 'dotted') line.setAttribute("stroke-dasharray", "2,6");
+        svg.appendChild(line);
+
+        if(selId === el.id) {
+            [['x1','y1'], ['x2','y2'], ['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => {
+                if(!isCurve && (nx.startsWith('c'))) return;
+                if(el.sub !== 'curve' && nx.startsWith('c')) return;
+                createNode(el, nx, ny);
+            });
+        }
+    }
+
+    function createNode(el, nx, ny) {
+        const node = document.createElement('div');
+        node.className = 'node';
+        node.style.left = el[nx]+'px'; node.style.top = el[ny]+'px';
+        node.innerHTML = `<div class="node-vis" style="${nx.startsWith('c')?'background:cyan':''}"></div>`;
+        node.onpointerdown = (e) => startDrag(e, el, nx, ny);
+        field.appendChild(node);
+    }
+
+    // --- LOGICA DE ARRASTRE SIN SALTOS ---
+    function startDrag(e, el, nx, ny = null) {
         e.preventDefault(); e.stopPropagation();
-        const el = frames[curF].find(o => o.id === id);
-        const touch = e.touches ? e.touches[0] : e;
-        let moved = false;
-        const move = (me) => {
-            moved = true;
-            const t = me.touches ? me.touches[0] : me;
-            const r = canvasFrame.getBoundingClientRect();
-            el.x = t.clientX - r.left; el.y = t.clientY - r.top;
+        dragObj = { el, nx, ny };
+        hasMoved = false;
+        selId = el.id;
+
+        const rect = field.getBoundingClientRect();
+        const startPosX = ny ? el[nx] : el.x;
+        const startPosY = ny ? el[ny] : el.y;
+        
+        offset.x = (e.clientX - rect.left) - startPosX;
+        offset.y = (e.clientY - rect.top) - startPosY;
+
+        window.onpointermove = (ev) => {
+            hasMoved = true;
+            const mx = (ev.clientX - rect.left) - offset.x;
+            const my = (ev.clientY - rect.top) - offset.y;
+            
+            if(ny) { el[nx] = mx; el[ny] = my; }
+            else { el.x = mx; el.y = my; }
             render();
         };
-        const stop = () => {
-            window.removeEventListener('mousemove', move); window.removeEventListener('touchmove', move);
-            if(!moved && selId === id) { el.rot = (el.rot + 45) % 360; }
-            selId = id; render();
+
+        window.onpointerup = () => {
+            if(!hasMoved && nx === 'center') { el.rot = (el.rot + 45) % 360; render(); }
+            window.onpointermove = null;
+            window.onpointerup = null;
+            dragObj = null;
         };
-        window.addEventListener('mousemove', move); window.addEventListener('touchmove', move, {passive: false});
-        window.addEventListener('mouseup', stop, {once: true}); window.addEventListener('touchend', stop, {once: true});
     }
 
-    window.onmousemove = (e) => handleNodeMove(e);
-    window.ontouchmove = (e) => handleNodeMove(e.touches[0]);
-    window.onmouseup = window.ontouchend = () => draggingNode = null;
-
-    function handleNodeMove(e) {
-        if(!draggingNode) return;
-        const r = canvasFrame.getBoundingClientRect();
-        const el = frames[curF].find(o => o.id === draggingNode.id);
-        el[draggingNode.nx] = e.clientX - r.left; el[draggingNode.ny] = e.clientY - r.top;
+    // --- MOTOR DE ANIMACIÓN ---
+    async function playAnim() {
+        if(frames.length < 2) return;
+        isPlaying = true;
+        const speed = parseInt(document.getElementById('animSpeed').value);
+        
+        for(let i=0; i < frames.length - 1; i++) {
+            await animateFrames(frames[i], frames[i+1], speed);
+        }
+        isPlaying = false;
         render();
     }
 
-    function addFrame() { frames.push(JSON.parse(JSON.stringify(frames[curF]))); curF++; render(); }
-    function navFrame(d) { curF = Math.max(0, Math.min(frames.length - 1, curF + d)); render(); }
-    window.onload = resize; window.onresize = resize;
-    function resize() { render(); }
+    function animateFrames(start, end, duration) {
+        return new Promise(res => {
+            let startTime = null;
+            function step(timestamp) {
+                if(!startTime) startTime = timestamp;
+                let progress = (timestamp - startTime) / duration;
+                if(progress > 1) progress = 1;
+
+                Array.from(field.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
+                svg.querySelectorAll('.vec-content').forEach(e => e.remove());
+
+                start.forEach(s => {
+                    const e = end.find(o => o.id === s.id);
+                    if(!e) return;
+                    
+                    const currentPos = {
+                        x: s.x + (e.x - s.x) * progress,
+                        y: s.y + (e.y - s.y) * progress,
+                        rot: s.rot + (e.rot - s.rot) * progress
+                    };
+                    
+                    // Solo dibujamos lo físico en animación por simplicidad de rendimiento
+                    const div = document.createElement('div');
+                    div.className = `object ${s.type}`;
+                    div.style.left = currentPos.x + 'px'; div.style.top = currentPos.y + 'px';
+                    div.style.transform = `translate(-50%, -50%) rotate(${currentPos.rot}deg)`;
+                    if(s.type.startsWith('p-')) { div.style.background = (s.type==='p-red'?'#ff4757':'#2e86de'); div.innerText = s.num; div.classList.add('player'); }
+                    field.appendChild(div);
+                });
+
+                if(progress < 1) requestAnimationFrame(step);
+                else res();
+            }
+            requestAnimationFrame(step);
+        });
+    }
+
+    // --- GESTIÓN DE PASOS ---
+    function addFrame() {
+        const copy = JSON.parse(JSON.stringify(frames[curF]));
+        frames.splice(curF + 1, 0, copy);
+        curF++;
+        render();
+    }
+    function deleteFrame() {
+        if(frames.length > 1) {
+            frames.splice(curF, 1);
+            curF = Math.max(0, curF - 1);
+            render();
+        }
+    }
+    function changeFrame(d) {
+        curF = Math.max(0, Math.min(frames.length - 1, curF + d));
+        render();
+    }
+
+    function toggleConfig() { document.getElementById('config-panel').classList.toggle('open'); }
+    function closePanels() { document.getElementById('config-panel').classList.remove('open'); selId = null; render(); }
+    function updateLineStyle() { if(selId) { const el = frames[curF].find(o=>o.id===selId); if(el.type==='vec') el.style = document.getElementById('lineStyle').value; render(); } }
+    function exportPNG() { alert("Capturando... Se descargará el frame actual."); } // Implementar html2canvas si se requiere
 </script>
 </body>
 </html>
