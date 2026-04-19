@@ -32,7 +32,7 @@ function undo() {
     render();
 }
 
-// --- MENÚS ---
+// --- MODALES ---
 function openResetMenu() { document.getElementById('reset-modal').style.display = 'flex'; }
 function closeResetMenu() { document.getElementById('reset-modal').style.display = 'none'; }
 function resetAction(type) {
@@ -78,16 +78,34 @@ function resizeField() {
     fMaster.style.transform = `scale(${finalX}, ${finalY})`;
 }
 
+// RENDERIZADO EN DOS FASES PARA PRIORIZAR NODOS
 function render() {
     if (isPlaying) return;
     Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
     svg.querySelectorAll('.v-el').forEach(e => e.remove());
+    
+    // Fase 1: Dibujar Objetos y Zonas
     steps[curStep].forEach(el => {
         if(el.type === 'vec') drawVector(el);
         else if(el.type === 'zone') drawZone(el);
         else if(el.type === 'text') drawText(el);
         else drawPhysical(el);
     });
+
+    // Fase 2: Dibujar Nodos (Siempre encima)
+    steps[curStep].forEach(el => {
+        if(activeId === el.id) {
+            if(el.type === 'vec') {
+                [['x1','y1'], ['x2','y2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny]));
+                if(el.sub==='curve') [['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny], true));
+            }
+            if(el.type === 'zone' && !el.locked) {
+                // Nodo de esquina (Escalar)
+                createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
+            }
+        }
+    });
+
     document.getElementById('step-label').innerText = `${curStep+1}/${steps.length}`;
     updateInspector();
 }
@@ -101,7 +119,9 @@ function handleGlobalDown(e) {
 
     if(activeId) {
         const el = steps[curStep].find(o => o.id === activeId);
+        // Si la zona está bloqueada, ignorar arrastre del cuerpo
         if(el.type === 'zone' && el.locked && !e.target.closest('.node')) { dragInfo = null; return; }
+        
         const rect = fMaster.getBoundingClientRect();
         dragInfo = { el, nx: (hit && hit.dataset.nx) || 'x', ny: (hit && hit.dataset.ny) || 'y', 
             isZS: hit && hit.classList.contains('node-zs'),
@@ -117,11 +137,19 @@ function handleGlobalMove(e) {
     const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoomY;
     if (Math.hypot(dx, dy) > 0.5) dragInfo.moved = true;
     if (!dragInfo.moved) return;
-    if(dragInfo.isZS) { dragInfo.el.w = Math.max(30, dragInfo.el.w + dx); dragInfo.el.h = Math.max(30, dragInfo.el.h + dy); }
+
+    if(dragInfo.isZS) { 
+        dragInfo.el.w = Math.max(30, dragInfo.el.w + dx); 
+        dragInfo.el.h = Math.max(30, dragInfo.el.h + dy); 
+    }
     else if(dragInfo.el.type === 'vec' && dragInfo.nx === 'x') {
         ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
         ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
-    } else { dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy; }
+    } 
+    else { 
+        dragInfo.el[dragInfo.nx] += dx; 
+        dragInfo.el[dragInfo.ny] += dy; 
+    }
     dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY; render();
 }
 
@@ -203,14 +231,10 @@ function drawVector(el) {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", d); path.setAttribute("class", "v-el");
     path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3"); 
-    path.setAttribute("fill", "none"); // FIX CURVAS RELLENAS
+    path.setAttribute("fill", "none"); // FIX CURVAS
     if(el.lineType === "dashed") path.setAttribute("stroke-dasharray", "6,6");
     if(el.arrow) path.setAttribute("marker-end", "url(#arrow)");
     svg.appendChild(path);
-    if(activeId === el.id) {
-        [['x1','y1'], ['x2','y2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny]));
-        if(el.sub==='curve') [['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny], true));
-    }
 }
 
 function drawZone(el) {
@@ -220,13 +244,15 @@ function drawZone(el) {
     div.style.width = el.w + 'px'; div.style.height = el.h + 'px'; div.style.borderColor = el.color;
     if(el.sub === 'fill') div.style.backgroundColor = el.color + '66';
     fMaster.appendChild(div);
-    if(activeId === el.id && !el.locked) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
 }
 
 function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
-    const node = document.createElement('div'); node.className = `node ${isZS?'node-zs':''}`; 
-    node.style.left = fx+'px'; node.style.top = fy+'px'; node.dataset.id = el.id; node.dataset.nx = nx; node.dataset.ny = ny;
-    node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`; fMaster.appendChild(node);
+    const node = document.createElement('div'); 
+    node.className = `node ${isZS?'node-zs':''}`; 
+    node.style.left = fx+'px'; node.style.top = fy+'px'; 
+    node.dataset.id = el.id; node.dataset.nx = nx; node.dataset.ny = ny;
+    node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`; 
+    fMaster.appendChild(node);
 }
 
 fMaster.addEventListener('touchstart', (e) => {
@@ -249,19 +275,14 @@ function updateInspector() {
     const textBox = document.getElementById('ins-text-box');
     const zoneLock = document.getElementById('ins-zone-lock');
     const vecExtras = document.getElementById('ins-vec-extras');
-    
     if(!activeId) { panel.style.display = 'none'; return; } 
-    
     panel.style.display = 'block';
     const el = steps[curStep].find(o=>o.id===activeId);
     document.getElementById('ins-color').value = el.color || '#ffffff';
-    
     textBox.style.display = (el.type === 'text') ? 'block' : 'none';
     if(el.type === 'text') document.getElementById('ins-text-val').value = el.content;
-    
     zoneLock.style.display = (el.type === 'zone') ? 'block' : 'none';
-    if(el.type === 'zone') document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR" : "🔒 BLOQUEAR";
-    
+    if(el.type === 'zone') document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR ÁREA" : "🔒 BLOQUEAR ÁREA";
     vecExtras.style.display = (el.type === 'vec') ? 'block' : 'none';
     if(el.type==='vec') {
         document.getElementById('ins-line-type').value = el.lineType || 'solid';
