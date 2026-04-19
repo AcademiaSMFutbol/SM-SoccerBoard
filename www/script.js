@@ -8,12 +8,7 @@ let wasSelectedBefore = false;
 let isPlaying = false;
 let animationSpeed = 800;
 
-let teamColors = {
-    'p-red': '#ff4757',
-    'p-blue': '#2e86de',
-    'p-yellow': '#f1c40f',
-    'p-green': '#2ecc71'
-};
+let teamColors = { 'p-red': '#ff4757', 'p-blue': '#2e86de', 'p-yellow': '#f1c40f', 'p-green': '#2ecc71' };
 
 const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
@@ -33,9 +28,7 @@ function undo() {
 
 function clearField() {
     if(confirm("¿Limpiar todo el campo?")) {
-        saveState();
-        steps[curStep] = [];
-        deselect();
+        saveState(); steps[curStep] = []; deselect();
     }
 }
 
@@ -50,9 +43,7 @@ function updateSpeed(val) { animationSpeed = parseInt(val); }
 function updateTeamColor(team, color) {
     teamColors[team] = color;
     document.getElementById(`tool-${team}`).style.background = color;
-    steps.forEach(step => {
-        step.forEach(el => { if(el.type === team) el.color = color; });
-    });
+    steps.forEach(step => { step.forEach(el => { if(el.type === team) el.color = color; }); });
     render();
 }
 
@@ -61,29 +52,13 @@ function changeField(type) {
     fMaster.style.backgroundImage = `url('${images[type]}')`;
 }
 
-// ESCALADO AGRESIVO (MAXIMIZA ESPACIO SIN CORTE INFERIOR)
 function resizeField() {
-    const vw = viewport.clientWidth - 2; 
-    const vh = viewport.clientHeight - 2;
-    
-    // Calculamos escalas para ambos ejes
-    let sX = vw / 1050;
-    let sY = vh / 680;
-    
-    // Si la diferencia de ratio es aceptable (< 20%), estiramos para llenar
+    const vw = viewport.clientWidth - 2, vh = viewport.clientHeight - 2;
+    let sX = vw / 1050, sY = vh / 680;
     const diff = Math.abs(sX - sY) / Math.min(sX, sY);
-    
     let finalX, finalY;
-    if (diff < 0.2) {
-        finalX = sX;
-        finalY = sY;
-    } else {
-        // Si no, usamos el máximo escalado uniforme posible
-        const scale = Math.min(sX, sY);
-        finalX = scale;
-        finalY = scale;
-    }
-    
+    if (diff < 0.2) { finalX = sX; finalY = sY; } 
+    else { const scale = Math.min(sX, sY); finalX = scale; finalY = scale; }
     fMaster.style.transform = `scale(${finalX}, ${finalY})`;
 }
 
@@ -94,6 +69,7 @@ function render() {
     steps[curStep].forEach(el => {
         if(el.type === 'vec') drawVector(el);
         else if(el.type === 'zone') drawZone(el);
+        else if(el.type === 'text') drawText(el);
         else drawPhysical(el);
     });
     document.getElementById('step-label').innerText = `${curStep+1}/${steps.length}`;
@@ -104,24 +80,21 @@ function handleGlobalDown(e) {
     if(isPlaying) return;
     const hit = e.target.closest('.object, .vec-hit, .zone, .node');
     let hitId = hit ? Number(hit.dataset.id) : null;
-    
     wasSelectedBefore = (activeId === hitId && hitId !== null);
     if(hitId !== null) activeId = hitId;
 
     if(activeId) {
         const el = steps[curStep].find(o => o.id === activeId);
+        // BLOQUEO DE SEGURIDAD PARA ZONAS
+        if(el.type === 'zone' && el.locked && !e.target.closest('.node')) {
+            dragInfo = null; return;
+        }
         const rect = fMaster.getBoundingClientRect();
-        dragInfo = { 
-            el, 
-            nx: (hit && hit.dataset.nx) || 'x', 
-            ny: (hit && hit.dataset.ny) || 'y', 
+        dragInfo = { el, nx: (hit && hit.dataset.nx) || 'x', ny: (hit && hit.dataset.ny) || 'y', 
             isZS: hit && hit.classList.contains('node-zs'),
-            moved: false, lastX: e.clientX, lastY: e.clientY, 
-            zoomX: rect.width / 1050,
-            zoomY: rect.height / 680
+            moved: false, lastX: e.clientX, lastY: e.clientY, zoomX: rect.width / 1050, zoomY: rect.height / 680
         };
-        saveState();
-        render();
+        saveState(); render();
     }
 }
 
@@ -129,7 +102,6 @@ function handleGlobalMove(e) {
     if(!dragInfo || pinchDist > 0) return;
     const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoomX;
     const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoomY;
-
     if (Math.hypot(dx, dy) > 0.5) dragInfo.moved = true;
     if (!dragInfo.moved) return;
 
@@ -140,23 +112,22 @@ function handleGlobalMove(e) {
         ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
         ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
     } else {
-        dragInfo.el[dragInfo.nx] += dx; 
-        dragInfo.el[dragInfo.ny] += dy;
+        dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy;
     }
-    dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY;
-    render();
+    dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY; render();
 }
 
 function handleGlobalEnd() {
     if(dragInfo && !dragInfo.moved) {
         history.pop(); 
-        if(wasSelectedBefore && !['zone','vec'].includes(dragInfo.el.type)) {
+        if(wasSelectedBefore && !['zone','vec','text'].includes(dragInfo.el.type)) {
             dragInfo.el.rot = (dragInfo.el.rot + 45) % 360;
         }
     }
     dragInfo = null; render();
 }
 
+// CREACIÓN
 function createPlayer(type) {
     saveState();
     const id = Date.now();
@@ -183,9 +154,19 @@ function createVector(sub) {
 }
 
 function createZone(sub) {
+    const isLocked = confirm("¿Quieres bloquear la zona para que no se mueva?");
     saveState();
     const id = Date.now();
-    steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: "#ffa500" });
+    steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: "#ffa500", locked: isLocked });
+    activeId = id; render();
+}
+
+function createText() {
+    const val = prompt("Escribe tu texto:", "Nota...");
+    if(!val) return;
+    saveState();
+    const id = Date.now();
+    steps[curStep].push({ id, type: 'text', x: 200, y: 200, content: val, color: "#000000", scale: 1 });
     activeId = id; render();
 }
 
@@ -219,11 +200,19 @@ function drawPhysical(el) {
     fMaster.appendChild(div);
 }
 
+function drawText(el) {
+    const div = document.createElement('div');
+    div.className = `object text-item ${activeId === el.id ? 'selected' : ''}`;
+    div.dataset.id = el.id; div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
+    div.style.color = el.color; div.innerText = el.content;
+    div.style.transform = `translate(-50%, -50%) scale(${el.scale})`;
+    fMaster.appendChild(div);
+}
+
 function drawVector(el) {
     const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
     const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    hit.setAttribute("d", d); hit.setAttribute("class", "vec-hit v-el"); hit.dataset.id = el.id;
-    svg.appendChild(hit);
+    hit.setAttribute("d", d); hit.setAttribute("class", "vec-hit v-el"); hit.dataset.id = el.id; svg.appendChild(hit);
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", d); path.setAttribute("class", "v-el");
     path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3"); path.setAttribute("fill", "none");
@@ -238,14 +227,12 @@ function drawVector(el) {
 
 function drawZone(el) {
     const div = document.createElement('div');
-    div.className = `zone ${el.sub==='fill'?'zone-fill':'zone-line'} ${activeId === el.id ? 'selected' : ''}`;
-    div.dataset.id = el.id;
-    div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
-    div.style.width = el.w + 'px'; div.style.height = el.h + 'px';
-    div.style.borderColor = el.color;
+    div.className = `zone ${el.sub==='fill'?'zone-fill':'zone-line'} ${activeId === el.id ? 'selected' : ''} ${el.locked?'zone-locked':''}`;
+    div.dataset.id = el.id; div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
+    div.style.width = el.w + 'px'; div.style.height = el.h + 'px'; div.style.borderColor = el.color;
     if(el.sub === 'fill') div.style.backgroundColor = el.color + '66';
     fMaster.appendChild(div);
-    if(activeId === el.id) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
+    if(activeId === el.id && !el.locked) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
 }
 
 function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
@@ -257,8 +244,7 @@ function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
 
 fMaster.addEventListener('touchstart', (e) => {
     if(e.touches.length === 2 && activeId) {
-        saveState();
-        pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        saveState(); pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     }
 }, {passive: false});
 
@@ -267,8 +253,7 @@ fMaster.addEventListener('touchmove', (e) => {
         const el = steps[curStep].find(o=>o.id === activeId);
         if(el) {
             const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-            el.scale *= (dist / pinchDist); pinchDist = dist;
-            render();
+            el.scale *= (dist / pinchDist); pinchDist = dist; render();
         }
     }
 }, {passive: false});
@@ -281,17 +266,20 @@ function toggleFullScreen() {
 }
 
 function modifyProp(p, v) { 
-    saveState();
-    const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); }
+    saveState(); const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); }
 }
 
 function updateInspector() { 
     const ins = document.getElementById('top-inspector'); 
+    const textBox = document.getElementById('ins-text-box');
     if(!activeId) { ins.style.display = 'none'; return; } 
     const el = steps[curStep].find(o=>o.id===activeId);
     ins.style.display = 'flex'; 
     document.getElementById('ins-color').value = el.color || '#ffffff';
     document.getElementById('ins-vec-extras').style.display = (el.type==='vec')?'flex':'none'; 
+    if(el.type === 'text') {
+        textBox.style.display = 'flex'; document.getElementById('ins-text-val').value = el.content;
+    } else { textBox.style.display = 'none'; }
     if(el.type==='vec') {
         document.getElementById('ins-line-type').value = el.lineType || 'solid';
         document.getElementById('ins-arrow').checked = el.arrow;
@@ -321,23 +309,16 @@ async function runAnimation() {
                 f1.forEach(o => {
                     const target = f2.find(x => x.id === o.id);
                     if (!target || !(o.type.startsWith('p-') || o.type === 'ball')) {
-                        if (target) drawPhysical(o);
+                        if (target) { if(o.type==='text') drawText(o); else if(o.type==='zone') drawZone(o); else drawPhysical(o); }
                         return;
                     }
-                    const div = document.createElement('div');
-                    div.className = `object ${o.type} player`;
-                    const x = o.x + (target.x - o.x) * p;
-                    const y = o.y + (target.y - o.y) * p;
-                    const r = o.rot + (target.rot - o.rot) * p;
-                    const s = o.scale + (target.scale - o.scale) * p;
-                    if (o.type.startsWith('p-')) {
-                        div.style.background = teamColors[o.type]; div.innerText = o.num;
-                    } else if (o.type === 'ball') {
-                        div.innerText = '⚽'; div.style.fontSize = '18px'; div.classList.remove('player');
-                    }
+                    const div = document.createElement('div'); div.className = `object ${o.type} player`;
+                    const x = o.x + (target.x - o.x) * p; const y = o.y + (target.y - o.y) * p;
+                    const r = o.rot + (target.rot - o.rot) * p; const s = o.scale + (target.scale - o.scale) * p;
+                    if (o.type.startsWith('p-')) { div.style.background = teamColors[o.type]; div.innerText = o.num; } 
+                    else if (o.type === 'ball') { div.innerText = '⚽'; div.style.fontSize = '18px'; div.classList.remove('player'); }
                     div.style.left = x + 'px'; div.style.top = y + 'px';
-                    div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`;
-                    fMaster.appendChild(div);
+                    div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`; fMaster.appendChild(div);
                 });
                 if (p < 1) requestAnimationFrame(animate); else res();
             }
