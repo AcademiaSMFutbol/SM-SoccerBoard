@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v29</title>
+    <title>SoccerBoard Pro v30</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#12171b">
 
     <link rel="stylesheet" href="style.css">
@@ -20,7 +19,7 @@
             <div class="btn-group">
                 <button class="btn" onclick="toggleFullScreen()" title="Pantalla Completa">⛶</button>
                 <button class="btn" onclick="undo()" id="undoBtn" title="Deshacer">⟲</button>
-                <button class="btn btn-danger" onclick="clearField()" title="Limpiar Campo">✨</button>
+                <button class="btn btn-danger" onclick="clearField()" title="Limpiar Paso">✨</button>
                 <div class="divider"></div>
                 <button class="btn" onclick="navStep(-1)">◀</button>
                 <span id="step-label">1/1</span>
@@ -35,12 +34,27 @@
         </div>
 
         <div id="top-inspector">
-            <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
-            <button class="btn btn-accent" onclick="duplicateActive()">➕</button>
+            <div class="ins-section">
+                <label>COLOR</label>
+                <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
+            </div>
+
+            <div class="ins-section">
+                <label>VELOCIDAD ANIM.</label>
+                <input type="range" min="200" max="2000" step="100" value="800" id="ins-speed" oninput="updateSpeed(this.value)">
+            </div>
+
+            <button class="btn btn-accent" onclick="duplicateActive()">➕ DUPLICAR</button>
+
             <div id="ins-vec-extras">
-                <input type="range" min="1" max="12" value="3" oninput="modifyProp('weight', this.value)">
+                <div class="divider"></div>
+                <select id="ins-line-type" onchange="modifyProp('lineType', this.value)">
+                    <option value="solid">Continua (Balón)</option>
+                    <option value="dashed">Moteada (Jugador)</option>
+                </select>
                 <label>FLECHA <input type="checkbox" id="ins-arrow" onchange="modifyProp('arrow', this.checked)"></label>
             </div>
+            
             <button class="btn btn-dark" onclick="deselect()">OK</button>
         </div>
 
