@@ -3,13 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v25</title>
+    <title>SoccerBoard Pro v26</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#12171b">
+
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         :root { --panel: #1e272e; --accent: #3498db; --top: #12171b; --grass: #27ae60; --danger: #e74c3c; --edit: #f39c12; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         
-        /* Uso de dvh para evitar cortes en móviles */
+        /* Uso de dvh para evitar cortes por barras dinámicas */
         body, html { margin: 0; padding: 0; width: 100%; height: 100dvh; overflow: hidden; background: #000; font-family: sans-serif; }
 
         #app-root { display: flex; flex-direction: column; width: 100vw; height: 100dvh; }
@@ -31,7 +38,7 @@
 
         #viewport { flex: 1; background: #0a0a0a; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; touch-action: none; padding: 5px; }
         
-        /* CAMPO AUTOSCALE SEGURO */
+        /* CAMPO QUE SIEMPRE SE MANTIENE ÍNTEGRO */
         #field-master { 
             position: relative; 
             width: 1050px; height: 680px;
@@ -103,7 +110,7 @@
             <div class="tool" onclick="createItem('valla')">⊓</div>
         </div>
 
-        <div id="viewport" onpointerdown="handleGlobalDown(event)" onpointermove="handleGlobalMove(event)" onpointerup="handleGlobalEnd()" onpointerleave="handleGlobalEnd()">
+        <div id="viewport" onpointerdown="handleGlobalDown(event)" onpointermove="handleGlobalMove(event)" onpointerup="handleGlobalEnd()">
             <div id="field-master">
                 <svg id="svg-layer">
                     <defs><marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" /></marker></defs>
@@ -131,6 +138,7 @@
     const fMaster = document.getElementById('field-master');
     const svg = document.getElementById('svg-layer');
 
+    // AJUSTE DE CAMPO ANTI-CORTE
     function resizeField() {
         const vw = viewport.clientWidth - 20;
         const vh = viewport.clientHeight - 20;
@@ -152,25 +160,23 @@
         updateInspector();
     }
 
-    // --- FULLSCREEN ---
     function toggleFullScreen() {
         if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(e => {
-                alert(`Error al intentar pantalla completa: ${e.message}`);
-            });
-        } else {
-            document.exitFullscreen();
-        }
+            document.documentElement.requestFullscreen().catch(e => alert(e.message));
+        } else { document.exitFullscreen(); }
     }
 
-    // --- MOVIMIENTO REMOTO MEJORADO ---
+    // MOTOR DE MOVIMIENTO REMOTO SIN FALLOS
     function handleGlobalDown(e) {
         if(isPlaying) return;
         const hit = e.target.closest('.object, .vec-hit, .zone, .node');
+        
+        // Prioridad: Seleccionar si tocamos algo nuevo
         if(hit && hit.dataset.id) {
             activeId = Number(hit.dataset.id);
         }
         
+        // Si hay algo seleccionado (recién tocado o de antes), permitir arrastre
         if(activeId) {
             const el = steps[curStep].find(o => o.id === activeId);
             const rect = fMaster.getBoundingClientRect();
@@ -213,7 +219,7 @@
         dragInfo = null; render();
     }
 
-    // --- CREACIÓN ---
+    // CREACIÓN CON HERENCIA DE ESTADO
     function createPlayer(type) {
         const id = Date.now();
         steps[curStep].push({ id, type, x: 100, y: 100, rot: memory.player.rot, scale: memory.player.scale, num: steps[curStep].filter(o=>o.type===type).length+1 });
@@ -294,7 +300,7 @@
         fMaster.appendChild(node);
     }
 
-    // PELLIZCO
+    // PELLIZCO UNIVERSAL (INCLUYE JUGADORES)
     fMaster.addEventListener('touchstart', (e) => {
         if(e.touches.length === 2 && activeId) pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     }, {passive: false});
