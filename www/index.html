@@ -3,89 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro - Senior Edition</title>
+    <title>SoccerBoard Pro v13 - Top Inspector</title>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        :root { --panel: #1e272e; --accent: #3498db; --top: #12171b; --grass: #27ae60; --danger: #e74c3c; }
+        :root { --panel: #1e272e; --accent: #3498db; --top: #12171b; --grass: #27ae60; --danger: #e74c3c; --edit: #f39c12; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Roboto, sans-serif; touch-action: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
 
-        /* Estructura Principal */
         #app-root { display: flex; flex-direction: column; width: 100vw; height: 100vh; }
-        #top-bar { height: 55px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-bottom: 1px solid #000; z-index: 1000; }
+        
+        /* BARRA SUPERIOR PRINCIPAL */
+        #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 1000; border-bottom: 1px solid #000; flex-shrink: 0; }
+        
+        /* INSPECTOR SUB-MENÚ (SUPERIOR) */
+        #top-inspector { 
+            height: 45px; background: #1a2025; display: none; 
+            align-items: center; justify-content: center; gap: 20px; 
+            border-bottom: 2px solid var(--edit); z-index: 999; padding: 0 15px;
+        }
+
         #main-area { display: flex; flex: 1; overflow: hidden; }
 
-        /* Sidebar con Scroll Suave */
-        #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
-        .tool { width: 48px; height: 48px; margin: 8px auto; border-radius: 12px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
-        .tool:active { transform: scale(0.9); background: var(--accent); }
-        .cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 12px 0 2px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; }
+        #sidebar { width: 70px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; flex-shrink: 0; scrollbar-width: none; }
+        .tool { width: 44px; height: 44px; margin: 6px auto; border-radius: 10px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; flex-shrink: 0; }
+        .cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 8px 0 2px; text-transform: uppercase; font-weight: 800; }
 
-        /* El Campo (Viewport) */
-        #viewport { flex: 1; background: #111; display: flex; align-items: center; justify-content: center; padding: 10px; position: relative; }
+        #viewport { flex: 1; background: #111; display: flex; align-items: center; justify-content: center; padding: 5px; position: relative; overflow: hidden; }
+        
         #field-master { 
             position: relative; width: 100%; height: 100%; max-width: 1050px; max-height: 700px;
             background: var(--grass) url('campoentero.png') no-repeat center / contain;
             box-shadow: 0 0 50px rgba(0,0,0,0.7); overflow: hidden;
         }
 
-        /* Objetos e Interacción */
+        /* OBJETOS */
         .object { position: absolute; z-index: 100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
         .player { width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid white; font-weight: bold; font-size: 14px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .player::after { content: ''; position: absolute; top: -11px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid white; }
         .selected { outline: 3px solid yellow; outline-offset: 5px; z-index: 500 !important; }
 
-        /* Materiales Vectoriales */
+        /* MATERIAL */
         .cone { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 22px solid #e67e22; }
         .valla { width: 42px; height: 18px; border: 3px solid white; border-bottom: none; border-radius: 4px 4px 0 0; }
-        .goal-mini { width: 45px; height: 25px; border: 2px solid white; background: rgba(255,255,255,0.1); }
-
-        /* Zonas */
         .zone { position: absolute; z-index: 10; opacity: 0.9; transform: translate(0,0); }
 
-        /* Capa Vectorial */
         #svg-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
-        .vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 25; fill: none; cursor: pointer; }
+        .vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 30; fill: none; }
         
-        /* Nodos de Control */
         .node { position: absolute; width: 32px; height: 32px; z-index: 1000; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
-        .node-in { width: 12px; height: 12px; background: white; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 8px black; }
+        .node-in { width: 12px; height: 12px; background: white; border: 2px solid var(--accent); border-radius: 50%; }
 
-        /* Inspector Flotante */
-        #inspector { 
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(18, 23, 27, 0.95); padding: 12px 25px; border-radius: 50px;
-            display: none; gap: 15px; align-items: center; z-index: 2000; border: 1px solid #444;
-            backdrop-filter: blur(10px); color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        /* Configuración */
-        .panel { position: absolute; top: 0; right: -320px; width: 300px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 3000; padding: 25px; color: white; }
-        .panel.open { right: 0; }
-        .btn { background: #2d3436; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; transition: 0.2s; }
-        .btn:active { transform: scale(0.95); }
+        /* BOTONES */
+        .btn { background: #2d3436; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        .btn-play { background: #2ecc71; }
+        
+        /* PANEL AJUSTES */
+        #config-panel { position: absolute; top: 0; right: -320px; width: 300px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 3000; padding: 25px; color: white; }
+        #config-panel.open { right: 0; }
     </style>
 </head>
 <body>
 
 <div id="app-root">
     <div id="top-bar">
-        <div style="display: flex; gap: 10px; align-items: center;">
+        <div style="display: flex; gap: 6px; align-items: center;">
             <button class="btn" onclick="navStep(-1)">◀</button>
-            <span id="step-label" style="font-weight: 800; min-width: 45px; text-align: center; color: var(--accent);">1 / 1</span>
+            <span id="step-label" style="font-weight: 800; min-width: 35px; text-align: center; color: var(--accent);">1/1</span>
             <button class="btn" onclick="navStep(1)">▶</button>
             <button class="btn" style="background:var(--accent)" onclick="addStep()">+ PASO</button>
         </div>
-        <div style="display: flex; gap: 10px;">
-            <button class="btn" style="background:#2ecc71" onclick="runAnimation()">▶ PLAY</button>
+        
+        <div style="display: flex; gap: 6px;">
+            <button class="btn btn-play" onclick="runAnimation()">▶ PLAY</button>
+            <button class="btn" onclick="exportStepPNG()" style="background:#e67e22">💾 PNG</button>
             <button class="btn" onclick="toggleConfig()">⚙️</button>
             <button class="btn" style="background:var(--danger)" onclick="removeActive()">🗑️</button>
         </div>
     </div>
 
+    <div id="top-inspector">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 10px; color: #aaa;">COLOR:</label>
+            <input type="color" id="ins-color" oninput="modifyProp('color', this.value)" style="height: 30px; width: 40px; border: none; background: transparent;">
+        </div>
+        <div id="ins-vec-extras" style="display: flex; align-items: center; gap: 15px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="font-size: 10px; color: #aaa;">GROSOR:</label>
+                <input type="range" min="1" max="12" value="3" oninput="modifyProp('weight', this.value)">
+            </div>
+            <label style="font-size: 10px; color: #fff;">FLECHA: <input type="checkbox" id="ins-arrow" onchange="modifyProp('arrow', this.checked)"></label>
+        </div>
+        <button class="btn" style="padding: 4px 10px; background: #444;" onclick="deselect()">OK</button>
+    </div>
+
     <div id="main-area">
         <div id="sidebar">
-            <div class="cat-label">Dibujo</div>
+            <div class="cat-label">Líneas</div>
             <div class="tool" onclick="createVector('line')">⎯</div>
             <div class="tool" onclick="createVector('curve')">⤴</div>
             <div class="cat-label">Equipos</div>
@@ -93,14 +106,11 @@
             <div class="tool" onclick="createPlayer('p-blue')" style="background:#2e86de">1</div>
             <div class="tool" onclick="createPlayer('p-yellow')" style="background:#f1c40f; color:0">1</div>
             <div class="tool" onclick="createPlayer('p-green')" style="background:#2ecc71">1</div>
-            <div class="cat-label">Material</div>
+            <div class="cat-label">Extra</div>
             <div class="tool" onclick="createItem('cone')">▲</div>
             <div class="tool" onclick="createItem('valla')">⊓</div>
-            <div class="tool" onclick="createItem('goal-mini')">🥅</div>
             <div class="tool" onclick="createItem('ball')">⚽</div>
-            <div class="cat-label">Zonas</div>
             <div class="tool" onclick="createZone('shade')">🟧</div>
-            <div class="tool" onclick="createZone('outline')">🟨</div>
         </div>
 
         <div id="viewport" onclick="deselect()">
@@ -109,54 +119,49 @@
                     <defs><marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" /></marker></defs>
                 </svg>
             </div>
-
-            <div id="inspector">
-                <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
-                <label style="font-size:10px;">Grosor: <input type="range" min="1" max="10" value="3" oninput="modifyProp('weight', this.value)"></label>
-                <button class="btn" style="padding:5px 10px" onclick="deselect()">CERRAR</button>
-            </div>
         </div>
+    </div>
 
-        <div id="config-panel" class="panel">
-            <h2 style="margin-top:0">Configuración</h2>
-            <label style="font-size:10px; color:var(--accent)">ESCALA JUGADORES</label>
-            <input type="range" id="global-pScale" min="0.5" max="2.2" step="0.1" value="1.0" oninput="render()">
-            <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-            <label style="font-size:10px; color:var(--accent)">EXPORTAR</label>
-            <button class="btn" style="width:100%; margin:10px 0;" onclick="exportAsPNG()">Capturar Imagen (PNG)</button>
-            <button class="btn" style="width:100%; background:var(--accent);" onclick="alert('Exportando secuencia...')">Procesar MP4/GIF</button>
-            <button class="btn" style="width:100%; margin-top:30px; background:var(--danger)" onclick="toggleConfig()">CERRAR</button>
-        </div>
+    <div id="config-panel">
+        <h3>Ajustes</h3>
+        <label style="font-size: 10px; color: var(--accent);">TAMAÑO JUGADORES</label>
+        <input type="range" id="global-pScale" min="0.5" max="2.0" step="0.1" value="1.0" oninput="render()">
+        <button class="btn" style="width: 100%; margin-top: 30px; background: var(--danger);" onclick="toggleConfig()">CERRAR</button>
     </div>
 </div>
 
 <script>
-    // --- ESTADO Y PERSISTENCIA ---
     let steps = [ [] ];
     let curStep = 0;
     let activeId = null;
-    let isMoving = false;
     let dragInfo = null;
+    let initialPinchDist = 0;
 
     const fMaster = document.getElementById('field-master');
     const svg = document.getElementById('svg-layer');
 
-    // --- FUNCIONES DE CREACIÓN ---
+    function render() {
+        Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
+        svg.querySelectorAll('.v-el').forEach(e => e.remove());
+        const pScale = document.getElementById('global-pScale').value;
+        steps[curStep].forEach(el => {
+            if(el.type === 'vec') drawVector(el);
+            else if(el.type === 'zone') drawZone(el);
+            else drawPhysical(el, pScale);
+        });
+        document.getElementById('step-label').innerText = `${curStep+1}/${steps.length}`;
+        updateInspector();
+    }
+
     function createPlayer(type) {
         const id = Date.now();
-        const obj = { id, type, x:50, y:50, rot:0, scale:1, num: steps[curStep].filter(o=>o.type===type).length+1 };
-        steps[curStep].push(obj); activeId = id; render();
+        steps[curStep].push({ id, type, x:60, y:60, rot:0, scale:1, num: steps[curStep].filter(o=>o.type===type).length+1 });
+        activeId = id; render();
     }
 
     function createVector(sub) {
         const id = Date.now();
-        const vec = { id, type:'vec', sub, x1:30, y1:30, x2:150, y2:30, cx1:60, cy1:100, cx2:120, cy2:100, color:'#ffffff', weight:3 };
-        steps[curStep].push(vec); activeId = id; render();
-    }
-
-    function createZone(sub) {
-        const id = Date.now();
-        steps[curStep].push({ id, type:'zone', sub, x:30, y:30, w:180, h:120, color: (sub==='shade'?'#ffa500':'#ffff00') });
+        steps[curStep].push({ id, type:'vec', sub, x1:20, y1:20, x2:120, y2:20, cx1:40, cy1:80, cx2:80, cy2:80, color:'#ffffff', weight:3, arrow:true });
         activeId = id; render();
     }
 
@@ -166,35 +171,21 @@
         activeId = id; render();
     }
 
-    // --- RENDERIZADO ---
-    function render() {
-        if(isPlaying) return;
-        Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
-        svg.querySelectorAll('.v-el').forEach(e => e.remove());
-        
-        const pScale = document.getElementById('global-pScale').value;
-
-        steps[curStep].forEach(el => {
-            if(el.type === 'vec') drawVector(el);
-            else if(el.type === 'zone') drawZone(el);
-            else drawPhysical(el, pScale);
-        });
-        
-        document.getElementById('step-label').innerText = `${curStep+1} / ${steps.length}`;
-        updateInspector();
+    function createZone(sub) {
+        const id = Date.now();
+        steps[curStep].push({ id, type:'zone', sub, x:30, y:30, w:150, h:100, color:'#ffa500' });
+        activeId = id; render();
     }
 
     function drawPhysical(el, pScale) {
         const div = document.createElement('div');
         div.className = `object ${el.type} ${activeId === el.id ? 'selected' : ''}`;
         const s = el.type.startsWith('p-') ? pScale : el.scale;
-
         if(el.type.startsWith('p-')) {
             const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f', 'p-green':'#2ecc71'};
             div.classList.add('player'); div.style.background = colors[el.type]; div.innerText = el.num;
         } else if(el.type === 'ball') div.innerText = '⚽';
         else div.classList.add(el.type);
-
         div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
         div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${s})`;
         div.onpointerdown = (e) => startDrag(e, el, 'x', 'y');
@@ -203,18 +194,15 @@
 
     function drawVector(el) {
         const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
-        
         const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
         hit.setAttribute("d", d); hit.setAttribute("class", "vec-hit v-el");
         hit.onpointerdown = (e) => { e.stopPropagation(); activeId = el.id; render(); };
         svg.appendChild(hit);
-
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("d", d); path.setAttribute("class", "v-el");
         path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", el.weight); path.setAttribute("fill", "none");
-        path.setAttribute("marker-end", "url(#arrow)");
+        if(el.arrow) path.setAttribute("marker-end", "url(#arrow)");
         svg.appendChild(path);
-
         if(activeId === el.id) {
             [['x1','y1'], ['x2','y2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny]));
             if(el.sub==='curve') [['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny], true));
@@ -223,94 +211,90 @@
 
     function drawZone(el) {
         const div = document.createElement('div');
-        div.className = `zone ${el.sub==='shade'?'':'zone-outline'} ${activeId === el.id ? 'selected' : ''}`;
-        div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
-        div.style.width = el.w + 'px'; div.style.height = el.h + 'px';
-        div.style.backgroundColor = el.sub === 'shade' ? el.color + '66' : 'transparent';
-        if(el.sub !== 'shade') div.style.border = `3px dashed ${el.color}`;
-
+        div.className = `zone ${activeId === el.id ? 'selected' : ''}`;
+        div.style.cssText = `left:${el.x}px; top:${el.y}px; width:${el.w}px; height:${el.h}px; background:${el.color}66; border:2px solid ${el.color};`;
         div.onpointerdown = (e) => startDrag(e, el, 'x', 'y');
         fMaster.appendChild(div);
         if(activeId === el.id) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
     }
 
-    function createNode(el, nx, ny, fx, fy, isCurve=false, isZone=false) {
+    function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
         const node = document.createElement('div');
-        node.className = 'node';
-        node.style.left = fx + 'px'; node.style.top = fy + 'px';
-        node.innerHTML = `<div class="node-in" style="${isCurve?'background:cyan':''}"></div>`;
-        node.onpointerdown = (e) => { e.stopPropagation(); startDrag(e, el, nx, ny, isZone); };
+        node.className = 'node'; node.style.left = fx+'px'; node.style.top = fy+'px';
+        node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`;
+        node.onpointerdown = (e) => { e.stopPropagation(); startDrag(e, el, nx, ny, isZS); };
         fMaster.appendChild(node);
     }
 
-    // --- INTERACCIÓN ---
     function startDrag(e, el, nx, ny, isZS=false) {
-        e.preventDefault();
+        e.preventDefault(); activeId = el.id;
         dragInfo = { el, nx, ny, isZS, moved:false, sx:e.clientX, sy:e.clientY, ix:el[nx], iy:el[ny], iw:el.w, ih:el.h };
-        activeId = el.id;
     }
 
     window.onpointermove = (e) => {
         if(!dragInfo) return;
         dragInfo.moved = true;
         const dx = e.clientX - dragInfo.sx; const dy = e.clientY - dragInfo.sy;
-        if(dragInfo.isZS) {
-            dragInfo.el.w = Math.max(30, dragInfo.iw + dx);
-            dragInfo.el.h = Math.max(30, dragInfo.ih + dy);
-        } else {
-            dragInfo.el[dragInfo.nx] = dragInfo.ix + dx;
-            dragInfo.el[dragInfo.ny] = dragInfo.iy + dy;
-        }
+        if(dragInfo.isZS) { dragInfo.el.w = Math.max(20, dragInfo.iw + dx); dragInfo.el.h = Math.max(20, dragInfo.ih + dy); }
+        else { dragInfo.el[dragInfo.nx] = dragInfo.ix + dx; dragInfo.el[dragInfo.ny] = dragInfo.iy + dy; }
         render();
     };
 
     window.onpointerup = () => {
-        if(dragInfo && !dragInfo.moved && dragInfo.nx === 'x') {
-            dragInfo.el.rot = (dragInfo.el.rot + 45) % 360;
-            render();
+        if(dragInfo && !dragInfo.moved && dragInfo.nx === 'x' && dragInfo.el.type !== 'zone') {
+            dragInfo.el.rot = (dragInfo.el.rot + 45) % 360; render();
         }
         dragInfo = null;
     };
 
-    function modifyProp(p, v) {
-        const el = steps[curStep].find(o=>o.id===activeId);
-        if(el) { el[p] = v; render(); }
-    }
+    // PELLIZCO
+    fMaster.ontouchmove = (e) => {
+        if(e.touches.length === 2 && activeId) {
+            const el = steps[curStep].find(o=>o.id === activeId);
+            if(el && !el.type.startsWith('p-')) {
+                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                if(initialPinchDist > 0) { el.scale *= (dist / initialPinchDist); render(); }
+                initialPinchDist = dist;
+            }
+        }
+    };
+    fMaster.ontouchend = () => initialPinchDist = 0;
 
+    function modifyProp(p, v) { const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); } }
+    
     function updateInspector() {
-        const ins = document.getElementById('inspector');
+        const ins = document.getElementById('top-inspector');
+        const extras = document.getElementById('ins-vec-extras');
         if(!activeId) { ins.style.display = 'none'; return; }
-        ins.style.display = 'flex';
         const el = steps[curStep].find(o=>o.id===activeId);
+        ins.style.display = 'flex';
         document.getElementById('ins-color').value = el.color || '#ffffff';
+        extras.style.display = el.type === 'vec' ? 'flex' : 'none';
     }
 
-    // --- ANIMACIÓN ---
-    let isPlaying = false;
+    function exportStepPNG() {
+        deselect();
+        html2canvas(fMaster, { backgroundColor: null, scale: 2, useCORS: true }).then(c => {
+            const a = document.createElement('a'); a.download = `tactica_${curStep+1}.png`;
+            a.href = c.toDataURL(); a.click();
+        });
+    }
+
     async function runAnimation() {
         if(steps.length < 2) return;
-        isPlaying = true; deselect();
-        const pScale = document.getElementById('global-pScale').value;
+        const speed = 800; deselect();
         for(let i=0; i < steps.length-1; i++) {
             await new Promise(res => {
-                let start = null; const f1 = steps[i], f2 = steps[i+1];
+                let s = null; const f1 = steps[i], f2 = steps[i+1];
                 function animate(ts) {
-                    if(!start) start = ts; const p = Math.min((ts-start)/800, 1);
+                    if(!s) s = ts; const p = Math.min((ts-s)/speed, 1);
                     Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
                     f1.forEach(o => {
-                        const target = f2.find(t => t.id === o.id);
-                        if(!target || o.type === 'vec' || o.type === 'zone') return;
-                        const x = o.x + (target.x - o.x)*p;
-                        const y = o.y + (target.y - o.y)*p;
-                        const r = o.rot + (target.rot - o.rot)*p;
-                        const div = document.createElement('div');
-                        div.className = `object ${o.type}`;
-                        div.style.left = x+'px'; div.style.top = y+'px';
-                        div.style.transform = `translate(-50%,-50%) rotate(${r}deg) scale(${o.type.startsWith('p-')?pScale:o.scale})`;
-                        if(o.type.startsWith('p-')){ 
-                            const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f', 'p-green':'#2ecc71'};
-                            div.classList.add('player'); div.style.background = colors[o.type]; div.innerText = o.num;
-                        } else if(o.type==='ball') div.innerText='⚽'; else div.classList.add(o.type);
+                        const t = f2.find(x => x.id === o.id);
+                        if(!t || o.type==='vec') return;
+                        const div = document.createElement('div'); div.className=`object ${o.type}`;
+                        div.style.left=(o.x+(t.x-o.x)*p)+'px'; div.style.top=(o.y+(t.y-o.y)*p)+'px';
+                        div.style.transform=`translate(-50%,-50%) rotate(${o.rot+(t.rot-o.rot)*p}deg) scale(${o.scale})`;
                         fMaster.appendChild(div);
                     });
                     if(p < 1) requestAnimationFrame(animate); else res();
@@ -318,17 +302,14 @@
                 requestAnimationFrame(animate);
             });
         }
-        isPlaying = false; render();
+        render();
     }
 
-    // --- UTILIDADES ---
     function addStep() { steps.push(JSON.parse(JSON.stringify(steps[curStep]))); curStep++; render(); }
     function navStep(d) { curStep = Math.max(0, Math.min(steps.length-1, curStep+d)); deselect(); }
-    function removeActive() { if(activeId) { steps[curStep] = steps[currentStep].filter(o=>o.id!==activeId); deselect(); } }
+    function removeActive() { if(activeId) { steps[curStep] = steps[curStep].filter(o=>o.id!==activeId); deselect(); } }
     function deselect() { activeId = null; render(); }
     function toggleConfig() { document.getElementById('config-panel').classList.toggle('open'); }
-    function exportAsPNG() { html2canvas(fMaster).then(c => { const a = document.createElement('a'); a.download = 'tactica.png'; a.href = c.toDataURL(); a.click(); }); }
-    
     window.onload = render;
 </script>
 </body>
