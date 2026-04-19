@@ -3,34 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Vector Pro</title>
+    <title>SoccerBoard Vector Pro - Framed Edition</title>
     <style>
         :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --grass: #27ae60; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #111; font-family: sans-serif; touch-action: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
 
         /* UI */
-        #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 100; border-bottom: 1px solid #000; }
-        #main { display: flex; height: calc(100% - 50px); width: 100%; }
-        #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; }
+        #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 100; border-bottom: 1px solid #000; flex-shrink: 0; }
+        #main { display: flex; height: calc(100% - 50px); width: 100%; overflow: hidden; }
+        #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; flex-shrink: 0; }
         
         .cat-label { font-size: 8px; color: #84817a; text-align: center; padding: 8px 0 2px; text-transform: uppercase; font-weight: bold; }
         .tool { width: 45px; height: 45px; margin: 5px auto; border-radius: 8px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
 
-        /* Field Area - Proporcional */
-        #field-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; padding: 10px; }
-        #field-container { 
+        /* Contenedor Principal con Márgenes */
+        #field-wrapper { 
+            flex: 1; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: #111; 
+            padding: 20px; /* Margen de seguridad alrededor del campo */
+            overflow: hidden;
+        }
+
+        /* EL MARCO TÁCTICO (Proporción Fija) */
+        #field-canvas { 
             position: relative; 
             width: 100%; height: 100%;
-            max-width: 1200px; max-height: 800px;
+            /* Forzamos proporción 3:2 (ej 1200x800) */
+            aspect-ratio: 3 / 2; 
+            
             background-color: var(--grass); 
-            background-image: url('campoentero.png');
-            background-repeat: no-repeat; background-size: contain; background-position: center;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            background-image: url('campoentero.png'); /* IMAGEN BASE */
+            background-repeat: no-repeat; 
+            background-size: cover; /* Cubrir todo el marco */
+            background-position: center;
+            
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            border: 2px solid #333;
+            
+            /* CRÍTICO: Todo lo de dentro se corta en el borde del campo */
+            overflow: hidden; 
         }
         
-        /* Objects */
-        .object { position: absolute; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); border: 2px solid white; z-index: 20; color: white; }
+        /* Objects (Relativos al Marco) */
+        .object { 
+            position: absolute; 
+            width: 38px; height: 38px; 
+            border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; font-size: 13px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4); 
+            border: 2px solid white; 
+            z-index: 20; color: white; 
+            transform: translate(-50%, -50%); /* Centrado automático */
+        }
         .object.player::after { content: ''; position: absolute; top: -10px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid white; }
         .selected { border-color: yellow !important; box-shadow: 0 0 15px yellow !important; z-index: 30; }
 
@@ -40,7 +69,8 @@
 
         .line-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; }
 
-        #config-panel { position: absolute; top: 0; right: -280px; width: 260px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; }
+        /* Config */
+        #config-panel { position: absolute; top: 0; right: -300px; width: 280px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; }
         #config-panel.open { right: 0; }
         .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer; }
     </style>
@@ -70,14 +100,10 @@
         <div class="cat-label">Vectores</div>
         <div class="tool" onclick="createVector('line')">⎯</div>
         <div class="tool" onclick="createVector('curve')">⤴</div>
-        
-        <div class="cat-label">Material</div>
-        <div class="tool" onclick="createObj('cone')">▲</div>
-        <div class="tool" onclick="createObj('valla')">⊓</div>
     </div>
     
     <div id="field-wrapper" onclick="closeSettings()">
-        <div id="field-container">
+        <div id="field-canvas">
             <svg class="line-svg" id="svg-layer">
                 <defs>
                     <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -112,19 +138,32 @@
     let frames = [ [] ];
     let curF = 0;
     let selId = null;
-    let draggingNode = null; // {id, nodeName}
+    let draggingNode = null; 
+
+    // Referencias rápidas
+    const canvasFrame = document.getElementById('field-canvas');
+    const svgLayer = document.getElementById('svg-layer');
 
     function updateBackground() {
         const bg = document.getElementById('bgSelect').value;
-        document.getElementById('field-container').style.backgroundImage = `url('${bg}')`;
+        canvasFrame.style.backgroundImage = `url('${bg}')`;
     }
 
     function toggleSettings(e) { e.stopPropagation(); document.getElementById('config-panel').classList.toggle('open'); }
     function closeSettings() { document.getElementById('config-panel').classList.remove('open'); }
 
+    // Generar coordenadas iniciales seguras dentro del marco
+    function getSafeCoords() {
+        return { 
+            x: canvasFrame.clientWidth * 0.2, 
+            y: canvasFrame.clientHeight * 0.3 
+        };
+    }
+
     function createObj(type) {
         const id = Date.now();
-        const obj = { id, type, x: 200, y: 200, rot: 0, scale: 1, num: frames[curF].filter(o => o.type === type).length + 1 };
+        const pos = getSafeCoords();
+        const obj = { id, type, x: pos.x, y: pos.y, rot: 0, num: frames[curF].filter(o => o.type === type).length + 1 };
         if(type === 'p-red') obj.color = '#ff4757';
         if(type === 'p-blue') obj.color = '#2e86de';
         frames[curF].push(obj);
@@ -133,10 +172,11 @@
 
     function createVector(type) {
         const id = Date.now();
+        const pos = getSafeCoords();
         const vec = {
             id, type: 'vector', subType: type,
-            x1: 100, y1: 300, x2: 300, y2: 300,
-            cx1: 150, cy1: 200, cx2: 250, cy2: 200, // Nodos de curvatura
+            x1: pos.x, y1: pos.y, x2: pos.x + 150, y2: pos.y + 100,
+            cx1: pos.x + 50, cy1: pos.y - 50, cx2: pos.x + 100, cy2: pos.y + 150,
             style: document.getElementById('lineStyle').value,
             arrow: document.getElementById('checkArrow').checked
         };
@@ -155,23 +195,21 @@
     }
 
     function render() {
-        const container = document.getElementById('field-container');
-        const svg = document.getElementById('svg-layer');
-        
-        Array.from(container.children).forEach(child => { if(child.id !== 'svg-layer') child.remove(); });
-        svg.innerHTML = svg.querySelector('defs').outerHTML; 
+        // Limpiar objetos anteriores manteniendo el SVG Layer
+        Array.from(canvasFrame.children).forEach(child => { if(child.id !== 'svg-layer') child.remove(); });
+        svgLayer.innerHTML = svgLayer.querySelector('defs').outerHTML; 
 
         frames[curF].forEach(el => {
             if(el.type === 'vector') {
-                renderVector(el, svg, container);
+                renderVector(el);
             } else {
-                renderPhysical(el, container);
+                renderPhysical(el);
             }
         });
         document.getElementById('label-step').innerText = `${curF+1}/${frames.length}`;
     }
 
-    function renderVector(el, svg, container) {
+    function renderVector(el) {
         const isCurve = el.subType === 'curve';
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         
@@ -188,29 +226,29 @@
         if(el.style === 'dashed') path.setAttribute("stroke-dasharray", "10,10");
         if(el.style === 'dotted') path.setAttribute("stroke-dasharray", "2,6");
 
-        svg.appendChild(path);
+        svgLayer.appendChild(path);
 
-        // Si está seleccionado, mostrar nodos
+        // Nodos (solo si está seleccionado)
         if(selId === el.id) {
-            createNode(el.id, 'x1', 'y1', el.x1, el.y1, container);
-            createNode(el.id, 'x2', 'y2', el.x2, el.y2, container);
+            createNode(el.id, 'x1', 'y1', el.x1, el.y1);
+            createNode(el.id, 'x2', 'y2', el.x2, el.y2);
             if(isCurve) {
-                createNode(el.id, 'cx1', 'cy1', el.cx1, el.cy1, container, true);
-                createNode(el.id, 'cx2', 'cy2', el.cx2, el.cy2, container, true);
+                createNode(el.id, 'cx1', 'cy1', el.cx1, el.cy1, true);
+                createNode(el.id, 'cx2', 'cy2', el.cx2, el.cy2, true);
             }
         }
     }
 
-    function createNode(id, nx, ny, x, y, container, isCurve = false) {
+    function createNode(id, nx, ny, x, y, isCurve = false) {
         const node = document.createElement('div');
         node.className = `node ${isCurve ? 'curve' : ''}`;
         node.style.left = x + 'px'; node.style.top = y + 'px';
         node.addEventListener('touchstart', (e) => startNodeDrag(e, id, nx, ny));
         node.addEventListener('mousedown', (e) => startNodeDrag(e, id, nx, ny));
-        container.appendChild(node);
+        canvasFrame.appendChild(node);
     }
 
-    function renderPhysical(el, container) {
+    function renderPhysical(el) {
         const div = document.createElement('div');
         div.className = `object ${el.type} ${selId === el.id ? 'selected' : ''}`;
         if(el.type.startsWith('p-')) {
@@ -221,11 +259,11 @@
         else if(el.type === 'cone') div.style.background = '#e67e22';
 
         div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
-        div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg)`;
+        div.style.transform = `rotate(${el.rot}deg)`; // Translate centrado lo hace el CSS
         
         div.addEventListener('touchstart', (e) => startObjDrag(e, el.id));
         div.addEventListener('mousedown', (e) => startObjDrag(e, el.id));
-        container.appendChild(div);
+        canvasFrame.appendChild(div);
     }
 
     // --- INTERACCION ---
@@ -239,14 +277,21 @@
         e.preventDefault(); e.stopPropagation();
         const el = frames[curF].find(o => o.id === id);
         const touch = e.touches ? e.touches[0] : e;
-        const startX = touch.clientX, startY = touch.clientY;
         let moved = false;
 
         const move = (me) => {
             moved = true;
             const t = me.touches ? me.touches[0] : me;
-            const rect = document.getElementById('field-container').getBoundingClientRect();
-            el.x = t.clientX - rect.left; el.y = t.clientY - rect.top;
+            const rect = canvasFrame.getBoundingClientRect();
+            
+            // Coordenadas locales dentro del marco táctico
+            let lx = t.clientX - rect.left;
+            let ly = t.clientY - rect.top;
+            
+            // Lógica de "Sujetar" dentro del marco
+            el.x = lx;
+            el.y = ly;
+            
             render();
         };
 
@@ -270,10 +315,15 @@
 
     function handleNodeMove(e) {
         if(!draggingNode) return;
-        const rect = document.getElementById('field-container').getBoundingClientRect();
+        const rect = canvasFrame.getBoundingClientRect();
         const el = frames[curF].find(o => o.id === draggingNode.id);
-        el[draggingNode.nx] = e.clientX - rect.left;
-        el[draggingNode.ny] = e.clientY - rect.top;
+        
+        // Coordenadas locales
+        let lx = e.clientX - rect.left;
+        let ly = e.clientY - rect.top;
+
+        el[draggingNode.nx] = lx;
+        el[draggingNode.ny] = ly;
         render();
     }
 
