@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v5 - Fix Edition</title>
+    <title>SoccerBoard Pro v6 - Elite Tactics</title>
     <style>
         :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --grass: #27ae60; --danger: #e74c3c; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -12,11 +12,11 @@
         /* UI */
         #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 100; border-bottom: 1px solid #000; }
         #main { display: flex; height: calc(100% - 50px); width: 100%; }
-        #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; }
-        .cat-label { font-size: 8px; color: #84817a; text-align: center; padding: 8px 0 2px; text-transform: uppercase; font-weight: bold; }
+        #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; padding-bottom: 20px; }
+        .cat-label { font-size: 8px; color: #84817a; text-align: center; padding: 10px 0 2px; text-transform: uppercase; font-weight: bold; }
         .tool { width: 45px; height: 45px; margin: 5px auto; border-radius: 8px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; cursor: pointer; }
 
-        /* Field Area */
+        /* Canvas Area */
         #field-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; padding: 10px; position: relative; }
         #field-canvas { 
             position: relative; width: 100%; height: 100%; max-width: 1100px; max-height: 750px;
@@ -25,19 +25,26 @@
         }
         
         /* Objects */
-        .object { position: absolute; transform: translate(-50%, -50%); z-index: 20; display: flex; align-items: center; justify-content: center; user-select: none; pointer-events: auto; transition: transform 0.1s; }
-        .player { width: 36px; height: 36px; border-radius: 50%; border: 2px solid white; font-weight: bold; font-size: 13px; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
-        .player::after { content: ''; position: absolute; top: -10px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid white; }
+        .object { position: absolute; transform-origin: 0 0; z-index: 20; display: flex; align-items: center; justify-content: center; user-select: none; pointer-events: auto; }
+        .object.player { width: 38px; height: 38px; border-radius: 50%; border: 2px solid white; font-weight: bold; font-size: 13px; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.4); transform: translate(-50%, -50%); }
+        .object.player::after { content: ''; position: absolute; top: -10px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid white; }
         .selected { outline: 2px dashed yellow; outline-offset: 5px; z-index: 30 !important; }
 
-        /* Vectors & Nodes */
-        .node { position: absolute; width: 30px; height: 30px; z-index: 100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+        /* Zonas (Rectángulos Editables) */
+        .object.zone { border: 2px solid #fff; z-index: 15; transform: translate(0, 0); }
+        .zone-shade { background: rgba(255, 165, 0, 0.4); border-color: orange; } /* Naranja 40% */
+        .zone-outline { border: 2px dashed yellow !important; background: transparent; } /* Amarillo discontinuo */
+
+        /* Nodos de Control */
+        .node { position: absolute; width: 28px; height: 28px; z-index: 100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
         .node-inner { width: 12px; height: 12px; background: white; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 5px black; }
+
+        /* Vector Layer */
         .line-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; }
         .hitbox-path { pointer-events: stroke; stroke: transparent; stroke-width: 25; fill: none; cursor: pointer; }
 
         /* Config */
-        #config-panel { position: absolute; top: 0; right: -280px; width: 260px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; }
+        #config-panel { position: absolute; top: 0; right: -280px; width: 260px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; font-size: 12px; }
         #config-panel.open { right: 0; }
         .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; }
     </style>
@@ -48,7 +55,7 @@
     <div style="display: flex; gap: 6px; align-items: center;">
         <button class="btn" onclick="changeFrame(-1)">◀</button>
         <b id="frame-info" style="font-size:12px; min-width:35px; text-align:center;">1/1</b>
-        <button class="btn" onclick="changeFrame(1)">▶</button>
+        <button class="btn" onclick="navFrame(1)">▶</button>
         <button class="btn" style="background:var(--accent)" onclick="addFrame()">+ PASO</button>
         <button class="btn" style="background:var(--danger)" onclick="deleteSelected()">🗑️</button>
     </div>
@@ -64,13 +71,19 @@
         <div class="tool" onclick="addObj('p-red')" style="background:#ff4757">1</div>
         <div class="tool" onclick="addObj('p-blue')" style="background:#2e86de">1</div>
         <div class="tool" onclick="addObj('p-yellow')" style="background:#f1c40f; color:0">1</div>
+        <div class="tool" onclick="addObj('p-green')" style="background:#2ecc71">1</div>
+        
+        <div class="cat-label">ZONAS</div>
+        <div class="tool" onclick="addZone('shade')">🟧</div>
+        <div class="tool" onclick="addZone('outline')">🟨</div>
+
         <div class="cat-label">VECTORES</div>
         <div class="tool" onclick="addVec('line')">⎯</div>
         <div class="tool" onclick="addVec('curve')">⤴</div>
+        
         <div class="cat-label">EXTRA</div>
         <div class="tool" onclick="addObj('ball')">⚽</div>
         <div class="tool" onclick="addObj('ladder')">🪜</div>
-        <div class="tool" onclick="addObj('cone')">▲</div>
     </div>
     
     <div id="field-wrapper" onclick="deselectAll()">
@@ -86,11 +99,11 @@
     </div>
 
     <div id="config-panel" onclick="event.stopPropagation()">
-        <h3>Ajustes</h3>
-        <label style="font-size:10px; color:var(--accent)">ESCALA JUGADORES</label>
-        <input type="range" id="pScale" min="0.5" max="2" step="0.1" value="1.0" oninput="render()">
+        <h3>Ajustes Elite</h3>
+        <label>ESCALA JUGADORES</label>
+        <input type="range" id="pScale" min="0.5" max="2" step="0.1" value="1" oninput="render()">
         <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
-        <label style="font-size:10px; color:var(--accent)">VELOCIDAD ANIMACIÓN</label>
+        <label>VELOCIDAD ANIMACIÓN</label>
         <input type="range" id="aSpeed" min="200" max="2000" value="800">
         <button class="btn" style="width:100%; margin-top:20px;" onclick="toggleConfig()">CERRAR</button>
     </div>
@@ -101,6 +114,7 @@
     let curF = 0;
     let selId = null;
     let isPlaying = false;
+    let dragData = null;
 
     const canvas = document.getElementById('field-canvas');
     const svg = document.getElementById('svg-layer');
@@ -113,50 +127,74 @@
 
         frames[curF].forEach(el => {
             if(el.type === 'vec') drawVector(el);
+            else if(el.type === 'zone') drawZone(el);
             else drawPhysical(el, pScale);
         });
         document.getElementById('frame-info').innerText = `${curF+1}/${frames.length}`;
     }
 
+    // --- OBJETOS FÍSICOS (Jugadores, Material) ---
     function addObj(type) {
         const id = Date.now();
         const obj = { id, type, x: 200, y: 200, rot: 0, scale: 1, num: frames[curF].filter(o=>o.type===type).length+1 };
-        frames[curF].push(obj);
-        selId = id; render();
-    }
-
-    function addVec(sub) {
-        const id = Date.now();
-        const vec = { id, type: 'vec', sub, x1:150, y1:300, x2:350, y2:300, cx1:200, cy1:200, cx2:300, cy2:400, scale:1 };
-        frames[curF].push(vec);
-        selId = id; render();
+        frames[curF].push(obj); selId = id; render();
     }
 
     function drawPhysical(el, pScale) {
         const div = document.createElement('div');
-        div.className = `object ${selId === el.id ? 'selected' : ''}`;
+        div.className = `object ${el.type} ${selId === el.id ? 'selected' : ''}`;
         const s = el.type.startsWith('p-') ? pScale : el.scale;
 
         if(el.type.startsWith('p-')) {
             div.classList.add('player');
-            const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f'};
+            const colors = {'p-red':'#ff4757', 'p-blue':'#2e86de', 'p-yellow':'#f1c40f', 'p-green':'#2ecc71'};
             div.style.background = colors[el.type];
+            div.style.color = (el.type === 'p-yellow') ? 'black' : 'white';
             div.innerText = el.num;
-        } else if(el.type === 'ball') { div.innerText = '⚽'; div.style.fontSize = (20*s)+'px'; }
-        else if(el.type === 'cone') { div.style.width='0'; div.style.height='0'; div.style.borderLeft=(10*s)+'px solid transparent'; div.style.borderRight=(10*s)+'px solid transparent'; div.style.borderBottom=(20*s)+'px solid #e67e22'; }
-        else if(el.type === 'ladder') { div.style.width=(120*s)+'px'; div.style.height=(40*s)+'px'; div.style.border='2px solid #fff'; div.style.background='repeating-linear-gradient(90deg, transparent, transparent 20px, #fff 20px, #fff 22px)'; }
+        } else if(el.type === 'ball') {
+            div.innerText = '⚽'; div.style.fontSize = (20*s)+'px';
+        } else if(el.type === 'ladder') {
+            div.style.width=(120*s)+'px'; div.style.height=(40*s)+'px'; div.style.border='2px solid #fff'; div.style.background='repeating-linear-gradient(90deg, transparent, transparent 20px, #fff 20px, #fff 22px)';
+        }
 
         div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
         div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${el.type.startsWith('p-')?1:s})`;
-        
         div.onpointerdown = (e) => startInteraction(e, el, 'center');
         canvas.appendChild(div);
     }
 
+    // --- ZONAS TÁCTICAS (Rectángulos Editables) ---
+    function addZone(sub) {
+        const id = Date.now();
+        const zone = { id, type: 'zone', sub, x: 100, y: 100, w: 200, h: 120, scale: 1 };
+        frames[curF].push(zone); selId = id; render();
+    }
+
+    function drawZone(el) {
+        const div = document.createElement('div');
+        div.className = `object zone ${el.sub==='shade'?'zone-shade':'zone-outline'} ${selId === el.id ? 'selected' : ''}`;
+        
+        div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
+        div.style.width = el.w + 'px'; div.style.height = el.h + 'px';
+        div.onpointerdown = (e) => startInteraction(e, el, 'center');
+        canvas.appendChild(div);
+
+        if(selId === el.id) {
+            // Nodos de esquina para estirar (x=0/w, y=0/h)
+            const b = 0; // Margen interno
+            [['x','y', 0, 0], ['w','y', el.w, 0], ['w','h', el.w, el.h], ['x','h', 0, el.h]].forEach(([nx, ny, ox, oy]) => createNode(el, nx, ny, el.x + ox, el.y + oy, false, true));
+        }
+    }
+
+    // --- VECTORES (Líneas/Curvas) ---
+    function addVec(sub) {
+        const id = Date.now();
+        const vec = { id, type: 'vec', sub, x1:150, y1:300, x2:350, y2:300, cx1:200, cy1:200, cx2:300, cy2:400, scale:1 };
+        frames[curF].push(vec); selId = id; render();
+    }
+
     function drawVector(el) {
         const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
-        
-        // Hitbox para selección fácil
         const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
         hit.setAttribute("d", d); hit.setAttribute("class", "hitbox-path v-el");
         hit.onpointerdown = (e) => { e.stopPropagation(); selId = el.id; render(); };
@@ -170,118 +208,87 @@
         svg.appendChild(path);
 
         if(selId === el.id) {
-            [['x1','y1'], ['x2','y2']].forEach(([nx, ny]) => createNode(el, nx, ny));
-            if(el.sub === 'curve') [['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => createNode(el, nx, ny, true));
+            [['x1','y1'], ['x2','y2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny]));
+            if(el.sub === 'curve') [['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny], true));
         }
     }
 
-    function createNode(el, nx, ny, isC = false) {
+    function createNode(el, nx, ny, fx, fy, isC = false, isZoneNode = false) {
         const node = document.createElement('div');
         node.className = 'node';
-        node.style.left = el[nx] + 'px'; node.style.top = el[ny] + 'px';
+        node.style.left = fx + 'px'; node.style.top = fy + 'px';
         node.innerHTML = `<div class="node-inner" style="${isC?'background:cyan':''}"></div>`;
-        node.onpointerdown = (e) => startInteraction(e, el, nx, ny);
+        node.onpointerdown = (e) => startInteraction(e, el, nx, ny, isZoneNode);
         canvas.appendChild(node);
     }
 
     // --- GESTOR DE INTERACCIÓN UNIFICADO ---
-    function startInteraction(e, el, nx, ny = null) {
+    function startInteraction(e, el, nx, ny = null, isZoneNode = false) {
         e.preventDefault(); e.stopPropagation();
         selId = el.id;
-        const rect = canvas.getBoundingClientRect();
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const initialObjX = ny ? el[nx] : el.x;
-        const initialObjY = ny ? el[ny] : el.y;
+        const startX = e.clientX; const startY = e.clientY;
+        const initOX = ny ? el[nx] : el.x; const initOY = ny ? el[ny] : el.y;
+        const initW = el.w; const initH = el.h;
         let moved = false;
 
         window.onpointermove = (ev) => {
-            const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY);
-            if(dist > 5) { // Umbral de movimiento
-                moved = true;
-                const dx = ev.clientX - startX;
-                const dy = ev.clientY - startY;
-                if(ny) { el[nx] = initialObjX + dx; el[ny] = initialObjY + dy; }
-                else { el.x = initialObjX + dx; el.y = initialObjY + dy; }
-                render();
+            const dx = ev.clientX - startX; const dy = ev.clientY - startY;
+            if(Math.hypot(dx, dy) > 5) moved = true;
+
+            if(isZoneNode) {
+                // Lógica de estirar zonas (redimensionar desde esquinas)
+                if (nx === 'x') { el.x = initOX + dx; el.w = initW - dx; }
+                if (nx === 'w') { el.w = initW + dx; }
+                if (ny === 'y') { el.y = initOY + dy; el.h = initH - dy; }
+                if (ny === 'h') { el.h = initH + dy; }
+            } else {
+                // Arrastre normal o de nodos vectoriales
+                if(ny) { el[nx] = initOX + dx; el[ny] = initOY + dy; }
+                else { el.x = initOX + dx; el.y = initOY + dy; }
             }
+            render();
         };
 
         window.onpointerup = () => {
-            if(!moved && nx === 'center') { // Fue un Tap
-                el.rot = (el.rot + 45) % 360;
-                render();
+            if(!moved && nx === 'center' && !isZoneNode) { // Tap en jugador/conos/etc
+                el.rot = (el.rot + 45) % 360; render();
             }
-            window.onpointermove = null;
-            window.onpointerup = null;
+            window.onpointermove = window.onpointerup = null;
         };
     }
 
-    // --- ANIMACIÓN ---
+    // --- ANIMACIÓN & GESTIÓN DE PASOS ---
     async function playAnim() {
         if(frames.length < 2) return;
-        isPlaying = true;
-        selId = null;
-        const speed = parseInt(document.getElementById('aSpeed').value);
-        
-        for(let i=0; i < frames.length - 1; i++) {
+        isPlaying = true; selId = null; const speed = parseInt(document.getElementById('aSpeed').value);
+        for(let i=0; i < frames.length-1; i++) {
             await new Promise(res => {
-                let start = null;
-                const fStart = frames[i];
-                const fEnd = frames[i+1];
-                
+                let start = null; const fStart = frames[i]; const fEnd = frames[i+1];
                 function step(ts) {
-                    if(!start) start = ts;
-                    const progress = Math.min((ts - start) / speed, 1);
-                    
-                    // Render temporal interpolado
+                    if(!start) start = ts; const p = Math.min((ts - start) / speed, 1);
                     Array.from(canvas.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
                     fStart.forEach(s => {
-                        const e = fEnd.find(o => o.id === s.id);
-                        if(!e || s.type === 'vec') return;
-                        const curX = s.x + (e.x - s.x) * progress;
-                        const curY = s.y + (e.y - s.y) * progress;
-                        const curR = s.rot + (e.rot - s.rot) * progress;
-                        
-                        const div = document.createElement('div');
-                        div.className = `object ${s.type}`;
-                        if(s.type.startsWith('p-')) {
-                             div.classList.add('player');
-                             div.style.background = s.type === 'p-red' ? '#ff4757' : (s.type === 'p-blue' ? '#2e86de' : '#f1c40f');
-                             div.innerText = s.num;
-                        }
-                        div.style.left = curX + 'px'; div.style.top = curY + 'px';
-                        div.style.transform = `translate(-50%, -50%) rotate(${curR}deg)`;
+                        const e = fEnd.find(o => o.id === s.id); if(!e || s.type === 'vec' || s.type === 'zone') return;
+                        const curX = s.x+(e.x-s.x)*p; const curY = s.y+(e.y-s.y)*p; const curR = s.rot+(e.rot-s.rot)*p;
+                        const div = document.createElement('div'); div.className=`object ${s.type}`;
+                        if(s.type.startsWith('p-')){ div.classList.add('player'); div.style.background = s.color; div.innerText=s.num; }
+                        div.style.left=curX+'px'; div.style.top=curY+'px'; div.style.transform=`translate(-50%,-50%) rotate(${curR}deg)`;
                         canvas.appendChild(div);
                     });
-
-                    if(progress < 1) requestAnimationFrame(step);
-                    else res();
+                    if(progress < 1) requestAnimationFrame(step); else res();
                 }
                 requestAnimationFrame(step);
             });
         }
-        isPlaying = false;
-        render();
+        isPlaying = false; render();
     }
 
-    // Pellizco para escalar no-jugadores
-    canvas.onwheel = (e) => {
-        if(selId) {
-            const el = frames[curF].find(o => o.id === selId);
-            if(el && !el.type.startsWith('p-')) {
-                el.scale += e.deltaY * -0.001;
-                el.scale = Math.max(0.2, el.scale);
-                render();
-            }
-        }
-    };
-
     function addFrame() { frames.push(JSON.parse(JSON.stringify(frames[curF]))); curF++; render(); }
-    function changeFrame(d) { curF = Math.max(0, Math.min(frames.length-1, curF+d)); render(); }
+    function changeFrame(d) { curF = Math.max(0,Math.min(frames.length-1,curF+d)); selId=null; render(); }
     function deleteSelected() { if(selId) { frames[curF] = frames[curF].filter(o => o.id !== selId); selId = null; render(); } }
     function deselectAll() { selId = null; render(); }
     function toggleConfig() { document.getElementById('config-panel').classList.toggle('open'); }
+    window.onload = render;
 </script>
 </body>
 </html>
