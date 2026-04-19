@@ -8,16 +8,9 @@ body, html { margin: 0; padding: 0; width: 100vw; height: 100dvh; overflow: hidd
 .btn-group { display: flex; gap: 5px; align-items: center; }
 .divider { width: 1px; height: 20px; background: #555; margin: 0 8px; }
 
-/* MODAL CONFIGURACIÓN - AHORA COMO OVERLAY PURO */
-#config-modal { 
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; 
-    background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; 
-    z-index: 5000; backdrop-filter: blur(8px); 
-}
-.modal-content { 
-    background: #1a2025; padding: 25px; border-radius: 15px; border: 1px solid #444; 
-    width: 90%; max-width: 360px; box-shadow: 0 15px 50px rgba(0,0,0,0.7); 
-}
+/* MODAL CONFIGURACIÓN OVERLAY */
+#config-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 5000; backdrop-filter: blur(8px); }
+.modal-content { background: #1a2025; padding: 25px; border-radius: 15px; border: 1px solid #444; width: 90%; max-width: 360px; box-shadow: 0 15px 50px rgba(0,0,0,0.7); }
 .modal-content h3 { color: white; margin: 0 0 20px; font-size: 18px; text-align: center; letter-spacing: 1px; }
 .config-item { margin-bottom: 25px; }
 .config-item label { display: block; color: #888; font-size: 10px; margin-bottom: 10px; font-weight: 800; }
@@ -41,10 +34,15 @@ body, html { margin: 0; padding: 0; width: 100vw; height: 100dvh; overflow: hidd
 #viewport { flex: 1; background: #0a0a0a; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; touch-action: none; }
 #field-master { position: relative; width: 1050px; height: 680px; background: var(--grass) url('campoentero.png') no-repeat center / contain; box-shadow: 0 0 50px rgba(0,0,0,0.8); overflow: hidden; transform-origin: center center; flex-shrink: 0; }
 
-.object { position: absolute; z-index: 500; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+.object { position: absolute; z-index: 600; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
 .player { width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid white; font-weight: bold; font-size: 14px; color: white; }
 .player::after { content: ''; position: absolute; top: -11px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid white; }
 .selected { outline: 3px solid yellow; outline-offset: 5px; z-index: 1500 !important; }
+
+/* ZONAS MEJORADAS */
+.zone { position: absolute; z-index: 400; transform: translate(0,0); border-width: 3px; pointer-events: auto; }
+.zone-fill { border-style: solid; }
+.zone-line { border-style: dashed; background-color: transparent !important; }
 
 .cone { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 24px solid; }
 .valla { width: 44px; height: 20px; border: 4px solid; border-bottom: none !important; border-radius: 5px 5px 0 0; }
@@ -57,9 +55,4 @@ body, html { margin: 0; padding: 0; width: 100vw; height: 100dvh; overflow: hidd
 .node-in { width: 14px; height: 14px; background: white; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 5px black; }
 
 .btn { background: #2d3436; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; }
-.btn-accent { background: var(--accent); }
-.btn-play { background: #2ecc71; }
-.btn-save { background: #e67e22; }
-.btn-danger { background: var(--danger); }
-.btn-dark { background: #444; }
 #step-label { font-weight: 800; min-width: 35px; text-align: center; color: var(--accent); font-size: 13px; }
