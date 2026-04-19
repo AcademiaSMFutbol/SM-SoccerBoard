@@ -30,6 +30,15 @@ function undo() {
     render();
 }
 
+function clearField() {
+    if(steps[curStep].length === 0) return;
+    if(confirm("¿Seguro que quieres limpiar todo el campo?")) {
+        saveState();
+        steps[curStep] = [];
+        deselect();
+    }
+}
+
 function resizeField() {
     const vw = viewport.clientWidth - 30;
     const vh = viewport.clientHeight - 30;
@@ -50,6 +59,7 @@ function render() {
     updateInspector();
 }
 
+// --- INTERACCIÓN ---
 function handleGlobalDown(e) {
     if(isPlaying) return;
     const hit = e.target.closest('.object, .vec-hit, .zone, .node');
@@ -104,6 +114,7 @@ function handleGlobalEnd() {
     dragInfo = null; render();
 }
 
+// --- CREACIÓN ---
 function createPlayer(type) {
     saveState();
     const id = Date.now();
@@ -190,6 +201,7 @@ function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
     fMaster.appendChild(node);
 }
 
+// PELLIZCO
 fMaster.addEventListener('touchstart', (e) => {
     if(e.touches.length === 2 && activeId) {
         saveState();
@@ -261,6 +273,7 @@ async function runAnimation() {
                         div.innerText = '⚽'; div.style.fontSize = '18px';
                     } else {
                         if (o.type === 'cone') div.style.borderBottomColor = o.color;
+                        else if (o.type === 'pica') div.style.backgroundColor = o.color;
                         else div.style.borderColor = o.color;
                         div.style.color = o.color;
                     }
