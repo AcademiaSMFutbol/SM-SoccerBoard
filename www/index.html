@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v37</title>
+    <title>SoccerBoard Pro v38</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#12171b">
 
     <link rel="stylesheet" href="style.css">
@@ -18,10 +17,10 @@
     <div id="app-root">
         <div id="top-bar">
             <div class="btn-group">
-                <button class="btn" onclick="toggleFullScreen()" title="Pantalla Completa">⛶</button>
-                <button class="btn btn-dark" onclick="toggleConfig()" title="Configuración">⚙</button>
-                <button class="btn" onclick="undo()" id="undoBtn" title="Deshacer">⟲</button>
-                <button class="btn btn-danger" onclick="clearField()" title="Limpiar Paso">✨</button>
+                <button class="btn" onclick="toggleFullScreen()">⛶</button>
+                <button class="btn btn-dark" onclick="toggleConfig()">⚙</button>
+                <button class="btn" onclick="undo()" id="undoBtn">⟲</button>
+                <button class="btn btn-danger" onclick="clearField()">✨</button>
                 <div class="divider"></div>
                 <button class="btn" onclick="navStep(-1)">◀</button>
                 <span id="step-label">1/1</span>
@@ -37,13 +36,13 @@
 
         <div id="config-modal">
             <div class="modal-content">
-                <h3>Ajustes de Pizarra</h3>
+                <h3>Configuración</h3>
                 <div class="config-item">
-                    <label>VELOCIDAD DE MOVIMIENTO</label>
+                    <label>VELOCIDAD ANIMACIÓN</label>
                     <input type="range" min="200" max="2000" step="100" value="800" oninput="updateSpeed(this.value)">
                 </div>
                 <div class="config-item">
-                    <label>COLORES DE EQUIPOS</label>
+                    <label>EQUIPOS</label>
                     <div class="team-colors">
                         <input type="color" id="color-red" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
                         <input type="color" id="color-blue" value="#2e86de" oninput="updateTeamColor('p-blue', this.value)">
@@ -52,14 +51,14 @@
                     </div>
                 </div>
                 <div class="config-item">
-                    <label>FONDO DE CAMPO</label>
+                    <label>CAMPO</label>
                     <select onchange="changeField(this.value)">
-                        <option value="entero">Campo Completo</option>
-                        <option value="medio">Medio Campo</option>
-                        <option value="ejercicio">Zona de Ejercicio</option>
+                        <option value="entero">Completo</option>
+                        <option value="medio">Medio</option>
+                        <option value="ejercicio">Ejercicio</option>
                     </select>
                 </div>
-                <button class="btn btn-accent close-btn" onclick="toggleConfig()">LISTO</button>
+                <button class="btn btn-accent close-btn" onclick="toggleConfig()">CERRAR</button>
             </div>
         </div>
 
@@ -68,12 +67,16 @@
                 <label>COLOR</label>
                 <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
             </div>
+            <div id="ins-text-box" class="ins-section" style="display:none">
+                <label>TEXTO</label>
+                <input type="text" id="ins-text-val" oninput="modifyProp('content', this.value)" style="background:#2d3436; color:white; border:1px solid #555; padding:5px; border-radius:4px; font-size:12px;">
+            </div>
             <button class="btn btn-accent" onclick="duplicateActive()">➕ DUPLICAR</button>
             <div id="ins-vec-extras">
                 <div class="divider"></div>
                 <select id="ins-line-type" onchange="modifyProp('lineType', this.value)">
-                    <option value="solid">Continua (Balón)</option>
-                    <option value="dashed">Moteada (Jugador)</option>
+                    <option value="solid">Continua</option>
+                    <option value="dashed">Moteada</option>
                 </select>
                 <label>FLECHA <input type="checkbox" id="ins-arrow" onchange="modifyProp('arrow', this.checked)"></label>
             </div>
@@ -82,9 +85,10 @@
 
         <div id="main-area">
             <div id="sidebar">
-                <div class="cat-label">Líneas</div>
+                <div class="cat-label">Dibujo</div>
                 <div class="tool" onclick="createVector('line')">⎯</div>
                 <div class="tool" onclick="createVector('curve')">⤴</div>
+                <div class="tool" onclick="createText()" title="Texto">T</div>
                 <div class="cat-label">Equipos</div>
                 <div id="tool-p-red" class="tool" onclick="createPlayer('p-red')" style="background:#ff4757">1</div>
                 <div id="tool-p-blue" class="tool" onclick="createPlayer('p-blue')" style="background:#2e86de">1</div>
