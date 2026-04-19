@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v18 - Zone Audit</title>
+    <title>SoccerBoard Pro v20 - Senior Final</title>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         :root { --panel: #1e272e; --accent: #3498db; --top: #12171b; --grass: #27ae60; --danger: #e74c3c; --edit: #f39c12; }
@@ -11,12 +11,15 @@
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
 
         #app-root { display: flex; flex-direction: column; width: 100vw; height: 100vh; position: relative; }
+        
+        /* HEADER PRINCIPAL */
         #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 2000; border-bottom: 1px solid #333; }
         
+        /* INSPECTOR FLOTANTE (Overlay superior) */
         #top-inspector { 
             position: absolute; top: 50px; left: 0; width: 100%; height: 48px; 
             background: rgba(26, 32, 37, 0.95); display: none; 
-            align-items: center; justify-content: center; gap: 20px; 
+            align-items: center; justify-content: center; gap: 15px; 
             border-bottom: 2px solid var(--edit); z-index: 1500; backdrop-filter: blur(10px);
         }
 
@@ -33,9 +36,10 @@
             box-shadow: 0 0 40px rgba(0,0,0,0.8); overflow: hidden;
         }
 
+        /* OBJETOS */
         .object { position: absolute; z-index: 100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
         .player { width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid white; font-weight: bold; font-size: 14px; color: white; }
-        .player::after { content: ''; position: absolute; top: -11px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid white; }
+        .player::after { content: ''; position: absolute; top: -11px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 8px solid white; }
         .selected { outline: 3px solid yellow; outline-offset: 5px; z-index: 1000 !important; }
 
         /* MATERIALES */
@@ -44,7 +48,7 @@
         .valla { width: 45px; height: 22px; border: 4px solid; border-bottom: none !important; border-radius: 5px 5px 0 0; background: transparent !important; }
         .ladder { width: 120px; height: 35px; border: 2px solid; background: repeating-linear-gradient(90deg, transparent, transparent 18px, currentColor 18px, currentColor 20px); }
 
-        /* ZONAS EDITABLES */
+        /* ZONAS */
         .zone { position: absolute; z-index: 10; transform: translate(0,0); border-width: 3px; }
         .zone-fill { background-color: rgba(255, 165, 0, 0.4); border-style: solid; }
         .zone-line { background-color: transparent; border-style: dashed; }
@@ -122,7 +126,13 @@
     let activeId = null;
     let dragInfo = null;
     let initialPinchDist = 0;
-    let lastUsedColor = "#ffffff";
+    
+    let memory = {
+        player: { rot: 0, scale: 1 },
+        material: { rot: 0, scale: 1, color: "#ffffff" },
+        vector: { color: "#ffffff", weight: 3, arrow: true },
+        zone: { color: "#ffa500", w: 150, h: 100 }
+    };
 
     const fMaster = document.getElementById('field-master');
     const svg = document.getElementById('svg-layer');
@@ -139,7 +149,29 @@
         updateInspector();
     }
 
-    // --- GLOBAL DRAG ENGINE ---
+    // --- CREACIÓN ---
+    function createPlayer(type) {
+        const id = Date.now();
+        steps[curStep].push({ id, type, x: 80, y: 80, rot: memory.player.rot, scale: memory.player.scale, num: steps[curStep].filter(o=>o.type===type).length+1 });
+        activeId = id; render();
+    }
+    function createItem(type) {
+        const id = Date.now();
+        steps[curStep].push({ id, type, x: 120, y: 120, rot: memory.material.rot, scale: memory.material.scale, color: (type==='cone'?'#e67e22':memory.material.color) });
+        activeId = id; render();
+    }
+    function createVector(sub) {
+        const id = Date.now();
+        steps[curStep].push({ id, type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: memory.vector.color, weight: memory.vector.weight, arrow: memory.vector.arrow });
+        activeId = id; render();
+    }
+    function createZone(sub) {
+        const id = Date.now();
+        steps[curStep].push({ id, type: 'zone', sub, x: 60, y: 60, w: memory.zone.w, h: memory.zone.h, color: memory.zone.color });
+        activeId = id; render();
+    }
+
+    // --- ARRASTRE GLOBAL ---
     function handleGlobalDown(e) {
         if(!activeId || isPlaying) return;
         const el = steps[curStep].find(o => o.id === activeId);
@@ -156,14 +188,12 @@
         if(dragInfo.isZS) {
             dragInfo.el.w = Math.max(30, dragInfo.el.w + dx);
             dragInfo.el.h = Math.max(30, dragInfo.el.h + dy);
-        } else if(dragInfo.el.type === 'vec') {
-            if(dragInfo.nx === 'x') {
-                ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
-                ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
-            } else { dragInfo.el[dragInfo.nx]+=dx; dragInfo.el[dragInfo.ny]+=dy; }
+            memory.zone.w = dragInfo.el.w; memory.zone.h = dragInfo.el.h;
+        } else if(dragInfo.el.type === 'vec' && dragInfo.nx === 'x') {
+            ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
+            ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
         } else {
-            dragInfo.el[dragInfo.nx] += dx;
-            dragInfo.el[dragInfo.ny] += dy;
+            dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy;
         }
         dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY;
         render();
@@ -171,34 +201,14 @@
 
     function handleGlobalEnd() {
         if(dragInfo && !dragInfo.moved && dragInfo.nx === 'x' && !['zone','vec'].includes(dragInfo.el.type)) {
-            dragInfo.el.rot = (dragInfo.el.rot + 45) % 360; render();
+            dragInfo.el.rot = (dragInfo.el.rot + 45) % 360; 
+            if(dragInfo.el.type.startsWith('p-')) memory.player.rot = dragInfo.el.rot;
+            else memory.material.rot = dragInfo.el.rot;
         }
-        dragInfo = null;
+        dragInfo = null; render();
     }
 
-    // --- CREACIÓN ---
-    function createZone(sub) {
-        const id = Date.now();
-        steps[curStep].push({ id, type:'zone', sub, x:50, y:50, w:150, h:100, color: (sub==='fill'?'#ffa500':'#ffff00') });
-        activeId = id; render();
-    }
-
-    function drawZone(el) {
-        const div = document.createElement('div');
-        div.className = `zone ${el.sub==='fill'?'zone-fill':'zone-line'} ${activeId === el.id ? 'selected' : ''}`;
-        div.style.cssText = `left:${el.x}px; top:${el.y}px; width:${el.w}px; height:${el.h}px; border-color:${el.color};`;
-        if(el.sub === 'fill') div.style.backgroundColor = el.color + '66';
-        
-        div.onpointerdown = (e) => { e.stopPropagation(); activeId = el.id; dragInfo = { el, nx:'x', ny:'y', moved:false, lastX:e.clientX, lastY:e.clientY }; render(); };
-        fMaster.appendChild(div);
-        if(activeId === el.id) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
-    }
-
-    // --- EL RESTO DE FUNCIONES (Jugadores, Material, Vectores) ---
-    function createItem(type) { steps[curStep].push({ id:Date.now(), type, x:100, y:100, rot:0, scale:1, color:lastUsedColor }); activeId=Date.now(); render(); }
-    function createPlayer(type) { steps[curStep].push({ id:Date.now(), type, x:80, y:80, rot:0, scale:1, num:steps[curStep].filter(o=>o.type===type).length+1 }); activeId=Date.now(); render(); }
-    function createVector(sub) { steps[curStep].push({ id:Date.now(), type:'vec', sub, x1:30, y1:30, x2:130, y2:30, cx1:50, cy1:80, cx2:100, cy2:80, color:lastUsedColor, weight:3, arrow:true }); activeId=Date.now(); render(); }
-    
+    // --- DIBUJO ---
     function drawPhysical(el) {
         const div = document.createElement('div');
         div.className = `object ${el.type} ${activeId === el.id ? 'selected' : ''}`;
@@ -234,6 +244,16 @@
         }
     }
 
+    function drawZone(el) {
+        const div = document.createElement('div');
+        div.className = `zone ${el.sub==='fill'?'zone-fill':'zone-line'} ${activeId === el.id ? 'selected' : ''}`;
+        div.style.cssText = `left:${el.x}px; top:${el.y}px; width:${el.w}px; height:${el.h}px; border-color:${el.color};`;
+        if(el.sub === 'fill') div.style.backgroundColor = el.color + '66';
+        div.onpointerdown = (e) => { e.stopPropagation(); activeId = el.id; dragInfo = { el, nx:'x', ny:'y', moved:false, lastX:e.clientX, lastY:e.clientY }; render(); };
+        fMaster.appendChild(div);
+        if(activeId === el.id) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
+    }
+
     function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
         const node = document.createElement('div'); node.className = 'node'; node.style.left = fx+'px'; node.style.top = fy+'px';
         node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`;
@@ -241,15 +261,60 @@
         fMaster.appendChild(node);
     }
 
-    // PINCH
-    fMaster.addEventListener('touchstart', (e) => { if(e.touches.length === 2 && activeId) initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, {passive: false});
-    fMaster.addEventListener('touchmove', (e) => { if(initialPinchDist > 0 && e.touches.length === 2) { const el = steps[curStep].find(o=>o.id === activeId); if(el && !el.type.startsWith('p-')) { const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); el.scale *= (dist / initialPinchDist); initialPinchDist = dist; render(); } } }, {passive: false});
+    // --- PELLIZCO ---
+    fMaster.addEventListener('touchstart', (e) => {
+        if(e.touches.length === 2 && activeId) { initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+    }, {passive: false});
+
+    fMaster.addEventListener('touchmove', (e) => {
+        if(initialPinchDist > 0 && e.touches.length === 2) {
+            const el = steps[curStep].find(o=>o.id === activeId);
+            if(el) {
+                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                el.scale *= (dist / initialPinchDist); initialPinchDist = dist;
+                if(el.type.startsWith('p-')) memory.player.scale = el.scale; else memory.material.scale = el.scale;
+                render();
+            }
+        }
+    }, {passive: false});
+
     fMaster.addEventListener('touchend', () => initialPinchDist = 0);
 
-    function modifyProp(p, v) { const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; if(p==='color') lastUsedColor=v; render(); } }
-    function updateInspector() { const ins = document.getElementById('top-inspector'); if(!activeId) { ins.style.display='none'; return; } ins.style.display='flex'; document.getElementById('ins-vec-extras').style.display = (steps[curStep].find(o=>o.id===activeId).type==='vec')?'flex':'none'; }
-    function exportStepPNG() { deselect(); setTimeout(() => html2canvas(fMaster, {backgroundColor:null, scale:2, useCORS:true}).then(c=>{const a=document.createElement('a');a.download=`paso_${curStep+1}.png`;a.href=c.toDataURL();a.click();}), 100); }
-    async function runAnimation() { if(steps.length < 2) return; isPlaying = true; deselect(); for(let i=0; i < steps.length-1; i++) { await new Promise(res => { let s = null; const f1 = steps[i], f2 = steps[i+1]; function animate(ts) { if(!s) s = ts; const p = Math.min((ts-s)/800, 1); Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); }); f1.forEach(o => { const t = f2.find(x => x.id === o.id); if(!t || o.type==='vec' || o.type==='zone') return; const div = document.createElement('div'); div.className=`object ${o.type}`; if(o.type.startsWith('p-')) div.classList.add('player'); div.style.left=(o.x+(t.x-o.x)*p)+'px'; div.style.top=(o.y+(t.y-o.y)*p)+'px'; div.style.transform=`translate(-50%,-50%) rotate(${o.rot+(t.rot-o.rot)*p}deg) scale(${o.scale})`; fMaster.appendChild(div); }); if(p < 1) requestAnimationFrame(animate); else res(); } requestAnimationFrame(animate); }); } isPlaying = false; render(); }
+    // --- FUNCIONES ---
+    function modifyProp(p, v) { 
+        const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; memory[el.type === 'p-' ? 'player' : (el.type==='vec'?'vector':(el.type==='zone'?'zone':'material'))][p]=v; render(); }
+    }
+    function updateInspector() {
+        const ins = document.getElementById('top-inspector'); if(!activeId) { ins.style.display = 'none'; return; }
+        const el = steps[curStep].find(o=>o.id===activeId); ins.style.display = 'flex';
+        document.getElementById('ins-color').value = el.color || '#ffffff';
+        document.getElementById('ins-vec-extras').style.display = (el.type==='vec')?'flex':'none';
+    }
+    function exportStepPNG() { deselect(); setTimeout(() => html2canvas(fMaster, {backgroundColor:null, scale:2.5, useCORS:true}).then(c=>{const a=document.createElement('a');a.download=`jugada_${curStep+1}.png`;a.href=c.toDataURL();a.click();}), 100); }
+    async function runAnimation() {
+        if(steps.length < 2) return; isPlaying = true; deselect();
+        for(let i=0; i < steps.length-1; i++) {
+            await new Promise(res => {
+                let s = null; const f1 = steps[i], f2 = steps[i+1];
+                function animate(ts) {
+                    if(!s) s = ts; const p = Math.min((ts-s)/800, 1);
+                    Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
+                    f1.forEach(o => {
+                        const target = f2.find(x => x.id === o.id); if(!target || o.type==='vec' || o.type==='zone') return;
+                        const div = document.createElement('div'); div.className=`object ${o.type}`;
+                        if(o.type.startsWith('p-')) div.classList.add('player');
+                        div.style.left=(o.x+(target.x-o.x)*p)+'px'; div.style.top=(o.y+(target.y-o.y)*p)+'px';
+                        div.style.transform=`translate(-50%,-50%) rotate(${o.rot+(target.rot-o.rot)*p}deg) scale(${o.scale})`;
+                        if(o.type==='cone') div.style.borderBottomColor = o.color; else if(o.type!=='ball') div.style.borderColor = o.color;
+                        fMaster.appendChild(div);
+                    });
+                    if(p < 1) requestAnimationFrame(animate); else res();
+                }
+                requestAnimationFrame(animate);
+            });
+        }
+        isPlaying = false; render();
+    }
     function addStep() { steps.push(JSON.parse(JSON.stringify(steps[curStep]))); curStep++; render(); }
     function navStep(d) { curStep = Math.max(0, Math.min(steps.length-1, curStep+d)); deselect(); }
     function removeActive() { if(activeId) { steps[curStep] = steps[curStep].filter(o=>o.id!==activeId); deselect(); } }
