@@ -47,12 +47,10 @@ function clearField() {
     }
 }
 
-// --- CONFIGURACIÓN ---
 function toggleConfig() {
     const modal = document.getElementById('config-modal');
     if (modal.style.display === 'flex') {
         modal.style.display = 'none';
-        // RE-CALCULAR ESCALA AL CERRAR PARA EVITAR EL CAMPO PEQUEÑO
         setTimeout(resizeField, 50); 
     } else {
         modal.style.display = 'flex';
@@ -101,7 +99,6 @@ function render() {
     updateInspector();
 }
 
-// --- INTERACCIÓN ---
 function handleGlobalDown(e) {
     if(isPlaying) return;
     const hit = e.target.closest('.object, .vec-hit, .zone, .node');
@@ -114,9 +111,13 @@ function handleGlobalDown(e) {
         const el = steps[curStep].find(o => o.id === activeId);
         const rect = fMaster.getBoundingClientRect();
         dragInfo = { 
-            el, nx: (hit && hit.dataset.nx) || 'x', ny: (hit && hit.dataset.ny) || 'y', 
+            el, 
+            nx: (hit && hit.dataset.nx) || 'x', 
+            ny: (hit && hit.dataset.ny) || 'y', 
             isZS: hit && hit.classList.contains('node-zs'),
-            moved: false, lastX: e.clientX, lastY: e.clientY, 
+            moved: false, 
+            lastX: e.clientX, 
+            lastY: e.clientY, 
             zoom: rect.width / 1050 
         };
         saveState();
@@ -129,18 +130,23 @@ function handleGlobalMove(e) {
     const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoom;
     const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoom;
 
-    if (Math.hypot(dx, dy) > 3) dragInfo.moved = true;
+    // Reducimos umbral para zonas
+    const threshold = (dragInfo.el.type === 'zone' || dragInfo.isZS) ? 0.5 : 3;
+    if (Math.hypot(dx, dy) > threshold) dragInfo.moved = true;
     if (!dragInfo.moved) return;
 
     if(dragInfo.isZS) {
-        dragInfo.el.w = Math.max(30, dragInfo.el.w + dx); dragInfo.el.h = Math.max(30, dragInfo.el.h + dy);
+        dragInfo.el.w = Math.max(30, dragInfo.el.w + dx); 
+        dragInfo.el.h = Math.max(30, dragInfo.el.h + dy);
     } else if(dragInfo.el.type === 'vec' && dragInfo.nx === 'x') {
         ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
         ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
     } else {
-        dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy;
+        dragInfo.el[dragInfo.nx] += dx; 
+        dragInfo.el[dragInfo.ny] += dy;
     }
-    dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY;
+    dragInfo.lastX = e.clientX; 
+    dragInfo.lastY = e.clientY;
     render();
 }
 
@@ -177,7 +183,7 @@ function createVector(sub) {
 function createZone(sub) {
     saveState();
     const id = Date.now();
-    steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: memory.zone.w, h: memory.zone.h, color: memory.zone.color });
+    steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: memory.zone.color });
     activeId = id; render();
 }
 function duplicateActive() {
@@ -231,7 +237,12 @@ function drawZone(el) {
     const div = document.createElement('div');
     div.className = `zone ${el.sub==='fill'?'zone-fill':'zone-line'} ${activeId === el.id ? 'selected' : ''}`;
     div.dataset.id = el.id;
-    div.style.cssText = `left:${el.x}px; top:${el.y}px; width:${el.w}px; height:${el.h}px; border-color:${el.color};`;
+    // FIJACIÓN DE PROPIEDADES DIRECTAS
+    div.style.left = el.x + 'px';
+    div.style.top = el.y + 'px';
+    div.style.width = el.w + 'px';
+    div.style.height = el.h + 'px';
+    div.style.borderColor = el.color;
     if(el.sub === 'fill') div.style.backgroundColor = el.color + '66';
     fMaster.appendChild(div);
     if(activeId === el.id) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
@@ -244,7 +255,6 @@ function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
     fMaster.appendChild(node);
 }
 
-// PELLIZCO
 fMaster.addEventListener('touchstart', (e) => {
     if(e.touches.length === 2 && activeId) {
         saveState();
@@ -297,7 +307,6 @@ function exportStepPNG() {
     }, 150);
 }
 
-// --- ANIMACIÓN ---
 async function runAnimation() {
     if (steps.length < 2) return;
     isPlaying = true; deselect();
