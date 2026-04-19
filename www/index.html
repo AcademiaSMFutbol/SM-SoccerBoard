@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v40</title>
+    <title>SoccerBoard Pro v41</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -35,18 +35,18 @@
 
         <div id="config-modal" class="modal-overlay">
             <div class="modal-content">
-                <h3>Configuración</h3>
+                <h3>Ajustes Generales</h3>
                 <div class="config-item">
                     <label>VELOCIDAD ANIMACIÓN</label>
                     <input type="range" min="200" max="2000" step="100" value="800" oninput="updateSpeed(this.value)">
                 </div>
-                <div class="config-item fs-toggle">
+                <div class="config-item fs-row">
                     <label>FORZAR PANTALLA COMPLETA</label>
                     <input type="checkbox" id="force-fs-check" onchange="setForceFS(this.checked)">
                 </div>
                 <div class="config-item">
                     <label>COLORES DE EQUIPOS</label>
-                    <div class="team-colors">
+                    <div class="team-grid">
                         <input type="color" id="color-red" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
                         <input type="color" id="color-blue" value="#2e86de" oninput="updateTeamColor('p-blue', this.value)">
                         <input type="color" id="color-yellow" value="#f1c40f" oninput="updateTeamColor('p-yellow', this.value)">
@@ -54,21 +54,21 @@
                     </div>
                 </div>
                 <div class="config-item">
-                    <label>CAMPO</label>
+                    <label>FONDO DE CAMPO</label>
                     <select onchange="changeField(this.value)">
                         <option value="entero">Campo Completo</option>
                         <option value="medio">Medio Campo</option>
-                        <option value="ejercicio">Zona Ejercicio</option>
+                        <option value="ejercicio">Área Ejercicio</option>
                     </select>
                 </div>
-                <button class="btn btn-accent close-btn" onclick="toggleConfig()">CERRAR</button>
+                <button class="btn btn-accent close-btn" onclick="toggleConfig()">GUARDAR Y CERRAR</button>
             </div>
         </div>
 
         <div id="reset-modal" class="modal-overlay">
             <div class="modal-content reset-menu">
-                <h3>¿Qué quieres reiniciar?</h3>
-                <button class="btn btn-dark" onclick="resetAction('step')">BORRAR PASO ACTUAL</button>
+                <h3>Acción de Reinicio</h3>
+                <button class="btn btn-dark" onclick="resetAction('step')">LIMPIAR DIAPOSITIVA ACTUAL</button>
                 <button class="btn btn-danger" onclick="resetAction('project')">BORRAR TODO EL PROYECTO</button>
                 <button class="btn close-btn" onclick="closeResetMenu()">CANCELAR</button>
             </div>
@@ -77,9 +77,9 @@
         <div id="text-modal" class="modal-overlay">
             <div class="modal-content">
                 <h3>Insertar Texto</h3>
-                <input type="text" id="text-input-field" placeholder="Escribe aquí..." class="custom-input">
+                <input type="text" id="text-input-field" placeholder="Escribe tu nota..." class="custom-input">
                 <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button class="btn btn-accent" style="flex:1" onclick="confirmCreateText()">INSERTAR</button>
+                    <button class="btn btn-accent" style="flex:1" onclick="confirmCreateText()">OK</button>
                     <button class="btn btn-dark" style="flex:1" onclick="closeTextModal()">CANCELAR</button>
                 </div>
             </div>
@@ -91,7 +91,7 @@
                 <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
             </div>
             <div id="ins-text-box" class="ins-section" style="display:none">
-                <label>TEXTO</label>
+                <label>EDITAR TEXTO</label>
                 <input type="text" id="ins-text-val" oninput="modifyProp('content', this.value)" class="custom-input small">
             </div>
             <div id="ins-zone-lock" class="ins-section" style="display:none">
@@ -101,8 +101,8 @@
             <div id="ins-vec-extras">
                 <div class="divider"></div>
                 <select id="ins-line-type" onchange="modifyProp('lineType', this.value)">
-                    <option value="solid">Continua</option>
-                    <option value="dashed">Moteada</option>
+                    <option value="solid">Línea Balón</option>
+                    <option value="dashed">Línea Jugador</option>
                 </select>
                 <label>FLECHA <input type="checkbox" id="ins-arrow" onchange="modifyProp('arrow', this.checked)"></label>
             </div>
@@ -111,7 +111,7 @@
 
         <div id="main-area">
             <div id="sidebar">
-                <div class="cat-label">Líneas</div>
+                <div class="cat-label">Dibujo</div>
                 <div class="tool" onclick="createVector('line')">⎯</div>
                 <div class="tool" onclick="createVector('curve')">⤴</div>
                 <div class="tool" onclick="openTextModal()">T</div>
