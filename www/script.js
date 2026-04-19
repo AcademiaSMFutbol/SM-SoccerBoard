@@ -7,12 +7,30 @@ let pinchDist = 0;
 let wasSelectedBefore = false;
 let isPlaying = false;
 let animationSpeed = 800;
+let forceFS = false;
 
 let teamColors = { 'p-red': '#ff4757', 'p-blue': '#2e86de', 'p-yellow': '#f1c40f', 'p-green': '#2ecc71' };
 
 const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
 const svg = document.getElementById('svg-layer');
+
+// --- SISTEMA DE FULLSCREEN ---
+function setForceFS(val) {
+    forceFS = val;
+    if(val) requestFS();
+}
+
+function requestFS() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+    }
+}
+
+// Reintento de FS en cualquier interacción si está forzado
+document.addEventListener('pointerdown', () => {
+    if(forceFS) requestFS();
+});
 
 function saveState() {
     if (history.length > 30) history.shift();
@@ -26,10 +44,25 @@ function undo() {
     render();
 }
 
-function clearField() {
-    if(confirm("¿Limpiar todo el campo?")) {
-        saveState(); steps[curStep] = []; deselect();
-    }
+// --- MODALES INTERNOS (ADIÓS PROMPTS) ---
+function openResetMenu() { document.getElementById('reset-modal').style.display = 'flex'; }
+function closeResetMenu() { document.getElementById('reset-modal').style.display = 'none'; }
+function resetAction(type) {
+    saveState();
+    if(type === 'step') { steps[curStep] = []; }
+    else { steps = [[]]; curStep = 0; }
+    closeResetMenu(); deselect();
+}
+
+function openTextModal() { document.getElementById('text-modal').style.display = 'flex'; document.getElementById('text-input-field').focus(); }
+function closeTextModal() { document.getElementById('text-modal').style.display = 'none'; document.getElementById('text-input-field').value = ''; }
+function confirmCreateText() {
+    const val = document.getElementById('text-input-field').value;
+    if(!val) return;
+    saveState();
+    const id = Date.now();
+    steps[curStep].push({ id, type: 'text', x: 200, y: 200, content: val, color: "#000000", scale: 1 });
+    activeId = id; closeTextModal(); render();
 }
 
 function toggleConfig() {
@@ -53,12 +86,11 @@ function changeField(type) {
 }
 
 function resizeField() {
-    const vw = viewport.clientWidth - 2, vh = viewport.clientHeight - 2;
+    const vw = viewport.clientWidth, vh = viewport.clientHeight;
     let sX = vw / 1050, sY = vh / 680;
     const diff = Math.abs(sX - sY) / Math.min(sX, sY);
-    let finalX, finalY;
-    if (diff < 0.2) { finalX = sX; finalY = sY; } 
-    else { const scale = Math.min(sX, sY); finalX = scale; finalY = scale; }
+    let finalX = (diff < 0.2) ? sX : Math.min(sX, sY);
+    let finalY = (diff < 0.2) ? sY : Math.min(sX, sY);
     fMaster.style.transform = `scale(${finalX}, ${finalY})`;
 }
 
@@ -85,7 +117,6 @@ function handleGlobalDown(e) {
 
     if(activeId) {
         const el = steps[curStep].find(o => o.id === activeId);
-        // BLOQUEO DE SEGURIDAD PARA ZONAS
         if(el.type === 'zone' && el.locked && !e.target.closest('.node')) {
             dragInfo = null; return;
         }
@@ -127,7 +158,6 @@ function handleGlobalEnd() {
     dragInfo = null; render();
 }
 
-// CREACIÓN
 function createPlayer(type) {
     saveState();
     const id = Date.now();
@@ -154,20 +184,18 @@ function createVector(sub) {
 }
 
 function createZone(sub) {
-    const isLocked = confirm("¿Quieres bloquear la zona para que no se mueva?");
     saveState();
     const id = Date.now();
-    steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: "#ffa500", locked: isLocked });
+    steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: "#ffa500", locked: false });
     activeId = id; render();
 }
 
-function createText() {
-    const val = prompt("Escribe tu texto:", "Nota...");
-    if(!val) return;
-    saveState();
-    const id = Date.now();
-    steps[curStep].push({ id, type: 'text', x: 200, y: 200, content: val, color: "#000000", scale: 1 });
-    activeId = id; render();
+function toggleZoneLock() {
+    const el = steps[curStep].find(o => o.id === activeId);
+    if(el && el.type === 'zone') {
+        saveState();
+        el.locked = !el.locked; render();
+    }
 }
 
 function duplicateActive() {
@@ -272,14 +300,20 @@ function modifyProp(p, v) {
 function updateInspector() { 
     const ins = document.getElementById('top-inspector'); 
     const textBox = document.getElementById('ins-text-box');
+    const zoneLock = document.getElementById('ins-zone-lock');
     if(!activeId) { ins.style.display = 'none'; return; } 
     const el = steps[curStep].find(o=>o.id===activeId);
     ins.style.display = 'flex'; 
     document.getElementById('ins-color').value = el.color || '#ffffff';
     document.getElementById('ins-vec-extras').style.display = (el.type==='vec')?'flex':'none'; 
-    if(el.type === 'text') {
-        textBox.style.display = 'flex'; document.getElementById('ins-text-val').value = el.content;
-    } else { textBox.style.display = 'none'; }
+    
+    // UI según tipo
+    textBox.style.display = (el.type === 'text') ? 'flex' : 'none';
+    if(el.type === 'text') document.getElementById('ins-text-val').value = el.content;
+    
+    zoneLock.style.display = (el.type === 'zone') ? 'flex' : 'none';
+    if(el.type === 'zone') document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR" : "🔒 BLOQUEAR";
+
     if(el.type==='vec') {
         document.getElementById('ins-line-type').value = el.lineType || 'solid';
         document.getElementById('ins-arrow').checked = el.arrow;
