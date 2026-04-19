@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v28</title>
+    <title>SoccerBoard Pro v29</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -20,6 +20,7 @@
             <div class="btn-group">
                 <button class="btn" onclick="toggleFullScreen()" title="Pantalla Completa">⛶</button>
                 <button class="btn" onclick="undo()" id="undoBtn" title="Deshacer">⟲</button>
+                <button class="btn btn-danger" onclick="clearField()" title="Limpiar Campo">✨</button>
                 <div class="divider"></div>
                 <button class="btn" onclick="navStep(-1)">◀</button>
                 <span id="step-label">1/1</span>
@@ -59,6 +60,7 @@
                 <div class="cat-label">Material</div>
                 <div class="tool" onclick="createItem('ball')">⚽</div>
                 <div class="tool" onclick="createItem('cone')">▲</div>
+                <div class="tool" onclick="createItem('pica')">┃</div>
                 <div class="tool" onclick="createItem('valla')">⊓</div>
                 <div class="tool" onclick="createItem('ladder')">🪜</div>
             </div>
