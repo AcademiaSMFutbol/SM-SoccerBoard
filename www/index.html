@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v31</title>
+    <title>SoccerBoard Pro v32</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -17,10 +17,10 @@
     <div id="app-root">
         <div id="top-bar">
             <div class="btn-group">
-                <button class="btn" onclick="toggleFullScreen()">⛶</button>
-                <button class="btn btn-dark" onclick="toggleConfig()">⚙</button>
-                <button class="btn" onclick="undo()" id="undoBtn">⟲</button>
-                <button class="btn btn-danger" onclick="clearField()">✨</button>
+                <button class="btn" onclick="toggleFullScreen()" title="Pantalla Completa">⛶</button>
+                <button class="btn btn-dark" onclick="toggleConfig()" title="Configuración">⚙</button>
+                <button class="btn" onclick="undo()" id="undoBtn" title="Deshacer">⟲</button>
+                <button class="btn btn-danger" onclick="clearField()" title="Limpiar Paso">✨</button>
                 <div class="divider"></div>
                 <button class="btn" onclick="navStep(-1)">◀</button>
                 <span id="step-label">1/1</span>
@@ -36,36 +36,35 @@
 
         <div id="config-modal">
             <div class="modal-content">
-                <h3>Configuración General</h3>
-                <hr>
+                <h3>Configuración</h3>
                 <div class="config-item">
-                    <label>Velocidad de Animación</label>
+                    <label>VELOCIDAD ANIMACIÓN</label>
                     <input type="range" min="200" max="2000" step="100" value="800" oninput="updateSpeed(this.value)">
                 </div>
                 <div class="config-item">
-                    <label>Colores de Equipos</label>
+                    <label>COLORES DE EQUIPOS</label>
                     <div class="team-colors">
-                        <input type="color" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
-                        <input type="color" value="#2e86de" oninput="updateTeamColor('p-blue', this.value)">
-                        <input type="color" value="#f1c40f" oninput="updateTeamColor('p-yellow', this.value)">
-                        <input type="color" value="#2ecc71" oninput="updateTeamColor('p-green', this.value)">
+                        <input type="color" id="color-red" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
+                        <input type="color" id="color-blue" value="#2e86de" oninput="updateTeamColor('p-blue', this.value)">
+                        <input type="color" id="color-yellow" value="#f1c40f" oninput="updateTeamColor('p-yellow', this.value)">
+                        <input type="color" id="color-green" value="#2ecc71" oninput="updateTeamColor('p-green', this.value)">
                     </div>
                 </div>
                 <div class="config-item">
-                    <label>Tipo de Campo</label>
+                    <label>TIPO DE CAMPO</label>
                     <select onchange="changeField(this.value)">
                         <option value="entero">Campo Entero</option>
                         <option value="medio">Medio Campo</option>
-                        <option value="ejercicio">Campo Ejercicio</option>
+                        <option value="ejercicio">Área de Ejercicio</option>
                     </select>
                 </div>
-                <button class="btn btn-accent" style="width:100%; margin-top:10px;" onclick="toggleConfig()">CERRAR</button>
+                <button class="btn btn-accent close-btn" onclick="toggleConfig()">CERRAR Y GUARDAR</button>
             </div>
         </div>
 
         <div id="top-inspector">
             <div class="ins-section">
-                <label>COLOR MATERIAL</label>
+                <label>COLOR</label>
                 <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
             </div>
             <button class="btn btn-accent" onclick="duplicateActive()">➕ DUPLICAR</button>
