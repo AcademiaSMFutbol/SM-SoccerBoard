@@ -1,5 +1,6 @@
 :root { --panel: #1e272e; --accent: #3498db; --top: #12171b; --grass: #27ae60; --danger: #e74c3c; --edit: #f39c12; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+
 body, html { margin: 0; padding: 0; width: 100%; height: 100dvh; overflow: hidden; background: #000; font-family: sans-serif; }
 
 #app-root { display: flex; flex-direction: column; width: 100vw; height: 100dvh; }
@@ -8,34 +9,36 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100dvh; overflow: hidde
 .divider { width: 1px; height: 20px; background: #444; margin: 0 5px; }
 
 #top-inspector { position: absolute; top: 50px; left: 0; width: 100%; height: 48px; background: rgba(18, 23, 27, 0.98); display: none; align-items: center; justify-content: center; gap: 12px; border-bottom: 2px solid var(--edit); z-index: 1500; backdrop-filter: blur(10px); }
-#ins-color { width: 40px; height: 30px; border: none; background: none; }
-#ins-vec-extras { display: none; align-items: center; gap: 10px; color: white; font-size: 10px; }
+#ins-color { width: 40px; height: 30px; border: none; background: none; cursor: pointer; }
+#ins-vec-extras { display: none; align-items: center; gap: 10px; color: white; font-size: 10px; font-weight: bold; }
 
 #main-area { display: flex; flex: 1; overflow: hidden; }
 #sidebar { width: 65px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 100; scrollbar-width: none; }
+.cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 10px 0 2px; text-transform: uppercase; font-weight: 800; }
 .tool { width: 42px; height: 42px; margin: 6px auto; border-radius: 10px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; flex-shrink: 0; }
-.cat-label { font-size: 7px; color: #84817a; text-align: center; padding: 8px 0 2px; text-transform: uppercase; font-weight: 800; }
 
-#viewport { flex: 1; background: #0a0a0a; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; touch-action: none; padding: 5px; }
+#viewport { flex: 1; background: #0a0a0a; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; touch-action: none; padding: 10px; }
 #field-master { position: relative; width: 1050px; height: 680px; background: var(--grass) url('campoentero.png') no-repeat center / contain; box-shadow: 0 0 50px rgba(0,0,0,0.8); overflow: hidden; transform-origin: center center; flex-shrink: 0; }
 
 .object { position: absolute; z-index: 100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
-.player { width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid white; font-weight: bold; font-size: 14px; color: white; }
+.player { width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid white; font-weight: bold; font-size: 14px; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
 .player::after { content: ''; position: absolute; top: -11px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid white; }
 .selected { outline: 3px solid yellow; outline-offset: 5px; z-index: 1000 !important; }
 
 .cone { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 24px solid; }
 .valla { width: 44px; height: 20px; border: 4px solid; border-bottom: none !important; border-radius: 5px 5px 0 0; }
+.ladder { width: 100px; height: 30px; border: 2px solid; background: repeating-linear-gradient(90deg, transparent, transparent 18px, currentColor 18px, currentColor 20px); }
 
 #svg-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
-.vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 40; fill: none; }
+.vec-hit { pointer-events: stroke; stroke: transparent; stroke-width: 40; fill: none !important; }
 .node { position: absolute; width: 40px; height: 40px; z-index: 1100; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; }
-.node-in { width: 14px; height: 14px; background: white; border: 2px solid var(--accent); border-radius: 50%; }
+.node-in { width: 14px; height: 14px; background: white; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 5px black; }
 
-.btn { background: #2d3436; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; }
+.btn { background: #2d3436; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; transition: 0.2s; }
+.btn:active { transform: scale(0.95); }
 .btn-accent { background: var(--accent); }
 .btn-play { background: #2ecc71; }
 .btn-save { background: #e67e22; }
 .btn-danger { background: var(--danger); }
 .btn-dark { background: #444; }
-#step-label { font-weight: 800; min-width: 35px; text-align: center; color: var(--accent); font-size: 11px; }
+#step-label { font-weight: 800; min-width: 35px; text-align: center; color: var(--accent); font-size: 13px; }
