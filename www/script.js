@@ -6,7 +6,7 @@ let dragInfo = null;
 let pinchDist = 0;
 let wasSelectedBefore = false;
 let isPlaying = false;
-let animationSpeed = 800; // Global
+let animationSpeed = 800;
 
 let teamColors = {
     'p-red': '#ff4757',
@@ -50,7 +50,13 @@ function clearField() {
 // --- CONFIGURACIÓN ---
 function toggleConfig() {
     const modal = document.getElementById('config-modal');
-    modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+    if (modal.style.display === 'flex') {
+        modal.style.display = 'none';
+        // RE-CALCULAR ESCALA AL CERRAR PARA EVITAR EL CAMPO PEQUEÑO
+        setTimeout(resizeField, 50); 
+    } else {
+        modal.style.display = 'flex';
+    }
 }
 
 function updateSpeed(val) {
@@ -59,9 +65,7 @@ function updateSpeed(val) {
 
 function updateTeamColor(team, color) {
     teamColors[team] = color;
-    // Actualizar icono de barra lateral
     document.getElementById(`tool-${team}`).style.background = color;
-    // Actualizar todos los jugadores en todos los pasos
     steps.forEach(step => {
         step.forEach(el => { if(el.type === team) el.color = color; });
     });
@@ -78,8 +82,8 @@ function changeField(type) {
 }
 
 function resizeField() {
-    const vw = viewport.clientWidth - 30;
-    const vh = viewport.clientHeight - 30;
+    const vw = viewport.clientWidth - 40;
+    const vh = viewport.clientHeight - 40;
     const scale = Math.min(vw / 1050, vh / 680);
     fMaster.style.transform = `scale(${scale})`;
 }
@@ -152,7 +156,6 @@ function handleGlobalEnd() {
     dragInfo = null; render();
 }
 
-// --- CREACIÓN ---
 function createPlayer(type) {
     saveState();
     const id = Date.now();
@@ -304,34 +307,26 @@ async function runAnimation() {
             let start = null; const f1 = steps[i], f2 = steps[i + 1];
             function animate(ts) {
                 if (!start) start = ts; 
-                // Usar animationSpeed global para el cálculo de progreso
                 const p = Math.min((ts - start) / animationSpeed, 1);
-                
                 Array.from(fMaster.children).forEach(c => { if (c.id !== 'svg-layer') fMaster.removeChild(c); });
-                
                 f1.forEach(o => {
                     const target = f2.find(x => x.id === o.id);
-                    // Solo animamos jugadores y balón
                     if (!target || !(o.type.startsWith('p-') || o.type === 'ball')) {
                         if (target) drawPhysical(o);
                         return;
                     }
-                    
                     const div = document.createElement('div');
                     div.className = `object ${o.type}`;
                     if (o.type.startsWith('p-')) div.classList.add('player');
-                    
                     const x = o.x + (target.x - o.x) * p;
                     const y = o.y + (target.y - o.y) * p;
                     const r = o.rot + (target.rot - o.rot) * p;
                     const s = o.scale + (target.scale - o.scale) * p;
-
                     if (o.type.startsWith('p-')) {
                         div.style.background = teamColors[o.type]; div.innerText = o.num;
                     } else if (o.type === 'ball') {
                         div.innerText = '⚽'; div.style.fontSize = '18px';
                     }
-                    
                     div.style.left = x + 'px'; div.style.top = y + 'px';
                     div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`;
                     fMaster.appendChild(div);
