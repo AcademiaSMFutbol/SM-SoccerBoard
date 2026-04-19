@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro - Elite Edition</title>
+    <title>SoccerBoard Vector Pro</title>
     <style>
-        :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --bg-field: #27ae60; }
+        :root { --panel: #1e272e; --accent: #3498db; --top: #161d23; --grass: #27ae60; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #111; font-family: sans-serif; touch-action: none; }
 
-        /* UI Structure */
+        /* UI */
         #top-bar { height: 50px; background: var(--top); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 100; border-bottom: 1px solid #000; }
         #main { display: flex; height: calc(100% - 50px); width: 100%; }
         #sidebar { width: 75px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #000; overflow-y: auto; z-index: 10; }
@@ -17,26 +17,32 @@
         .cat-label { font-size: 8px; color: #84817a; text-align: center; padding: 8px 0 2px; text-transform: uppercase; font-weight: bold; }
         .tool { width: 45px; height: 45px; margin: 5px auto; border-radius: 8px; border: 1px solid #3d3d3d; background: #2d3436; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
 
-        /* Field Area */
-        #field-container { flex: 1; position: relative; background-color: var(--bg-field); background-repeat: no-repeat; background-size: cover; background-position: center; overflow: hidden; }
+        /* Field Area - Proporcional */
+        #field-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; padding: 10px; }
+        #field-container { 
+            position: relative; 
+            width: 100%; height: 100%;
+            max-width: 1200px; max-height: 800px;
+            background-color: var(--grass); 
+            background-image: url('campoentero.png');
+            background-repeat: no-repeat; background-size: contain; background-position: center;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
         
         /* Objects */
-        .object { position: absolute; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); border: 2.5px solid white; z-index: 10; color: white; user-select: none; }
-        .object.player::after { content: ''; position: absolute; top: -12px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid white; }
-        .object.selected { border-color: yellow; box-shadow: 0 0 15px yellow; z-index: 20; }
-        
-        /* Material Específico */
-        .cone { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); background: #e67e22 !important; border: none !important; }
-        .pica { width: 6px !important; height: 40px !important; background: #f1c40f !important; border: 1px solid #000 !important; border-radius: 2px !important; }
-        .valla { width: 40px !important; height: 20px !important; border-radius: 4px 4px 0 0 !important; border: 3px solid white !important; border-bottom: none !important; background: transparent !important; }
+        .object { position: absolute; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); border: 2px solid white; z-index: 20; color: white; }
+        .object.player::after { content: ''; position: absolute; top: -10px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid white; }
+        .selected { border-color: yellow !important; box-shadow: 0 0 15px yellow !important; z-index: 30; }
 
-        /* Líneas Vectoriales */
-        .line-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+        /* Vector Nodes */
+        .node { position: absolute; width: 14px; height: 14px; background: white; border: 2px solid var(--accent); border-radius: 50%; z-index: 40; transform: translate(-50%, -50%); box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+        .node.curve { background: var(--accent); border-color: white; }
 
-        /* Config */
+        .line-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; }
+
         #config-panel { position: absolute; top: 0; right: -280px; width: 260px; height: 100%; background: var(--panel); border-left: 2px solid #000; transition: 0.3s; z-index: 500; padding: 20px; color: white; }
         #config-panel.open { right: 0; }
-        .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .btn { background: #2d3436; color: white; border: none; padding: 8px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -59,34 +65,45 @@
         <div class="cat-label">Equipos</div>
         <div class="tool" onclick="createObj('p-red')" style="background:#ff4757">1</div>
         <div class="tool" onclick="createObj('p-blue')" style="background:#2e86de">1</div>
-        <div class="tool" onclick="createObj('p-yellow')" style="background:#f1c40f; color:black">1</div>
         <div class="tool" onclick="createObj('ball')">⚽</div>
         
-        <div class="cat-label">Entreno</div>
-        <div class="tool" onclick="createObj('cone')">▲</div>
-        <div class="tool" onclick="createObj('pica')" style="color:#f1c40f">┃</div>
-        <div class="tool" onclick="createObj('valla')">⊓</div>
+        <div class="cat-label">Vectores</div>
+        <div class="tool" onclick="createVector('line')">⎯</div>
+        <div class="tool" onclick="createVector('curve')">⤴</div>
         
-        <div class="cat-label">Líneas</div>
-        <div class="tool" onclick="createObj('l-recta')">―</div>
-        <div class="tool" onclick="createObj('l-dash')">--</div>
-        <div class="tool" onclick="createObj('l-curve')">⤴</div>
+        <div class="cat-label">Material</div>
+        <div class="tool" onclick="createObj('cone')">▲</div>
+        <div class="tool" onclick="createObj('valla')">⊓</div>
     </div>
     
-    <div id="field-container" onclick="closeSettings()">
-        <svg class="line-svg" id="svg-layer"></svg>
+    <div id="field-wrapper" onclick="closeSettings()">
+        <div id="field-container">
+            <svg class="line-svg" id="svg-layer">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="white" />
+                    </marker>
+                </defs>
+            </svg>
+        </div>
     </div>
 
     <div id="config-panel" onclick="event.stopPropagation()">
-        <h3 style="margin-top:0">Ajustes</h3>
+        <h3 style="margin-top:0">Ajustes Vectoriales</h3>
+        <label style="font-size:10px; color:var(--accent)">ESTILO DE LÍNEA</label>
+        <select id="lineStyle" onchange="updateVectorStyle()" style="width:100%; background:#2d3436; color:white; padding:8px; margin:10px 0;">
+            <option value="solid">Continua</option>
+            <option value="dashed">Discontinua (---)</option>
+            <option value="dotted">Moteada (...)</option>
+        </select>
+        <label><input type="checkbox" id="checkArrow" onchange="updateVectorStyle()" checked> Mostrar Flecha</label>
+        <hr style="border:0; border-top:1px solid #3d3d3d; margin:15px 0;">
         <label style="font-size:10px; color:var(--accent)">VISTA CAMPO</label>
         <select id="bgSelect" onchange="updateBackground()" style="width:100%; background:#2d3436; color:white; padding:8px; margin:10px 0;">
             <option value="campoentero.png">Campo Entero</option>
             <option value="mediocampo.png">Medio Campo</option>
-            <option value="campoejercicio.png">Campo Ejercicio</option>
+            <option value="campoejercicio.png">Fondo Libre</option>
         </select>
-        <label style="font-size:10px; color:var(--accent)">TAMAÑO JUGADORES</label>
-        <input type="range" id="sizeRange" min="0.5" max="1.8" step="0.1" value="1.0" oninput="render()" style="width:100%; margin:15px 0;">
         <button class="btn" style="width: 100%; background:#e74c3c; margin-top:20px;" onclick="toggleSettings(event)">CERRAR</button>
     </div>
 </div>
@@ -95,8 +112,7 @@
     let frames = [ [] ];
     let curF = 0;
     let selId = null;
-    let isMoving = false;
-    let startX, startY;
+    let draggingNode = null; // {id, nodeName}
 
     function updateBackground() {
         const bg = document.getElementById('bgSelect').value;
@@ -108,113 +124,137 @@
 
     function createObj(type) {
         const id = Date.now();
-        let obj = { id, type, x: 100, y: 100, rot: 0, scale: 1, num: frames[curF].filter(o => o.type === type).length + 1 };
-        
-        // Propiedades especiales para líneas
-        if(type.startsWith('l-')) {
-            obj.x2 = 200; obj.y2 = 150; // Punto final
-        }
-        
+        const obj = { id, type, x: 200, y: 200, rot: 0, scale: 1, num: frames[curF].filter(o => o.type === type).length + 1 };
+        if(type === 'p-red') obj.color = '#ff4757';
+        if(type === 'p-blue') obj.color = '#2e86de';
         frames[curF].push(obj);
-        render();
+        selId = id; render();
+    }
+
+    function createVector(type) {
+        const id = Date.now();
+        const vec = {
+            id, type: 'vector', subType: type,
+            x1: 100, y1: 300, x2: 300, y2: 300,
+            cx1: 150, cy1: 200, cx2: 250, cy2: 200, // Nodos de curvatura
+            style: document.getElementById('lineStyle').value,
+            arrow: document.getElementById('checkArrow').checked
+        };
+        frames[curF].push(vec);
+        selId = id; render();
+    }
+
+    function updateVectorStyle() {
+        if(!selId) return;
+        const el = frames[curF].find(o => o.id === selId);
+        if(el.type === 'vector') {
+            el.style = document.getElementById('lineStyle').value;
+            el.arrow = document.getElementById('checkArrow').checked;
+            render();
+        }
     }
 
     function render() {
         const container = document.getElementById('field-container');
         const svg = document.getElementById('svg-layer');
-        const globalScale = document.getElementById('sizeRange').value;
         
-        // Limpiar pero mantener el SVG
         Array.from(container.children).forEach(child => { if(child.id !== 'svg-layer') child.remove(); });
-        svg.innerHTML = ''; 
-        
+        svg.innerHTML = svg.querySelector('defs').outerHTML; 
+
         frames[curF].forEach(el => {
-            if(el.type.startsWith('l-')) {
-                renderLine(el, svg);
+            if(el.type === 'vector') {
+                renderVector(el, svg, container);
             } else {
-                const div = document.createElement('div');
-                div.className = `object ${el.type} ${selId === el.id ? 'selected' : ''}`;
-                if(el.type.startsWith('p-')) div.classList.add('player');
-                
-                // Contenido visual
-                if(el.type === 'ball') div.innerText = '⚽';
-                else if(el.type === 'cone') div.innerText = '';
-                else if(el.type === 'valla' || el.type === 'pica') div.innerText = '';
-                else if(el.type.startsWith('p-')) div.innerText = el.num;
-
-                // Colores de equipo
-                if(el.type === 'p-red') div.style.background = '#ff4757';
-                if(el.type === 'p-blue') div.style.background = '#2e86de';
-                if(el.type === 'p-yellow') { div.style.background = '#f1c40f'; div.style.color = 'black'; }
-
-                div.style.left = `${el.x}px`;
-                div.style.top = `${el.y}px`;
-                div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${globalScale})`;
-
-                div.addEventListener('touchstart', (e) => handleStart(e, el.id), {passive: false});
-                div.addEventListener('mousedown', (e) => handleStart(e, el.id));
-                container.appendChild(div);
+                renderPhysical(el, container);
             }
         });
         document.getElementById('label-step').innerText = `${curF+1}/${frames.length}`;
     }
 
-    function renderLine(el, svg) {
-        const line = document.createElementNS("http://www.w3.org/2000/svg", el.type === 'l-curve' ? "path" : "line");
-        line.setAttribute("stroke", "white");
-        line.setAttribute("stroke-width", "3");
-        if(el.type === 'l-dash') line.setAttribute("stroke-dasharray", "8,8");
+    function renderVector(el, svg, container) {
+        const isCurve = el.subType === 'curve';
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         
-        if(el.type === 'l-curve') {
-            const midX = (el.x + el.x2) / 2 + 50;
-            const midY = (el.y + el.y2) / 2 - 50;
-            line.setAttribute("d", `M ${el.x} ${el.y} Q ${midX} ${midY} ${el.x2} ${el.y2}`);
-            line.setAttribute("fill", "none");
-        } else {
-            line.setAttribute("x1", el.x); line.setAttribute("y1", el.y);
-            line.setAttribute("x2", el.x2); line.setAttribute("y2", el.y2);
+        let d = `M ${el.x1} ${el.y1} `;
+        if(isCurve) d += `C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}`;
+        else d += `L ${el.x2} ${el.y2}`;
+
+        path.setAttribute("d", d);
+        path.setAttribute("stroke", "white");
+        path.setAttribute("stroke-width", "3");
+        path.setAttribute("fill", "none");
+        if(el.arrow) path.setAttribute("marker-end", "url(#arrowhead)");
+        
+        if(el.style === 'dashed') path.setAttribute("stroke-dasharray", "10,10");
+        if(el.style === 'dotted') path.setAttribute("stroke-dasharray", "2,6");
+
+        svg.appendChild(path);
+
+        // Si está seleccionado, mostrar nodos
+        if(selId === el.id) {
+            createNode(el.id, 'x1', 'y1', el.x1, el.y1, container);
+            createNode(el.id, 'x2', 'y2', el.x2, el.y2, container);
+            if(isCurve) {
+                createNode(el.id, 'cx1', 'cy1', el.cx1, el.cy1, container, true);
+                createNode(el.id, 'cx2', 'cy2', el.cx2, el.cy2, container, true);
+            }
         }
-        svg.appendChild(line);
     }
 
-    // --- MOTOR DE INTERACCIÓN CORREGIDO ---
-    function handleStart(e, id) {
-        e.preventDefault(); e.stopPropagation();
-        const touch = e.touches ? e.touches[0] : e;
-        const el = frames[curF].find(o => o.id === id);
+    function createNode(id, nx, ny, x, y, container, isCurve = false) {
+        const node = document.createElement('div');
+        node.className = `node ${isCurve ? 'curve' : ''}`;
+        node.style.left = x + 'px'; node.style.top = y + 'px';
+        node.addEventListener('touchstart', (e) => startNodeDrag(e, id, nx, ny));
+        node.addEventListener('mousedown', (e) => startNodeDrag(e, id, nx, ny));
+        container.appendChild(node);
+    }
+
+    function renderPhysical(el, container) {
+        const div = document.createElement('div');
+        div.className = `object ${el.type} ${selId === el.id ? 'selected' : ''}`;
+        if(el.type.startsWith('p-')) {
+            div.classList.add('player');
+            div.style.background = el.color;
+            div.innerText = el.num;
+        } else if(el.type === 'ball') div.innerText = '⚽';
+        else if(el.type === 'cone') div.style.background = '#e67e22';
+
+        div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
+        div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg)`;
         
-        startX = touch.clientX;
-        startY = touch.clientY;
-        isMoving = false; // Reset de bandera de arrastre
+        div.addEventListener('touchstart', (e) => startObjDrag(e, el.id));
+        div.addEventListener('mousedown', (e) => startObjDrag(e, el.id));
+        container.appendChild(div);
+    }
+
+    // --- INTERACCION ---
+    function startNodeDrag(e, id, nx, ny) {
+        e.preventDefault(); e.stopPropagation();
+        draggingNode = { id, nx, ny };
+        selId = id;
+    }
+
+    function startObjDrag(e, id) {
+        e.preventDefault(); e.stopPropagation();
+        const el = frames[curF].find(o => o.id === id);
+        const touch = e.touches ? e.touches[0] : e;
+        const startX = touch.clientX, startY = touch.clientY;
+        let moved = false;
 
         const move = (me) => {
+            moved = true;
             const t = me.touches ? me.touches[0] : me;
-            const dx = Math.abs(t.clientX - startX);
-            const dy = Math.abs(t.clientY - startY);
-            
-            if(dx > 5 || dy > 5) isMoving = true; // Si se mueve más de 5px es arrastre
-
             const rect = document.getElementById('field-container').getBoundingClientRect();
-            el.x = t.clientX - rect.left;
-            el.y = t.clientY - rect.top;
-            
-            // Renderizado en tiempo real (solo posición) para fluidez
-            const div = e.target.closest('.object');
-            div.style.left = `${el.x}px`;
-            div.style.top = `${el.y}px`;
+            el.x = t.clientX - rect.left; el.y = t.clientY - rect.top;
+            render();
         };
 
         const stop = () => {
             window.removeEventListener('mousemove', move);
             window.removeEventListener('touchmove', move);
-            
-            // LÓGICA DE ROTACIÓN: Solo si NO hubo movimiento y ya estaba seleccionado
-            if (!isMoving && selId === id) {
-                el.rot = (el.rot + 45) % 360;
-            }
-            
-            selId = id; // Seleccionar siempre al final
-            render();
+            if(!moved && selId === id) { el.rot = (el.rot + 45) % 360; render(); }
+            selId = id; render();
         };
 
         window.addEventListener('mousemove', move);
@@ -223,10 +263,25 @@
         window.addEventListener('touchend', stop, {once: true});
     }
 
+    window.addEventListener('mousemove', (e) => handleNodeMove(e));
+    window.addEventListener('touchmove', (e) => handleNodeMove(e.touches[0]), {passive: false});
+    window.addEventListener('mouseup', () => draggingNode = null);
+    window.addEventListener('touchend', () => draggingNode = null);
+
+    function handleNodeMove(e) {
+        if(!draggingNode) return;
+        const rect = document.getElementById('field-container').getBoundingClientRect();
+        const el = frames[curF].find(o => o.id === draggingNode.id);
+        el[draggingNode.nx] = e.clientX - rect.left;
+        el[draggingNode.ny] = e.clientY - rect.top;
+        render();
+    }
+
     function addFrame() { frames.push(JSON.parse(JSON.stringify(frames[curF]))); curF++; render(); }
     function navFrame(d) { curF = Math.max(0, Math.min(frames.length - 1, curF + d)); render(); }
-
-    window.onload = () => { updateBackground(); render(); };
+    window.onload = () => { resize(); updateBackground(); };
+    window.onresize = resize;
+    function resize() { render(); }
 </script>
 </body>
 </html>
