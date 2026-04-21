@@ -100,7 +100,6 @@ function render() {
                 if(el.sub==='curve') [['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny], true));
             }
             if(el.type === 'zone' && !el.locked) {
-                // Nodo de esquina (Escalar)
                 createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
             }
         }
@@ -119,7 +118,6 @@ function handleGlobalDown(e) {
 
     if(activeId) {
         const el = steps[curStep].find(o => o.id === activeId);
-        // Si la zona está bloqueada, ignorar arrastre del cuerpo
         if(el.type === 'zone' && el.locked && !e.target.closest('.node')) { dragInfo = null; return; }
         
         const rect = fMaster.getBoundingClientRect();
@@ -231,7 +229,7 @@ function drawVector(el) {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", d); path.setAttribute("class", "v-el");
     path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3"); 
-    path.setAttribute("fill", "none"); // FIX CURVAS
+    path.setAttribute("fill", "none");
     if(el.lineType === "dashed") path.setAttribute("stroke-dasharray", "6,6");
     if(el.arrow) path.setAttribute("marker-end", "url(#arrow)");
     svg.appendChild(path);
@@ -339,3 +337,155 @@ function deselect() { activeId = null; render(); }
 
 window.onload = () => { resizeField(); render(); };
 window.addEventListener('resize', resizeField);
+
+
+// ============================================================
+// EXPORTAR VÍDEO FLUIDO (MP4/WEBM)
+// Graba frame a frame la animación interpolada igual que PLAY
+// ============================================================
+
+// Dibuja un frame interpolado entre f1 y f2 con progreso p (0→1)
+// directamente en fMaster sin pasar por render() (que está bloqueado por isPlaying)
+function drawInterpolatedFrame(f1, f2, p) {
+    // Limpiar elementos animados (no el SVG)
+    Array.from(fMaster.children).forEach(c => { if (c.id !== 'svg-layer') fMaster.removeChild(c); });
+    svg.querySelectorAll('.v-el').forEach(e => e.remove());
+
+    f1.forEach(o => {
+        const target = f2.find(x => x.id === o.id);
+
+        // Vectores y zonas: dibujar estado de f1 si existen en f2
+        if (o.type === 'vec') {
+            if (target) drawVector(o);
+            return;
+        }
+        if (o.type === 'zone') {
+            if (target) drawZone(o);
+            return;
+        }
+        if (o.type === 'text') {
+            if (target) drawText(o);
+            return;
+        }
+
+        // Jugadores y balón: interpolar posición suavemente
+        if (!target) return;
+
+        const div = document.createElement('div');
+        div.className = `object ${o.type}`;
+
+        const x = o.x + (target.x - o.x) * p;
+        const y = o.y + (target.y - o.y) * p;
+        const r = o.rot + (target.rot - o.rot) * p;
+        const s = o.scale + (target.scale - o.scale) * p;
+
+        if (o.type.startsWith('p-')) {
+            div.style.background = teamColors[o.type];
+            div.innerText = o.num;
+            div.classList.add('player');
+        } else if (o.type === 'ball') {
+            div.innerText = '⚽';
+            div.style.fontSize = '18px';
+        }
+
+        div.style.left = x + 'px';
+        div.style.top = y + 'px';
+        div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`;
+        fMaster.appendChild(div);
+    });
+}
+
+async function exportVideo() {
+    if (steps.length < 2) {
+        alert('Necesitas al menos 2 pasos para exportar vídeo.');
+        return;
+    }
+
+    const btn = document.getElementById('btn-mp4');
+    btn.textContent = '⏳ Preparando...';
+    btn.disabled = true;
+
+    // Desseleccionar y esperar render limpio
+    deselect();
+    await new Promise(r => setTimeout(r, 200));
+
+    // Canvas oculto al que volcamos cada frame capturado
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = fMaster.offsetWidth;
+    offCanvas.height = fMaster.offsetHeight;
+    offCanvas.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+    document.body.appendChild(offCanvas);
+    const offCtx = offCanvas.getContext('2d');
+
+    // Elegir el mejor formato disponible en el navegador
+    const mime = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
+        ? 'video/mp4;codecs=avc1'
+        : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+            ? 'video/webm;codecs=vp9'
+            : 'video/webm';
+    const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+
+    // Iniciar grabación desde el stream del canvas oculto
+    const stream = offCanvas.captureStream(30);
+    const chunks = [];
+    const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6000000 });
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mime });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `tactica_sm.${ext}`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        document.body.removeChild(offCanvas);
+        btn.textContent = '🎬 MP4';
+        btn.disabled = false;
+    };
+
+    recorder.start(100);
+    btn.textContent = '⏺ Grabando...';
+
+    // Bloquear interacción durante la grabación
+    isPlaying = true;
+    const savedStep = curStep;
+
+    // Número de frames por transición (a ~15fps efectivos para que html2canvas aguante)
+    const FPS = 15;
+    const frameDuration = 1000 / FPS; // ms por frame
+    const totalFrames = Math.round(animationSpeed / frameDuration);
+
+    for (let i = 0; i < steps.length - 1; i++) {
+        const f1 = steps[i];
+        const f2 = steps[i + 1];
+
+        for (let f = 0; f <= totalFrames; f++) {
+            const p = f / totalFrames; // progreso 0 → 1
+
+            // Pintar frame interpolado en el DOM
+            drawInterpolatedFrame(f1, f2, p);
+
+            // Capturar ese frame con html2canvas y volcarlo al canvas oculto
+            const captured = await html2canvas(fMaster, {
+                backgroundColor: null,
+                scale: 1,
+                useCORS: true,
+                logging: false
+            });
+
+            offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
+            offCtx.drawImage(captured, 0, 0, offCanvas.width, offCanvas.height);
+
+            // Esperar un tick para que MediaRecorder capture el frame
+            await new Promise(r => setTimeout(r, frameDuration));
+        }
+    }
+
+    // Mostrar el último paso completo al finalizar
+    isPlaying = false;
+    curStep = savedStep;
+    render();
+
+    // Dar 300ms extra para que el recorder capture el último frame
+    await new Promise(r => setTimeout(r, 300));
+    recorder.stop();
+}
