@@ -72,7 +72,9 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
   background:#0a0f14;
   overflow:hidden;
   touch-action:none;
-  display:flex;align-items:center;justify-content:center;
+  display:flex;
+  align-items:center;         /* centrar verticalmente */
+  justify-content:flex-start; /* pegar a la izquierda */
 }
 :fullscreen #vp{ background:#000; }
 :-webkit-full-screen #vp{ background:#000; }
@@ -84,7 +86,6 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
   flex-shrink:0;
   overflow:visible;           /* permite que porterias sobresalgan del borde */
   background:#2d8a47;
-  box-shadow:0 0 20px rgba(0,0,0,.4);
 }
 /* En pantalla completa, sin sombra */
 :fullscreen #field-master{ box-shadow:none; }
@@ -104,10 +105,11 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 .vec-hit{pointer-events:auto;cursor:pointer;}
 
 /* ── OBJETOS EN CAMPO ── */
-.object{position:absolute;z-index:20;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:grab;}
+.object{position:absolute;z-index:20;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:grab;background:transparent;}
 .object:active{cursor:grabbing;}
 .object.sel{outline:2.5px solid var(--warn);outline-offset:5px;z-index:50;}
-.object::before{content:'';position:absolute;top:-9px;left:50%;transform:translateX(-50%);border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:7px solid rgba(255,255,255,.75);pointer-events:none;}
+/* triángulo de dirección desactivado — se muestra dentro del SVG de camiseta */
+.object::before{display:none;}
 .ball-obj{font-size:24px;cursor:grab;}
 
 /* Material */
@@ -121,7 +123,7 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 .weight-obj::after{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:6px;height:5px;background:#7f8c8d;border-radius:2px 2px 0 0;}
 
 /* Camiseta SVG */
-.shirt-svg{display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));overflow:visible;}
+.shirt-svg{display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.6));overflow:visible;background:transparent;}
 
 /* Zonas */
 .zone-obj{position:absolute;z-index:15;border:2px solid;pointer-events:auto;cursor:move;}
