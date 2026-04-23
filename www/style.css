@@ -71,13 +71,11 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 #vp{
   flex:1;min-width:0;min-height:0;
   position:relative;
-  /* Fondo verde igual al campo para que el espacio sobrante sea invisible */
-  background:#2d8a47;
+  background:#2d8a47; /* verde campo para que no haya espacio visible */
   overflow:hidden;
   touch-action:none;
-  display:flex;
-  align-items:flex-start;    /* campo pegado arriba */
-  justify-content:flex-start; /* campo pegado a la izquierda */
+  /* NO flex: el campo ocupa width/height exactos con position:relative */
+  display:block;
   padding:0;margin:0;
 }
 :fullscreen #vp{ background:#000; }
@@ -86,13 +84,10 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 
 /* field-master: width/height fijados por JS, centrado por el flex de #vp */
 #field-master{
-  position:relative;
-  flex-shrink:0;
+  /* Dimensiones y fondo los controla JS via resizeField() */
+  display:block;
   overflow:hidden;
   background:#2d8a47;
-  /* Cuando se usan imágenes PNG del repo, el background cubre todo */
-  background-size:100% 100%;
-  background-repeat:no-repeat;
 }
 /* En pantalla completa, sin sombra */
 :fullscreen #field-master{ box-shadow:none; }
@@ -112,11 +107,10 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 .vec-hit{pointer-events:auto;cursor:pointer;}
 
 /* ── OBJETOS EN CAMPO ── */
-.object{position:absolute;z-index:20;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:grab;background:transparent;border:none;outline:none;line-height:0;}
+.object{position:absolute;background:transparent;border:none;outline:none;pointer-events:auto;cursor:grab;}
 .object:active{cursor:grabbing;}
-/* Sin outline en .object.sel para evitar rectángulo negro — el highlight va dentro del elemento */
-.object.sel{z-index:50;}
-.object::before{display:none;}
+.object.sel{outline:2.5px solid #f1c40f;outline-offset:4px;}
+/* Jugadores son SVG directo — no usan .object */
 .ball-obj{font-size:24px;cursor:grab;}
 
 /* Material */
@@ -130,7 +124,7 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 .weight-obj::after{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:6px;height:5px;background:#7f8c8d;border-radius:2px 2px 0 0;}
 
 /* Camiseta SVG */
-.shirt-svg{display:block;overflow:visible;background:transparent;}
+.shirt-svg{display:block;overflow:visible;background:transparent;cursor:grab;pointer-events:auto;}
 
 /* Zonas */
 .zone-obj{position:absolute;z-index:15;border:2px solid;pointer-events:auto;cursor:move;}
@@ -231,22 +225,3 @@ hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
 /* txt-sh — handle de escala para texto */
 .txt-sh{pointer-events:auto;cursor:se-resize;}
-
-/* Highlight de selección por tipo — sin rectángulo negro */
-.object.sel .shirt-svg circle:first-child{
-  stroke:var(--warn) !important;
-  stroke-width:3 !important;
-}
-.object.sel .cone-obj,
-.object.sel .cone_low-obj{
-  filter:drop-shadow(0 0 4px var(--warn));
-}
-.object.sel .pica-obj,
-.object.sel .valla-obj,
-.object.sel .ladder-obj,
-.object.sel .weight-obj{
-  box-shadow:0 0 0 2px var(--warn);
-}
-.object.sel .ball-obj{
-  filter:drop-shadow(0 0 5px var(--warn));
-}
