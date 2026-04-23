@@ -3,26 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v61</title>
+    <title>SoccerBoard Pro v63</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
     <div id="app-root">
         <header id="top-bar">
-            <div class="top-section">
-                <button class="btn btn-nav" onclick="navStep(-1)">◀</button>
+            <div class="top-group">
+                <button class="btn" onclick="navStep(-1)">◀</button>
                 <span id="step-label">1/1</span>
-                <button class="btn btn-nav" onclick="navStep(1)">▶</button>
+                <button class="btn" onclick="navStep(1)">▶</button>
                 <button class="btn btn-accent" onclick="addStep()">+ PASO</button>
             </div>
-            <div class="top-section">
+            <div class="top-group">
                 <button class="btn btn-util" onclick="openLibrary()">📚 BIBLIOTECA</button>
                 <button class="btn btn-util" onclick="undo()">⟲ DESHACER</button>
             </div>
-            <div class="top-section">
+            <div id="poly-indicator" style="display:none; color:#f1c40f; font-weight:bold; font-size:12px;">✍ MODO DIBUJO ACTIVO</div>
+            <div class="top-group">
                 <button class="btn btn-play" onclick="runAnimation()">▶ PLAY</button>
-                <button class="btn" onclick="exportStepPNG()">💾 PNG</button>
                 <button class="btn btn-save" onclick="exportMP4()">🎬 MP4</button>
                 <button class="btn btn-danger" onclick="openResetMenu()">🗑️</button>
             </div>
@@ -30,24 +30,23 @@
 
         <main id="main-layout">
             <aside id="sidebar-left">
-                <p class="cat">TRAZOS</p>
-                <div class="tool" onclick="createVector('line')">⎯</div>
-                <div class="tool" onclick="createVector('curve')">⤴</div>
+                <p class="cat">DIBUJO</p>
+                <button class="tool" onclick="createVector('line')" title="Línea recta">⎯</button>
+                <button class="tool" onclick="createVector('curve')" title="Curva 4 nodos">⤴</button>
+                <button class="tool" onclick="startPolyMode()" title="Línea por puntos">⟁</button>
                 
                 <p class="cat">EQUIPOS</p>
-                <div class="tool t-red" onclick="createPlayer('p-red')">1</div>
-                <div class="tool t-blue" onclick="createPlayer('p-blue')">1</div>
-                <div class="tool t-yellow" onclick="createPlayer('p-yellow')">1</div>
-                <div class="tool t-green" onclick="createPlayer('p-green')">1</div>
-                
-                <p class="cat">ZONAS</p>
-                <div class="tool" onclick="createZone('fill')">🟩</div>
-                <div class="tool" onclick="createZone('line')">⬜</div>
+                <button class="tool t-red" onclick="createPlayer('p-red')">1</button>
+                <button class="tool t-blue" onclick="createPlayer('p-blue')">1</button>
+                <button class="tool t-yellow" onclick="createPlayer('p-yellow')">1</button>
+                <button class="tool t-green" onclick="createPlayer('p-green')">1</button>
                 
                 <p class="cat">MATERIAL</p>
-                <div class="tool" onclick="createItem('ball')">⚽</div>
-                <div class="tool" onclick="createItem('cone')">▲</div>
-                <div class="tool" onclick="createItem('ladder')">🪜</div>
+                <button class="tool" onclick="createItem('ball')">⚽</button>
+                <button class="tool" onclick="createItem('cone')">▲</button>
+                <button class="tool" onclick="createItem('pica')">┃</button>
+                <button class="tool" onclick="createItem('valla')">⊓</button>
+                <button class="tool" onclick="createItem('ladder')">🪜</button>
             </aside>
 
             <section id="viewport" onpointerdown="handlePointerDown(event)" onpointermove="handlePointerMove(event)" onpointerup="handlePointerEnd()">
@@ -63,9 +62,12 @@
                     <p class="cat">EDITOR</p>
                     <div class="row"><span>COLOR</span><input type="color" id="ins-color" oninput="modifyProp('color', this.value)"></div>
                     <button class="btn btn-accent w-100" onclick="duplicateActive()">➕ DUPLICAR</button>
-                    <button class="btn w-100" onclick="deselect()">LISTO</button>
+                    <button class="btn w-100" onclick="finishPoly()">FINALIZAR DIBUJO</button>
+                    <button class="btn w-100" style="margin-top:5px" onclick="deselect()">LISTO</button>
                     <hr>
                 </div>
+                <p class="cat">ANIMACIÓN</p>
+                <input type="range" id="speed-slider" min="200" max="2000" value="800">
                 <p class="cat">COLORES EQUIPOS</p>
                 <div class="team-grid">
                     <input type="color" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
@@ -75,32 +77,12 @@
                 </div>
                 <p class="cat">FONDO</p>
                 <select class="custom-select" onchange="changeField(this.value)">
-                    <option value="entero">Completo</option>
+                    <option value="entero">Campo Completo</option>
                     <option value="medio">Medio Campo</option>
+                    <option value="ejercicio">Ejercicio</option>
                 </select>
             </aside>
         </main>
-
-        <div id="library-modal" class="modal-overlay">
-            <div class="modal-content">
-                <h3>BIBLIOTECA</h3>
-                <div class="grid-modal">
-                    <button class="btn-item" onclick="injectDrill('rondo42')">Rondo 4x2</button>
-                    <button class="btn-item" onclick="injectDrill('y_drill')">Ejercicio en Y (Full)</button>
-                    <button class="btn-item" onclick="injectDrill('slalom')">Slalom Regate</button>
-                </div>
-                <button class="btn btn-danger w-100" onclick="closeLibrary()">CERRAR</button>
-            </div>
-        </div>
-
-        <div id="reset-modal" class="modal-overlay">
-            <div class="modal-content">
-                <h3>¿Borrar contenido?</h3>
-                <button class="btn btn-dark w-100" onclick="resetAction('step')">BORRAR PASO ACTUAL</button>
-                <button class="btn btn-danger w-100" onclick="resetAction('project')">BORRAR TODO</button>
-                <button class="btn w-100" onclick="closeResetMenu()">CANCELAR</button>
-            </div>
-        </div>
     </div>
     <script src="script.js"></script>
 </body>
