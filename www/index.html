@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>SoccerBoard Pro v70</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+  <title>SoccerBoard Pro v71</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -17,104 +17,111 @@
       <div class="logo">⚽ <span>SM</span>Board</div>
     </div>
     <div class="top-group" id="step-controls">
-      <button class="btn btn-icon" onclick="navStep(-1)" title="Paso anterior">◀</button>
+      <button class="btn btn-icon" onclick="navStep(-1)">◀</button>
       <span id="step-label">1 / 1</span>
-      <button class="btn btn-icon" onclick="navStep(1)" title="Paso siguiente">▶</button>
+      <button class="btn btn-icon" onclick="navStep(1)">▶</button>
       <button class="btn btn-accent" onclick="addStep()">+ PASO</button>
     </div>
     <div class="top-group" id="poly-indicator" style="display:none">
-      <span class="poly-badge">✍ POLÍGONO</span>
+      <span class="poly-badge">✍ POLÍGONO — toca para añadir puntos</span>
     </div>
     <div class="top-group">
-      <button class="btn btn-util" onclick="openLibrary()" title="Biblioteca de tareas">📚</button>
-      <button class="btn btn-util" onclick="undo()" title="Deshacer">⟲</button>
-      <button class="btn btn-play" onclick="runAnimation()" title="Reproducir animación">▶ PLAY</button>
-      <button class="btn btn-save" onclick="exportPNG()" title="Exportar PNG">PNG</button>
-      <button class="btn btn-mp4" onclick="exportVideo()" title="Exportar vídeo">🎬</button>
-      <button class="btn btn-danger" onclick="openResetMenu()" title="Borrar">🗑</button>
+      <button class="btn btn-util" onclick="openLibrary()">📚</button>
+      <button class="btn btn-util" onclick="undo()">⟲</button>
+      <button class="btn btn-play" onclick="runAnimation()">▶ PLAY</button>
+      <button class="btn btn-save" onclick="exportPNG()">PNG</button>
+      <button class="btn btn-mp4"  onclick="exportVideo()">🎬</button>
+      <button class="btn btn-danger" onclick="openResetMenu()">🗑</button>
     </div>
   </header>
 
   <main id="main-layout">
 
-    <!-- SIDEBAR IZQUIERDO: HERRAMIENTAS -->
+    <!-- SIDEBAR IZQUIERDO -->
     <aside id="sidebar-left">
+
       <div class="tool-section">
         <div class="cat">DIBUJO</div>
-        <button class="tool" onclick="createVector('line')" title="Línea recta con flecha"><span class="tool-icon">⎯</span><span class="tool-label">Línea</span></button>
-        <button class="tool" onclick="createVector('curve')" title="Línea curva"><span class="tool-icon">⤴</span><span class="tool-label">Curva</span></button>
-        <button class="tool" onclick="startPolyMode()" title="Polígono por puntos"><span class="tool-icon">⟁</span><span class="tool-label">Poly</span></button>
+        <button class="tool" onclick="createVector('line')"  title="Línea recta"><span class="tool-icon">⎯</span><span class="tool-label">Línea</span></button>
+        <button class="tool" onclick="createVector('curve')" title="Curva"><span class="tool-icon">⤴</span><span class="tool-label">Curva</span></button>
+        <button class="tool" onclick="startPolyMode()"       title="Polígono"><span class="tool-icon">⟁</span><span class="tool-label">Poly</span></button>
+      </div>
+
+      <div class="tool-section">
+        <div class="cat">ZONAS</div>
+        <button class="tool" onclick="createZone('fill')" title="Zona con relleno">
+          <span class="tool-icon zone-fill-icon"></span><span class="tool-label">Relleno</span>
+        </button>
+        <button class="tool" onclick="createZone('line')" title="Zona sin relleno">
+          <span class="tool-icon zone-line-icon"></span><span class="tool-label">Marco</span>
+        </button>
       </div>
 
       <div class="tool-section">
         <div class="cat">EQUIPOS</div>
-        <button class="tool t-A" onclick="createPlayer('A')" title="Equipo A"><span class="tool-icon player-dot" id="dot-A">A</span><span class="tool-label">Equipo A</span></button>
-        <button class="tool t-B" onclick="createPlayer('B')" title="Equipo B"><span class="tool-icon player-dot" id="dot-B">B</span><span class="tool-label">Equipo B</span></button>
-        <button class="tool t-C" onclick="createPlayer('C')" title="Equipo C"><span class="tool-icon player-dot" id="dot-C">C</span><span class="tool-label">Equipo C</span></button>
-        <button class="tool t-D" onclick="createPlayer('D')" title="Equipo D"><span class="tool-icon player-dot" id="dot-D">D</span><span class="tool-label">Equipo D</span></button>
+        <button class="tool t-A" onclick="createPlayer('A')"><span class="tool-icon player-dot" id="dot-A">A</span><span class="tool-label">Equipo A</span></button>
+        <button class="tool t-B" onclick="createPlayer('B')"><span class="tool-icon player-dot" id="dot-B">B</span><span class="tool-label">Equipo B</span></button>
+        <button class="tool t-C" onclick="createPlayer('C')"><span class="tool-icon player-dot" id="dot-C">C</span><span class="tool-label">Equipo C</span></button>
+        <button class="tool t-D" onclick="createPlayer('D')"><span class="tool-icon player-dot" id="dot-D">D</span><span class="tool-label">Equipo D</span></button>
       </div>
 
       <div class="tool-section">
         <div class="cat">MATERIAL</div>
-        <button class="tool" onclick="createItem('ball')" title="Balón"><span class="tool-icon">⚽</span><span class="tool-label">Balón</span></button>
-        <button class="tool" onclick="createItem('cone_low')" title="Chincheta (cono bajo)"><span class="tool-icon cone-low-icon"></span><span class="tool-label">Chita</span></button>
-        <button class="tool" onclick="createItem('cone')" title="Cono alto"><span class="tool-icon cone-icon"></span><span class="tool-label">Cono</span></button>
-        <button class="tool" onclick="createItem('pica')" title="Pica"><span class="tool-icon pica-icon"></span><span class="tool-label">Pica</span></button>
-        <button class="tool" onclick="createItem('valla')" title="Valla"><span class="tool-icon valla-icon"></span><span class="tool-label">Valla</span></button>
-        <button class="tool" onclick="createItem('ladder')" title="Escalera de coordinación"><span class="tool-icon ladder-icon"></span><span class="tool-label">Escal.</span></button>
-        <button class="tool" onclick="createItem('weight')" title="Peso/Lastre"><span class="tool-icon weight-icon"></span><span class="tool-label">Peso</span></button>
+        <button class="tool" onclick="createItem('ball')"">    <span class="tool-icon">⚽</span><span class="tool-label">Balón</span></button>
+        <button class="tool" onclick="createItem('cone_low')"> <span class="tool-icon cone-low-icon"></span><span class="tool-label">Chita</span></button>
+        <button class="tool" onclick="createItem('cone')">     <span class="tool-icon cone-icon"></span><span class="tool-label">Cono</span></button>
+        <button class="tool" onclick="createItem('pica')">     <span class="tool-icon pica-icon"></span><span class="tool-label">Pica</span></button>
+        <button class="tool" onclick="createItem('valla')">    <span class="tool-icon valla-icon"></span><span class="tool-label">Valla</span></button>
+        <button class="tool" onclick="createItem('ladder')">   <span class="tool-icon ladder-icon"></span><span class="tool-label">Escal.</span></button>
+        <button class="tool" onclick="createItem('weight')">   <span class="tool-icon weight-icon"></span><span class="tool-label">Peso</span></button>
       </div>
+
     </aside>
 
-    <!-- VIEWPORT PRINCIPAL -->
+    <!-- VIEWPORT -->
     <section id="viewport">
       <div id="field-master">
         <svg id="svg-layer" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <marker id="arrow-white" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="#ffffff"/>
-            </marker>
-            <marker id="arrow-yellow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="#f1c40f"/>
-            </marker>
-            <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="#ff4757"/>
-            </marker>
-            <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="#2e86de"/>
-            </marker>
-            <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="#2ecc71"/>
-            </marker>
-            <marker id="arrow-orange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="#e67e22"/>
-            </marker>
-          </defs>
+          <defs></defs>
         </svg>
       </div>
     </section>
 
-    <!-- SIDEBAR DERECHO: INSPECTOR + CONFIG -->
+    <!-- SIDEBAR DERECHO -->
     <aside id="sidebar-right">
 
-      <!-- INSPECTOR (visible cuando hay selección) -->
+      <!-- INSPECTOR -->
       <div id="inspector-panel" style="display:none">
         <div class="cat">EDITOR</div>
 
         <div class="inspector-row" id="ins-color-row">
           <span>Color</span>
-          <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
+          <input type="color" id="ins-color" oninput="modifyProp('color',this.value)">
         </div>
 
         <div class="inspector-row" id="ins-stripe-row" style="display:none">
+          <span>Color rayas</span>
+          <input type="color" id="ins-stripe" oninput="modifyProp('stripeColor',this.value)">
+        </div>
+
+        <div class="inspector-row" id="ins-stripe-toggle-row" style="display:none">
           <span>Rayas</span>
-          <input type="color" id="ins-stripe" oninput="modifyProp('stripeColor', this.value)">
+          <label class="toggle-switch">
+            <input type="checkbox" id="ins-stripe-toggle" onchange="toggleStripe(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="inspector-row" id="ins-num-row" style="display:none">
+          <span>Número</span>
+          <input type="number" id="ins-num" min="1" max="99" oninput="modifyProp('num',parseInt(this.value))"
+            style="width:55px;background:#2d3436;color:#fff;border:1px solid #444;border-radius:6px;padding:4px 8px;font-size:13px;">
         </div>
 
         <div class="inspector-row" id="ins-arrow-row" style="display:none">
           <span>Flecha</span>
           <label class="toggle-switch">
-            <input type="checkbox" id="ins-arrow" onchange="modifyProp('arrow', this.checked)">
+            <input type="checkbox" id="ins-arrow" onchange="modifyProp('arrow',this.checked)">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -122,32 +129,27 @@
         <div class="inspector-row" id="ins-dash-row" style="display:none">
           <span>Punteada</span>
           <label class="toggle-switch">
-            <input type="checkbox" id="ins-dash" onchange="modifyProp('dashed', this.checked)">
+            <input type="checkbox" id="ins-dash" onchange="modifyProp('dashed',this.checked)">
             <span class="toggle-slider"></span>
           </label>
         </div>
 
-        <div class="inspector-row" id="ins-num-row" style="display:none">
-          <span>Número</span>
-          <input type="number" id="ins-num" min="1" max="99" oninput="modifyProp('num', parseInt(this.value))" style="width:55px;background:#2d3436;color:#fff;border:1px solid #444;border-radius:6px;padding:4px 8px;font-size:13px;">
-        </div>
-
-        <div class="inspector-row" id="ins-stripe-toggle-row" style="display:none">
-          <span>Equipaje rayas</span>
+        <div class="inspector-row" id="ins-lock-row" style="display:none">
+          <span>🔒 Bloquear zona</span>
           <label class="toggle-switch">
-            <input type="checkbox" id="ins-stripe-toggle" onchange="toggleStripe(this.checked)">
+            <input type="checkbox" id="ins-lock" onchange="toggleZoneLock(this.checked)">
             <span class="toggle-slider"></span>
           </label>
         </div>
 
         <button class="btn btn-accent w-100" onclick="duplicateActive()" style="margin-top:8px">➕ DUPLICAR</button>
-        <button class="btn btn-danger w-100" onclick="deleteActive()" style="margin-top:6px">🗑 BORRAR</button>
-        <button class="btn btn-finish-poly w-100" id="btn-finish-poly" style="display:none;margin-top:6px" onclick="finishPoly()">✓ FINALIZAR DIBUJO</button>
+        <button class="btn btn-danger w-100" onclick="deleteActive()"    style="margin-top:6px">🗑 BORRAR</button>
+        <button class="btn btn-finish-poly w-100" id="btn-finish-poly"  style="display:none;margin-top:6px" onclick="finishPoly()">✓ FINALIZAR DIBUJO</button>
         <button class="btn w-100" style="margin-top:6px;opacity:0.6" onclick="deselect()">CERRAR</button>
         <hr style="border-color:#333;margin:12px 0">
       </div>
 
-      <!-- VELOCIDAD ANIMACIÓN -->
+      <!-- VELOCIDAD -->
       <div class="cat">ANIMACIÓN</div>
       <div class="speed-control">
         <span class="speed-label">🐢</span>
@@ -158,32 +160,32 @@
         <span id="speed-value">900ms / paso</span>
       </div>
 
-      <!-- COLORES EQUIPOS -->
+      <!-- EQUIPOS -->
       <div class="cat" style="margin-top:16px">EQUIPOS</div>
       <div class="team-config">
         <div class="team-row">
           <div class="team-swatch" id="swatch-A"></div>
           <span>A</span>
-          <input type="color" id="col-A1" value="#ff4757" oninput="updateTeamColor('A', 'c1', this.value)" title="Color principal">
-          <input type="color" id="col-A2" value="#ffffff" oninput="updateTeamColor('A', 'c2', this.value)" title="Color rayas">
+          <input type="color" id="col-A1" value="#e63946" oninput="updateTeamColor('A','c1',this.value)" title="Color principal">
+          <input type="color" id="col-A2" value="#ffffff" oninput="updateTeamColor('A','c2',this.value)" title="Color rayas">
         </div>
         <div class="team-row">
           <div class="team-swatch" id="swatch-B"></div>
           <span>B</span>
-          <input type="color" id="col-B1" value="#2e86de" oninput="updateTeamColor('B', 'c1', this.value)" title="Color principal">
-          <input type="color" id="col-B2" value="#ffffff" oninput="updateTeamColor('B', 'c2', this.value)" title="Color rayas">
+          <input type="color" id="col-B1" value="#2e86de" oninput="updateTeamColor('B','c1',this.value)">
+          <input type="color" id="col-B2" value="#ffffff" oninput="updateTeamColor('B','c2',this.value)">
         </div>
         <div class="team-row">
           <div class="team-swatch" id="swatch-C"></div>
           <span>C</span>
-          <input type="color" id="col-C1" value="#f1c40f" oninput="updateTeamColor('C', 'c1', this.value)" title="Color principal">
-          <input type="color" id="col-C2" value="#000000" oninput="updateTeamColor('C', 'c2', this.value)" title="Color rayas">
+          <input type="color" id="col-C1" value="#f1c40f" oninput="updateTeamColor('C','c1',this.value)">
+          <input type="color" id="col-C2" value="#000000" oninput="updateTeamColor('C','c2',this.value)">
         </div>
         <div class="team-row">
           <div class="team-swatch" id="swatch-D"></div>
           <span>D</span>
-          <input type="color" id="col-D1" value="#2ecc71" oninput="updateTeamColor('D', 'c1', this.value)" title="Color principal">
-          <input type="color" id="col-D2" value="#ffffff" oninput="updateTeamColor('D', 'c2', this.value)" title="Color rayas">
+          <input type="color" id="col-D1" value="#2ecc71" oninput="updateTeamColor('D','c1',this.value)">
+          <input type="color" id="col-D2" value="#ffffff" oninput="updateTeamColor('D','c2',this.value)">
         </div>
       </div>
 
@@ -205,7 +207,7 @@
 <div id="library-modal" class="modal-overlay">
   <div class="modal-content">
     <div class="modal-header">
-      <h3>📚 BIBLIOTECA DE TAREAS</h3>
+      <h3>📚 BIBLIOTECA</h3>
       <button class="btn btn-icon" onclick="closeLibrary()">✕</button>
     </div>
     <div class="library-grid" id="library-grid"></div>
@@ -217,28 +219,24 @@
 <div id="reset-modal" class="modal-overlay">
   <div class="modal-content">
     <h3>⚠️ Borrar</h3>
-    <button class="btn btn-util w-100" style="margin-top:12px" onclick="resetAction('step')">LIMPIAR PASO ACTUAL</button>
-    <button class="btn btn-danger w-100" style="margin-top:10px" onclick="resetAction('project')">BORRAR TODO EL PROYECTO</button>
-    <button class="btn w-100" style="margin-top:10px;opacity:0.6" onclick="closeResetMenu()">CANCELAR</button>
+    <button class="btn btn-util w-100"   style="margin-top:12px" onclick="resetAction('step')">LIMPIAR PASO ACTUAL</button>
+    <button class="btn btn-danger w-100" style="margin-top:10px" onclick="resetAction('project')">BORRAR TODO</button>
+    <button class="btn w-100"            style="margin-top:10px;opacity:0.6" onclick="closeResetMenu()">CANCELAR</button>
   </div>
 </div>
 
-<!-- MODAL EXPORTAR VÍDEO -->
+<!-- MODAL EXPORTAR -->
 <div id="export-modal" class="modal-overlay">
   <div class="modal-content">
     <h3>🎬 EXPORTAR VÍDEO</h3>
     <p style="color:#aaa;font-size:13px;margin:10px 0 16px">Elige el formato:</p>
-
     <button class="btn btn-mp4 w-100" onclick="startExport('mp4')" style="font-size:14px;padding:14px">
       🎬 MP4 — PC, Android e iOS
     </button>
-    <p style="color:#666;font-size:10px;margin:4px 0 12px">H.264 · compatible con todos los dispositivos<br>Primera vez carga ffmpeg (~31MB)</p>
-
+    <p style="color:#555;font-size:10px;margin:4px 0 12px">H.264 · compatible con todos los dispositivos<br>Primera vez descarga ffmpeg (~31MB)</p>
     <button class="btn btn-util w-100" onclick="startExport('gif')" style="font-size:13px;padding:12px">
       🖼 GIF Animado — alternativa ligera
     </button>
-    <p style="color:#666;font-size:10px;margin:4px 0 0">Sin instalación adicional · menor calidad</p>
-
     <div id="export-progress" style="display:none;margin-top:18px">
       <div class="progress-bar"><div id="progress-fill"></div></div>
       <p id="export-status" style="text-align:center;font-size:12px;color:#aaa;margin-top:8px"></p>
@@ -247,11 +245,8 @@
   </div>
 </div>
 
-<!-- html2canvas para PNG y captura de frames -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<!-- gif.js — carga bajo demanda dentro de exportGIF() -->
 <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js" defer></script>
-
 <script src="script.js"></script>
 </body>
 </html>
