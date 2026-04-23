@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v51</title>
+    <title>SoccerBoard Pro v52</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -12,7 +12,7 @@
         <div id="top-bar">
             <div class="btn-group">
                 <button class="btn btn-dark" onclick="openLibrary()">📚 BIBLIOTECA</button>
-                <button class="btn" onclick="undo()">⟲</button>
+                <button class="btn" onclick="undo()" title="Deshacer">⟲</button>
                 <button class="btn btn-danger" onclick="openResetMenu()">✨</button>
                 <div class="divider"></div>
                 <button class="btn" onclick="navStep(-1)">◀</button>
@@ -50,8 +50,8 @@
             <div class="modal-content reset-menu">
                 <h3>Reiniciar</h3>
                 <button class="btn btn-dark" onclick="resetAction('step')">BORRAR PASO</button>
-                <button class="btn btn-danger" onclick="resetAction('project')">BORRAR PROYECTO</button>
-                <button class="btn close-btn" onclick="closeResetMenu()">VOLVER</button>
+                <button class="btn btn-danger" onclick="resetAction('project')">TODO EL PROYECTO</button>
+                <button class="btn close-btn" onclick="closeResetMenu()">CANCELAR</button>
             </div>
         </div>
 
@@ -65,7 +65,7 @@
 
         <div id="main-layout">
             <div id="sidebar-left">
-                <div class="cat-label">Dibujo</div>
+                <div class="cat-label">Trazos</div>
                 <div class="tool" onclick="createVector('line')">⎯</div>
                 <div class="tool" onclick="createVector('curve')">⤴</div>
                 <div class="tool" onclick="openTextModal()">T</div>
@@ -101,18 +101,18 @@
                 <div id="inspector-panel" style="display:none">
                     <div class="panel-header">EDITOR OBJETO</div>
                     <div class="side-item">
-                        <label>COLOR SELECCIÓN</label>
+                        <label>COLOR</label>
                         <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
                     </div>
                     <div id="ins-zone-lock" class="side-item">
                         <button id="lock-btn" class="btn btn-dark w-100" onclick="toggleZoneLock()"></button>
                     </div>
                     <button class="btn btn-accent w-100" onclick="duplicateActive()">➕ DUPLICAR</button>
-                    <button class="btn btn-dark w-100" style="margin-top:10px" onclick="deselect()">OK (LISTO)</button>
+                    <button class="btn btn-dark w-100" style="margin-top:10px" onclick="deselect()">LISTO</button>
                     <div class="divider"></div>
                 </div>
 
-                <div class="panel-header">EQUIPOS (GLOBAL)</div>
+                <div class="panel-header">EQUIPOS</div>
                 <div class="side-item">
                     <div class="team-grid-side">
                         <input type="color" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
@@ -122,7 +122,11 @@
                     </div>
                 </div>
 
-                <div class="panel-header">CAMPO</div>
+                <div class="panel-header">AJUSTES CAMPO</div>
+                <div class="side-item flex-row">
+                    <label>PANTALLA COMPLETA</label>
+                    <input type="checkbox" id="force-fs-check" onchange="setForceFS(this.checked)">
+                </div>
                 <div class="side-item">
                     <label>FONDO</label>
                     <select onchange="changeField(this.value)">
@@ -130,10 +134,6 @@
                         <option value="medio">Medio Campo</option>
                         <option value="ejercicio">Ejercicio</option>
                     </select>
-                </div>
-                <div class="side-item flex-row">
-                    <label>PANTALLA COMPLETA</label>
-                    <input type="checkbox" id="force-fs-check" onchange="setForceFS(this.checked)">
                 </div>
             </div>
         </div>
