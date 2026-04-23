@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v63</title>
+    <title>SoccerBoard Pro v64</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -16,12 +16,12 @@
                 <button class="btn" onclick="navStep(1)">▶</button>
                 <button class="btn btn-accent" onclick="addStep()">+ PASO</button>
             </div>
+            <div class="top-group" id="poly-indicator" style="display:none; color:#f1c40f; font-weight:bold; font-size:11px;">
+                ✍ MODO POLÍGONO
+            </div>
             <div class="top-group">
                 <button class="btn btn-util" onclick="openLibrary()">📚 BIBLIOTECA</button>
                 <button class="btn btn-util" onclick="undo()">⟲ DESHACER</button>
-            </div>
-            <div id="poly-indicator" style="display:none; color:#f1c40f; font-weight:bold; font-size:12px;">✍ MODO DIBUJO ACTIVO</div>
-            <div class="top-group">
                 <button class="btn btn-play" onclick="runAnimation()">▶ PLAY</button>
                 <button class="btn btn-save" onclick="exportMP4()">🎬 MP4</button>
                 <button class="btn btn-danger" onclick="openResetMenu()">🗑️</button>
@@ -31,8 +31,8 @@
         <main id="main-layout">
             <aside id="sidebar-left">
                 <p class="cat">DIBUJO</p>
-                <button class="tool" onclick="createVector('line')" title="Línea recta">⎯</button>
-                <button class="tool" onclick="createVector('curve')" title="Curva 4 nodos">⤴</button>
+                <button class="tool" onclick="createVector('line')" title="Línea">⎯</button>
+                <button class="tool" onclick="createVector('curve')" title="Curva (4 nodos)">⤴</button>
                 <button class="tool" onclick="startPolyMode()" title="Línea por puntos">⟁</button>
                 
                 <p class="cat">EQUIPOS</p>
@@ -49,7 +49,7 @@
                 <button class="tool" onclick="createItem('ladder')">🪜</button>
             </aside>
 
-            <section id="viewport" onpointerdown="handlePointerDown(event)" onpointermove="handlePointerMove(event)" onpointerup="handlePointerEnd()">
+            <section id="viewport">
                 <div id="field-master">
                     <svg id="svg-layer">
                         <defs><marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" /></marker></defs>
@@ -62,27 +62,50 @@
                     <p class="cat">EDITOR</p>
                     <div class="row"><span>COLOR</span><input type="color" id="ins-color" oninput="modifyProp('color', this.value)"></div>
                     <button class="btn btn-accent w-100" onclick="duplicateActive()">➕ DUPLICAR</button>
-                    <button class="btn w-100" onclick="finishPoly()">FINALIZAR DIBUJO</button>
+                    <button class="btn w-100" id="btn-finish-poly" style="display:none" onclick="finishPoly()">FINALIZAR DIBUJO</button>
                     <button class="btn w-100" style="margin-top:5px" onclick="deselect()">LISTO</button>
                     <hr>
                 </div>
-                <p class="cat">ANIMACIÓN</p>
-                <input type="range" id="speed-slider" min="200" max="2000" value="800">
-                <p class="cat">COLORES EQUIPOS</p>
+                
+                <p class="cat">ANIMACIÓN (Ms)</p>
+                <input type="range" id="speed-slider" min="200" max="2000" value="800" style="width:100%">
+                
+                <p class="cat" style="margin-top:15px">COLORES EQUIPOS</p>
                 <div class="team-grid">
                     <input type="color" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
                     <input type="color" value="#2e86de" oninput="updateTeamColor('p-blue', this.value)">
                     <input type="color" value="#f1c40f" oninput="updateTeamColor('p-yellow', this.value)">
                     <input type="color" value="#2ecc71" oninput="updateTeamColor('p-green', this.value)">
                 </div>
+                
                 <p class="cat">FONDO</p>
                 <select class="custom-select" onchange="changeField(this.value)">
                     <option value="entero">Campo Completo</option>
                     <option value="medio">Medio Campo</option>
-                    <option value="ejercicio">Ejercicio</option>
+                    <option value="ejercicio">Campo Ejercicio</option>
                 </select>
             </aside>
         </main>
+
+        <div id="library-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h3>BIBLIOTECA</h3>
+                <div class="grid-modal">
+                    <button class="btn-item" onclick="injectDrill('rondo42')">Rondo 4x2</button>
+                    <button class="btn-item" onclick="injectDrill('y_drill')">Ejercicio en Y Pro</button>
+                </div>
+                <button class="btn btn-danger w-100" onclick="closeLibrary()">CERRAR</button>
+            </div>
+        </div>
+
+        <div id="reset-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h3>Opciones de Borrado</h3>
+                <button class="btn btn-dark w-100" onclick="resetAction('step')">BORRAR PASO ACTUAL</button>
+                <button class="btn btn-danger w-100" style="margin-top:10px" onclick="resetAction('project')">BORRAR TODO</button>
+                <button class="btn w-100" style="margin-top:10px" onclick="closeResetMenu()">CANCELAR</button>
+            </div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
