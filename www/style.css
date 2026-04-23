@@ -68,21 +68,27 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 /* flex:1 hace que ocupe todo el espacio horizontal restante entre los sidebars */
 #vp{
   flex:1;min-width:0;min-height:0;
-  position:relative;          /* referencia para field-master absoluto */
+  position:relative;
   background:#0a0f14;
   overflow:hidden;
   touch-action:none;
   display:flex;align-items:center;justify-content:center;
 }
+:fullscreen #vp{ background:#000; }
+:-webkit-full-screen #vp{ background:#000; }
+:fullscreen #layout{ height:calc(100dvh - 50px); }
 
 /* field-master: width/height fijados por JS, centrado por el flex de #vp */
 #field-master{
   position:relative;          /* relativo — ocupa su espacio natural en el flex */
   flex-shrink:0;
-  overflow:hidden;
+  overflow:visible;           /* permite que porterias sobresalgan del borde */
   background:#2d8a47;
-  box-shadow:0 0 30px rgba(0,0,0,.6);
+  box-shadow:0 0 20px rgba(0,0,0,.4);
 }
+/* En pantalla completa, sin sombra */
+:fullscreen #field-master{ box-shadow:none; }
+:-webkit-full-screen #field-master{ box-shadow:none; }
 
 /* SVG de fondo del campo */
 #field-bg{
