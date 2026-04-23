@@ -36,7 +36,9 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
   background:var(--panel);border-right:1px solid var(--border);
   overflow-y:auto;overflow-x:hidden;
   padding:5px 3px;z-index:100;
+  scrollbar-width:none; /* Firefox: sin scrollbar */
 }
+#left::-webkit-scrollbar{display:none;} /* Chrome/Safari: sin scrollbar */
 #right{
   width:212px;flex-shrink:0;
   background:var(--panel);border-left:1px solid var(--border);
@@ -46,7 +48,7 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 .cat{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:800;letter-spacing:1.5px;color:var(--muted);text-align:center;margin:11px 0 5px;text-transform:uppercase;}
 
 /* ── HERRAMIENTAS ── */
-.tool{width:64px;height:52px;margin:3px auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;color:#fff;transition:background .12s,border-color .12s,transform .1s;}
+.tool{width:64px;height:50px;margin:2px auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;color:#fff;transition:background .12s,border-color .12s,transform .1s;}
 .tool:hover{background:#263040;border-color:var(--accent);transform:translateY(-1px);}
 .tool:active{transform:scale(.93);}
 .ti{font-size:17px;line-height:1;}
@@ -69,12 +71,12 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 #vp{
   flex:1;min-width:0;min-height:0;
   position:relative;
-  background:#0a0f14;
+  background:#1a5c2a; /* verde fondo por si el campo no llega */
   overflow:hidden;
   touch-action:none;
   display:flex;
-  align-items:center;         /* centrar verticalmente */
-  justify-content:flex-start; /* pegar a la izquierda */
+  align-items:center;
+  justify-content:flex-start;
 }
 :fullscreen #vp{ background:#000; }
 :-webkit-full-screen #vp{ background:#000; }
@@ -82,9 +84,9 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 
 /* field-master: width/height fijados por JS, centrado por el flex de #vp */
 #field-master{
-  position:relative;          /* relativo — ocupa su espacio natural en el flex */
+  position:relative;
   flex-shrink:0;
-  overflow:visible;           /* permite que porterias sobresalgan del borde */
+  overflow:hidden;
   background:#2d8a47;
 }
 /* En pantalla completa, sin sombra */
@@ -128,7 +130,7 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 /* Zonas */
 .zone-obj{position:absolute;z-index:15;border:2px solid;pointer-events:auto;cursor:move;}
 .zone-obj.sel{outline:2px solid var(--warn);outline-offset:1px;}
-.zone-obj.locked{cursor:default;opacity:.8;pointer-events:none;}
+.zone-obj.locked{cursor:pointer;opacity:.75;pointer-events:auto;}
 .zone-sh{position:absolute;bottom:-7px;right:-7px;width:18px;height:18px;background:var(--warn);border-radius:3px;cursor:se-resize;display:flex;align-items:center;justify-content:center;font-size:11px;color:#000;pointer-events:auto;}
 .zone-lock{position:absolute;top:3px;right:4px;font-size:11px;pointer-events:none;opacity:.7;}
 
@@ -192,9 +194,28 @@ hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
 #pbar-fill{height:100%;background:var(--accent);border-radius:20px;width:0%;transition:width .2s;}
 
 /* ── MOBILE ── */
-@media(max-width:600px){
+@media(max-width:700px){
   #right{display:none;}
-  #left{width:64px;}
-  .btn{padding:6px 7px;font-size:10px;}
-  .logo{font-size:15px;}
+  #left{width:56px;}
+  #topbar{padding:0 5px;gap:3px;height:46px;}
+  .btn{padding:5px 6px;font-size:10px;}
+  .logo{font-size:14px;}
+  #step-label{font-size:15px;min-width:38px;}
+  .tool{width:50px;height:44px;}
+  .ti{font-size:15px;}
+  .tl{font-size:7px;}
 }
+
+/* ── TEXTO EN CAMPO ── */
+.text-obj{
+  position:absolute;z-index:20;
+  transform:translate(-50%,-50%);
+  display:inline-block;
+  pointer-events:auto;cursor:grab;
+  background:transparent;
+  white-space:nowrap;
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:800;
+  text-shadow:1px 1px 3px rgba(0,0,0,0.7);
+}
+.text-obj.sel{outline:2px solid var(--warn);outline-offset:4px;z-index:50;}
