@@ -210,7 +210,7 @@ hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
 }
 
 /* ── TEXTO EN CAMPO ── */
-.text-obj{
+.txt-obj{
   position:absolute;z-index:20;
   transform:translate(-50%,-50%);
   display:inline-block;
@@ -221,4 +221,7 @@ hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
   font-weight:800;
   text-shadow:1px 1px 3px rgba(0,0,0,0.7);
 }
-.text-obj.sel{outline:2px solid var(--warn);outline-offset:4px;z-index:50;}
+.txt-obj.sel{outline:2px solid var(--warn);outline-offset:4px;z-index:50;}
+
+/* txt-sh — handle de escala para texto */
+.txt-sh{pointer-events:auto;cursor:se-resize;}
