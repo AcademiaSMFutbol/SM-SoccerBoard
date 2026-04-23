@@ -47,21 +47,19 @@ function updateSpeedLabel(){
 }
 function getDur(){ return 3300-+document.getElementById('speed-slider').value; }
 
-// ── RESIZE: campo llena 100% del ancho del vp ──────────────
+// ── RESIZE: campo ocupa exactamente el ancho real del vp ────
 function resizeField(){
-  const r=vp.getBoundingClientRect();
-  if(r.width<=0||r.height<=0)return;
-  // El campo siempre ocupa el 100% del ancho disponible
-  // La altura se calcula proporcionalmente
-  // Si esa altura supera el vp, se limita por altura y puede quedar
-  // un poco de espacio en los lados (pero nunca negro a la izquierda)
-  const w=Math.round(r.width);
-  const h=Math.round(w*FH/FW);
+  // offsetWidth es el ancho real tras layout, sin decimales
+  const vpW=vp.offsetWidth;
+  const vpH=vp.offsetHeight;
+  if(vpW<=0||vpH<=0)return;
+  // Llenar ancho completo; si la altura resultante supera el vp, limitar
+  let w=vpW, h=Math.round(vpW*FH/FW);
+  if(h>vpH){ h=vpH; w=Math.round(vpH*FW/FH); }
   fMaster.style.width=w+'px';
   fMaster.style.height=h+'px';
   fMaster.style.position='relative';
-  fMaster.style.left='';
-  fMaster.style.top='';
+  fMaster.style.left=''; fMaster.style.top='';
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   drawFieldBG(currentField);
 }
@@ -319,8 +317,13 @@ function paintObj(el){
     // Forzar dimensiones del div = dimensiones del SVG para evitar rectángulo negro
     div.style.width='38px'; div.style.height='38px';
     div.style.display='block'; // no flex — elimina el layout rectangular del browser
-    div.appendChild(makeShirt(c1,c2,el.striped,el.num||1,el.numColor));
+    const shirtSvg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,activeId===el.id);
+    div.appendChild(shirtSvg);
   } else if(el.type==='ball'){
+    // Balón: sin div wrapper extra
+    div.style.display='block';
+    div.style.background='transparent';
+    div.style.lineHeight='1';
     const b=document.createElement('div');b.className='ball-obj';b.textContent='⚽';div.appendChild(b);
   } else {
     const sh=document.createElement('div'); sh.className=el.type+'-obj';
@@ -330,14 +333,23 @@ function paintObj(el){
     if(el.type==='pica')     sh.style.background=c||'#f1c40f';
     if(el.type==='valla')    sh.style.borderColor=c||'#e74c3c';
     if(el.type==='ladder')  {sh.style.borderTopColor=c||'#f1c40f';sh.style.borderBottomColor=c||'#f1c40f';sh.style.backgroundImage=`repeating-linear-gradient(90deg,transparent,transparent 22px,${c||'#f1c40f'} 22px,${c||'#f1c40f'} 26px)`;}
+    // div wrapper sin fondo, tamaño exacto del hijo
+    div.style.display='contents'; // el div desaparece visualmente, solo el hijo es visible
     div.appendChild(sh);
+    // Para display:contents el hit area y el dataset.id deben ir en el hijo
+    sh.dataset.id=el.id;
+    sh.style.cursor='grab';
+    sh.style.pointerEvents='auto';
+    // Como display:contents no aplica transform, volver a block
+    div.style.display='block';
+    div.style.background='transparent';
   }
   div.style.left=el.x+'px';div.style.top=el.y+'px';
   div.style.transform=`translate(-50%,-50%) rotate(${el.rot||0}deg) scale(${el.scale||1})`;
   fMaster.appendChild(div);
 }
 
-function makeShirt(c1,c2,striped,num,numColor){
+function makeShirt(c1,c2,striped,num,numColor,isSelected){
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
   svg.setAttribute('width',38);svg.setAttribute('height',38);svg.setAttribute('viewBox','0 0 38 38');
@@ -363,7 +375,16 @@ function makeShirt(c1,c2,striped,num,numColor){
   txt.setAttribute('font-family','Barlow Condensed,sans-serif');txt.setAttribute('font-size','14');txt.setAttribute('font-weight','800');
   const nc=numColor||'#ffffff'; txt.setAttribute('fill',nc);txt.setAttribute('paint-order','stroke');txt.setAttribute('stroke',nc==='#ffffff'?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.3)');txt.setAttribute('stroke-width','2');
   txt.textContent=num;svg.appendChild(txt);
-  return svg; // sin triángulo (causa artefactos negros)
+  // Ring de selección dentro del SVG (círculo, no rectángulo)
+  if(isSelected){
+    const ring=document.createElementNS(ns,'circle');
+    ring.setAttribute('cx','19');ring.setAttribute('cy','19');ring.setAttribute('r','20');
+    ring.setAttribute('fill','none');ring.setAttribute('stroke','#f1c40f');ring.setAttribute('stroke-width','2.5');
+    svg.setAttribute('width',44);svg.setAttribute('height',44);
+    svg.setAttribute('viewBox','-3 -3 44 44');
+    svg.appendChild(ring);
+  }
+  return svg;
 }
 
 // ── PAINT ZONE ───────────────────────────────────────────────
@@ -390,19 +411,22 @@ function paintTxt(el){
   const div=document.createElement('div');
   div.className='txt-obj'+(activeId===el.id?' sel':'');
   div.dataset.id=el.id;
+  const fs=el.fontSize||32;
+  // position:absolute + transform centra visualmente en x,y
+  // position:relative necesario para que el handle se posicione bien
   div.style.cssText=`position:absolute;left:${el.x}px;top:${el.y}px;`+
-    `color:${el.color||'#ffffff'};font-size:${el.fontSize||32}px;`+
+    `color:${el.color||'#ffffff'};font-size:${fs}px;`+
     `font-family:'Barlow Condensed',sans-serif;font-weight:800;`+
     `white-space:nowrap;line-height:1;cursor:grab;pointer-events:auto;`+
     `background:transparent;transform:translate(-50%,-50%) rotate(${el.rot||0}deg);`+
     `text-shadow:1px 1px 4px rgba(0,0,0,0.8);z-index:20;`;
   div.textContent=el.text;
   if(activeId===el.id){
-    // Handle de escala en esquina inferior derecha
     const sh=document.createElement('div');
     sh.className='zone-sh txt-sh';sh.dataset.id=el.id;sh.textContent='⤡';
-    sh.style.cssText='position:absolute;bottom:-10px;right:-10px;z-index:30;';
-    div.style.position='absolute'; // ya está pero aseguramos
+    // El handle se posiciona relativo al texto mediante transform del padre
+    // Usamos un span flotante sobre el div
+    sh.style.cssText='position:absolute;bottom:-14px;right:-14px;z-index:30;width:16px;height:16px;font-size:10px;';
     div.appendChild(sh);
   }
   fMaster.appendChild(div);
@@ -503,7 +527,7 @@ function createTextEl(){
   saveState();const id=uid();
   // Tipo 'txt' propio para simplificar lógica (no depende de 'vec')
   steps[curStep].push({id,type:'txt',text:txt.trim(),
-    x:525,y:340,fontSize:32,color:'#ffffff',rot:0});
+    x:Math.round(FW/2),y:Math.round(FH/2),fontSize:32,color:'#ffffff',rot:0});
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
 }
 
