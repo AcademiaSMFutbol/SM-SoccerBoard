@@ -36,22 +36,19 @@ function updateSpeedLabel(){
 }
 function getDur(){ return 3300-+document.getElementById('speed-slider').value; }
 
-// ── RESIZE: campo ocupa todo el ancho disponible ───────────
+// ── RESIZE: campo llena 100% del ancho del vp ──────────────
 function resizeField(){
   const r=vp.getBoundingClientRect();
   if(r.width<=0||r.height<=0)return;
-  // Intentar llenar el ancho completo primero
-  let w=Math.round(r.width);
-  let h=Math.round(w * FH/FW);
-  // Si la altura supera el viewport, limitar por altura
-  if(h > r.height){
-    h=Math.round(r.height);
-    w=Math.round(h * FW/FH);
-  }
-  fMaster.style.width =w+'px';
+  // El campo siempre ocupa el 100% del ancho disponible
+  // La altura se calcula proporcionalmente
+  // Si esa altura supera el vp, se limita por altura y puede quedar
+  // un poco de espacio en los lados (pero nunca negro a la izquierda)
+  const w=Math.round(r.width);
+  const h=Math.round(w*FH/FW);
+  fMaster.style.width=w+'px';
   fMaster.style.height=h+'px';
   fMaster.style.position='relative';
-  fMaster.style.margin='auto 0';   // centrar verticalmente si sobra espacio
   fMaster.style.left='';
   fMaster.style.top='';
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
@@ -59,10 +56,16 @@ function resizeField(){
 }
 function getZoom(){ return fMaster.getBoundingClientRect().width/FW; }
 
-// ── CAMPO SVG (solo se borra al cambiar campo, NUNCA en wipe) ─
+// ── CAMPO — imágenes PNG para full/half, SVG para futsal/blank ─
 function drawFieldBG(type){
   const old=document.getElementById('field-bg'); if(old)old.remove();
-  const BG={full:'#2d8a47',half:'#2d8a47',futsal:'#1a3a5c',blank:'#1a5c2a'};
+  // Usar imágenes PNG del repositorio cuando estén disponibles
+  const IMGS={full:'campoentero.png', half:'mediocampo.png'};
+  if(IMGS[type]){
+    fMaster.style.background=`#2d8a47 url('${IMGS[type]}') no-repeat center/100% 100%`;
+    return; // imagen cubre todo, no necesitamos SVG
+  }
+  const BG={futsal:'#1a3a5c',blank:'#1a5c2a'};
   fMaster.style.background=BG[type]||'#2d8a47';
   if(type==='blank')return;
 
@@ -167,7 +170,7 @@ window.addEventListener('pointerup', onUp);
 function onDown(e){
   if(isPlaying)return;
   tapStartX=e.clientX; tapStartY=e.clientY; isPossibleTap=true;
-  const hit=e.target.closest('.object,.vec-hit,.zone-obj,.node,.zone-sh');
+  const hit=e.target.closest('.object,.vec-hit,.zone-obj,.node,.zone-sh,.text-obj');
   const hitId=hit?hit.dataset.id:null;
   activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   const rect=fMaster.getBoundingClientRect();
@@ -192,7 +195,8 @@ function onDown(e){
         render();
         return; // salir sin crear dragInfo
       }
-      if(el&&(was||hit?.classList.contains('node')||hit?.classList.contains('zone-sh'))){
+      const isTextEl=el&&el.type==='vec'&&el.sub==='text';
+      if(el&&(was||isTextEl||hit?.classList.contains('node')||hit?.classList.contains('zone-sh'))){
         saveState();
         dragInfo={el,isSH:hit?.classList.contains('zone-sh'),
           nx:hit?.dataset.nx,ny:hit?.dataset.ny,lastX:e.clientX,lastY:e.clientY,zoom};
@@ -230,7 +234,9 @@ function onMove(e){
 
   if(dragInfo.isSH){
     if(el.sub==='text'){
-      el.fontSize=Math.max(10,Math.min(200,(el.fontSize||28)+dx*0.5));
+      // Escalar por desplazamiento diagonal (dx+dy combinado)
+      const delta=(dx+dy)*0.4;
+      el.fontSize=Math.max(8,Math.min(300,(el.fontSize||28)+delta));
     } else {
       el.w=Math.max(30,el.w+dx); el.h=Math.max(30,el.h+dy);
     }
@@ -384,11 +390,12 @@ function paintVec(el){
     div.style.pointerEvents='auto';
     div.style.background='transparent';
     div.textContent=el.text;
-    // Handle de escala (esquina inf-der), igual que zonas
+    // El texto siempre tiene position:absolute y es arrastrable
+    div.style.position='absolute';
     if(activeId===el.id){
-      const sh=document.createElement('div');sh.className='zone-sh';sh.dataset.id=el.id;sh.textContent='⤡';
-      sh.style.position='absolute';sh.style.bottom='-7px';sh.style.right='-7px';
-      div.style.position='absolute';
+      const sh=document.createElement('div');
+      sh.className='zone-sh';sh.dataset.id=el.id;sh.textContent='⤡';
+      sh.style.position='absolute';sh.style.bottom='-10px';sh.style.right='-10px';
       div.appendChild(sh);
     }
     fMaster.appendChild(div);
@@ -500,7 +507,10 @@ function createZone(sub){
 }
 
 // ── CAMPO ────────────────────────────────────────────────────
-function setField(val){currentField=val;drawFieldBG(val);}
+function setField(val){
+  currentField=val;
+  drawFieldBG(val);
+}
 
 // ── EQUIPOS ──────────────────────────────────────────────────
 function setTeamColor(team,key,val){
