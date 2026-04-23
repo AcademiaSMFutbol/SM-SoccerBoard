@@ -71,7 +71,7 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 #vp{
   flex:1;min-width:0;min-height:0;
   position:relative;
-  background:#1a5c2a; /* verde fondo por si el campo no llega */
+  background:#2d8a47; /* mismo verde que el campo */
   overflow:hidden;
   touch-action:none;
   display:flex;
@@ -88,6 +88,9 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
   flex-shrink:0;
   overflow:hidden;
   background:#2d8a47;
+  /* Cuando se usan imágenes PNG del repo, el background cubre todo */
+  background-size:100% 100%;
+  background-repeat:no-repeat;
 }
 /* En pantalla completa, sin sombra */
 :fullscreen #field-master{ box-shadow:none; }
@@ -107,7 +110,7 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 .vec-hit{pointer-events:auto;cursor:pointer;}
 
 /* ── OBJETOS EN CAMPO ── */
-.object{position:absolute;z-index:20;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:grab;background:transparent;}
+.object{position:absolute;z-index:20;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:grab;background:transparent;border:none;outline:none;}
 .object:active{cursor:grabbing;}
 .object.sel{outline:2.5px solid var(--warn);outline-offset:5px;z-index:50;}
 /* triángulo de dirección desactivado — se muestra dentro del SVG de camiseta */
@@ -125,7 +128,7 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 .weight-obj::after{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:6px;height:5px;background:#7f8c8d;border-radius:2px 2px 0 0;}
 
 /* Camiseta SVG */
-.shirt-svg{display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.6));overflow:visible;background:transparent;}
+.shirt-svg{display:block;overflow:visible;background:transparent;}
 
 /* Zonas */
 .zone-obj{position:absolute;z-index:15;border:2px solid;pointer-events:auto;cursor:move;}
