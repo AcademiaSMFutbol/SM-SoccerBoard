@@ -27,8 +27,19 @@ const fMaster  = document.getElementById('field-master');
 const svgLayer = document.getElementById('svg-layer');
 
 // ── INIT ─────────────────────────────────────────────────────
-window.onload=()=>{ resizeField(); updateSwatches(); updateSpeedLabel(); render(); };
-window.addEventListener('resize', resizeField);
+window.onload=()=>{
+  updateSwatches(); updateSpeedLabel();
+  // Diferir resizeField hasta que el browser haya calculado el layout
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{ resizeField(); render(); });
+  });
+};
+// ResizeObserver para reaccionar a cambios de tamaño del viewport
+if(window.ResizeObserver){
+  new ResizeObserver(()=>{ resizeField(); }).observe(vp);
+} else {
+  window.addEventListener('resize', resizeField);
+}
 
 function updateSpeedLabel(){
   const raw=+document.getElementById('speed-slider').value;
@@ -170,7 +181,7 @@ window.addEventListener('pointerup', onUp);
 function onDown(e){
   if(isPlaying)return;
   tapStartX=e.clientX; tapStartY=e.clientY; isPossibleTap=true;
-  const hit=e.target.closest('.object,.vec-hit,.zone-obj,.node,.zone-sh,.text-obj');
+  const hit=e.target.closest('.object,.vec-hit,.zone-obj,.node,.zone-sh,.txt-obj,.txt-sh');
   const hitId=hit?hit.dataset.id:null;
   activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   const rect=fMaster.getBoundingClientRect();
@@ -195,10 +206,10 @@ function onDown(e){
         render();
         return; // salir sin crear dragInfo
       }
-      const isTextEl=el&&el.type==='vec'&&el.sub==='text';
-      if(el&&(was||isTextEl||hit?.classList.contains('node')||hit?.classList.contains('zone-sh'))){
+      const isTxt=el&&el.type==='txt';
+      if(el&&(was||isTxt||hit?.classList.contains('node')||hit?.classList.contains('zone-sh')||hit?.classList.contains('txt-sh'))){
         saveState();
-        dragInfo={el,isSH:hit?.classList.contains('zone-sh'),
+        dragInfo={el,isSH:hit?.classList.contains('zone-sh')||hit?.classList.contains('txt-sh'),
           nx:hit?.dataset.nx,ny:hit?.dataset.ny,lastX:e.clientX,lastY:e.clientY,zoom};
       }
       syncInspector(el);
@@ -233,10 +244,9 @@ function onMove(e){
   const el=dragInfo.el;
 
   if(dragInfo.isSH){
-    if(el.sub==='text'){
-      // Escalar por desplazamiento diagonal (dx+dy combinado)
-      const delta=(dx+dy)*0.4;
-      el.fontSize=Math.max(8,Math.min(300,(el.fontSize||28)+delta));
+    if(el.type==='txt'){
+      const delta=(dx+dy)*0.5;
+      el.fontSize=Math.max(8,Math.min(300,(el.fontSize||32)+delta));
     } else {
       el.w=Math.max(30,el.w+dx); el.h=Math.max(30,el.h+dy);
     }
@@ -272,7 +282,8 @@ function render(){
   const step=steps[curStep];
   step.forEach(el=>{if(el.type==='zone')paintZone(el);});
   step.forEach(el=>{if(el.type==='vec') paintVec(el);});
-  step.forEach(el=>{if(el.type!=='zone'&&el.type!=='vec')paintObj(el);});
+  step.forEach(el=>{if(el.type==='txt') paintTxt(el);});
+  step.forEach(el=>{if(el.type!=='zone'&&el.type!=='vec'&&el.type!=='txt')paintObj(el);});
 
   if(activeId){
     const el=step.find(o=>o.id===activeId);
@@ -290,7 +301,7 @@ function render(){
 
 // FIX CRÍTICO: wipe() nunca borra #field-bg ni defs del svg-layer
 function wipe(){
-  fMaster.querySelectorAll('.object,.zone-obj,.node').forEach(el=>el.remove());
+  fMaster.querySelectorAll('.object,.zone-obj,.node,.txt-obj').forEach(el=>el.remove());
   const defs=svgLayer.querySelector('defs');
   svgLayer.innerHTML='';
   if(defs)svgLayer.appendChild(defs);
@@ -305,6 +316,9 @@ function paintObj(el){
   if(['A','B','C','D'].includes(el.type)){
     const c1=el.color||TC[el.type].c1;
     const c2=el.stripeColor||TC[el.type].c2;
+    // Forzar dimensiones del div = dimensiones del SVG para evitar rectángulo negro
+    div.style.width='38px'; div.style.height='38px';
+    div.style.display='block'; // no flex — elimina el layout rectangular del browser
     div.appendChild(makeShirt(c1,c2,el.striped,el.num||1,el.numColor));
   } else if(el.type==='ball'){
     const b=document.createElement('div');b.className='ball-obj';b.textContent='⚽';div.appendChild(b);
@@ -371,36 +385,30 @@ function paintZone(el){
 }
 
 // ── PAINT VECTOR ─────────────────────────────────────────────
-function paintVec(el){
-  // Texto como elemento especial
-  if(el.sub==='text'){
-    const div=document.createElement('div');
-    div.className='object text-obj'+(activeId===el.id?' sel':'');
-    div.dataset.id=el.id;
-    div.style.left=el.x+'px';div.style.top=el.y+'px';
-    div.style.color=el.color||'#ffffff';
-    div.style.fontSize=(el.fontSize||28)+'px';
-    div.style.fontFamily="'Barlow Condensed',sans-serif";
-    div.style.fontWeight='800';
-    div.style.whiteSpace='nowrap';
-    div.style.lineHeight='1';
-    div.style.transform=`translate(-50%,-50%) rotate(${el.rot||0}deg)`;
-    div.style.textShadow='1px 1px 3px rgba(0,0,0,0.7)';
-    div.style.cursor='grab';
-    div.style.pointerEvents='auto';
-    div.style.background='transparent';
-    div.textContent=el.text;
-    // El texto siempre tiene position:absolute y es arrastrable
-    div.style.position='absolute';
-    if(activeId===el.id){
-      const sh=document.createElement('div');
-      sh.className='zone-sh';sh.dataset.id=el.id;sh.textContent='⤡';
-      sh.style.position='absolute';sh.style.bottom='-10px';sh.style.right='-10px';
-      div.appendChild(sh);
-    }
-    fMaster.appendChild(div);
-    return;
+// ── PAINT TEXT ───────────────────────────────────────────────
+function paintTxt(el){
+  const div=document.createElement('div');
+  div.className='txt-obj'+(activeId===el.id?' sel':'');
+  div.dataset.id=el.id;
+  div.style.cssText=`position:absolute;left:${el.x}px;top:${el.y}px;`+
+    `color:${el.color||'#ffffff'};font-size:${el.fontSize||32}px;`+
+    `font-family:'Barlow Condensed',sans-serif;font-weight:800;`+
+    `white-space:nowrap;line-height:1;cursor:grab;pointer-events:auto;`+
+    `background:transparent;transform:translate(-50%,-50%) rotate(${el.rot||0}deg);`+
+    `text-shadow:1px 1px 4px rgba(0,0,0,0.8);z-index:20;`;
+  div.textContent=el.text;
+  if(activeId===el.id){
+    // Handle de escala en esquina inferior derecha
+    const sh=document.createElement('div');
+    sh.className='zone-sh txt-sh';sh.dataset.id=el.id;sh.textContent='⤡';
+    sh.style.cssText='position:absolute;bottom:-10px;right:-10px;z-index:30;';
+    div.style.position='absolute'; // ya está pero aseguramos
+    div.appendChild(sh);
   }
+  fMaster.appendChild(div);
+}
+
+function paintVec(el){
   let d='';
   if(el.sub==='line')d=`M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
   else if(el.sub==='curve')d=`M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1},${el.cx2} ${el.cy2},${el.x2} ${el.y2}`;
@@ -440,11 +448,10 @@ function mkN(el,nx,ny,fx,fy,ctrl=false){
 // ── INSPECTOR ────────────────────────────────────────────────
 function syncInspector(el){
   if(!el)return;
-  const isVec=el.type==='vec', isPly=['A','B','C','D'].includes(el.type), isZone=el.type==='zone';
-  show('r-color'); setv('ins-color',el.color||(isPly?TC[el.type].c1:'#000000'));
-  const isText=isVec&&el.sub==='text';
-  tog('r-arrow',isVec&&!isText);tog('r-dash',isVec&&!isText);
-  if(isVec&&!isText){setck('ins-arrow',!!el.arrow);setck('ins-dash',!!el.dashed);}
+  const isVec=el.type==='vec', isPly=['A','B','C','D'].includes(el.type), isZone=el.type==='zone', isTxt=el.type==='txt';
+  show('r-color'); setv('ins-color',el.color||(isPly?TC[el.type].c1:isTxt?'#ffffff':'#000000'));
+  tog('r-arrow',isVec);tog('r-dash',isVec);
+  if(isVec){setck('ins-arrow',!!el.arrow);setck('ins-dash',!!el.dashed);}
   tog('r-num',isPly);tog('r-strtog',isPly);tog('r-stripe',isPly&&el.striped);
   tog('r-numcolor',isPly);
   if(isPly){setv('ins-num',el.num||1);setck('ins-strtog',!!el.striped);setv('ins-stripe',el.stripeColor||TC[el.type].c2);setv('ins-numcolor',el.numColor||'#ffffff');}
@@ -491,12 +498,12 @@ function finishPoly(){
   isDrawingPoly=false;document.getElementById('poly-ind').style.display='none';document.getElementById('btn-fpoly').style.display='none';render();
 }
 function createTextEl(){
-  // Modal de entrada de texto
   const txt=prompt('Escribe el texto:','');
   if(!txt||!txt.trim())return;
   saveState();const id=uid();
-  steps[curStep].push({id,type:'vec',sub:'text',text:txt.trim(),
-    x:300,y:300,fontSize:28,color:'#ffffff',w:txt.length*16+20,h:44,rot:0});
+  // Tipo 'txt' propio para simplificar lógica (no depende de 'vec')
+  steps[curStep].push({id,type:'txt',text:txt.trim(),
+    x:525,y:340,fontSize:32,color:'#ffffff',rot:0});
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
 }
 
