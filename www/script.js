@@ -41,10 +41,13 @@ function resizeField(){
   const r=vp.getBoundingClientRect();
   const ratio=Math.min(r.width/FW, r.height/FH);
   const w=Math.round(FW*ratio), h=Math.round(FH*ratio);
+  // field-master es position:relative dentro del flex — solo fijamos tamaño
   fMaster.style.width =w+'px';
   fMaster.style.height=h+'px';
-  fMaster.style.left  =Math.round((r.width -w)/2)+'px';
-  fMaster.style.top   =Math.round((r.height-h)/2)+'px';
+  // Quitar cualquier left/top residual de versiones anteriores
+  fMaster.style.left='';
+  fMaster.style.top='';
+  fMaster.style.position='relative';
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   drawFieldBG(currentField);
 }
