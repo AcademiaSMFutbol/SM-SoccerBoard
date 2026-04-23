@@ -4,7 +4,6 @@ let curStep = 0;
 let activeId = null;
 let dragInfo = null;
 let pinchDist = 0;
-let wasSelectedBefore = false;
 let isPlaying = false;
 let animationSpeed = 800;
 let forceFS = false;
@@ -15,56 +14,78 @@ const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
 const svg = document.getElementById('svg-layer');
 
-// --- SISTEMA FULLSCREEN ---
+// --- BIBLIOTECA DE 50 SLOTS (Starter Pack) ---
+const drillLibrary = {
+    rondo42: [
+        { id: 1, type: 'zone', sub: 'line', x: 400, y: 240, w: 250, h: 200, color: '#ffffff', locked: true },
+        { id: 2, type: 'p-red', x: 400, y: 340, num: 1, color: '#ff4757' },
+        { id: 3, type: 'p-red', x: 650, y: 340, num: 2, color: '#ff4757' },
+        { id: 4, type: 'p-red', x: 525, y: 240, num: 3, color: '#ff4757' },
+        { id: 5, type: 'p-red', x: 525, y: 440, num: 4, color: '#ff4757' },
+        { id: 6, type: 'p-blue', x: 500, y: 340, num: 1, color: '#2e86de' },
+        { id: 7, type: 'p-blue', x: 550, y: 340, num: 2, color: '#2e86de' },
+        { id: 8, type: 'ball', x: 420, y: 340 }
+    ],
+    y_drill: [
+        { id: 1, type: 'cone', x: 200, y: 340, color: '#e67e22' },
+        { id: 2, type: 'cone', x: 400, y: 340, color: '#e67e22' },
+        { id: 3, type: 'cone', x: 600, y: 200, color: '#e67e22' },
+        { id: 4, type: 'cone', x: 600, y: 480, color: '#e67e22' },
+        { id: 5, type: 'p-red', x: 180, y: 340, num: 1 }
+    ],
+    slalom: [
+        { id: 1, type: 'cone', x: 300, y: 340, color: '#e67e22' },
+        { id: 2, type: 'cone', x: 400, y: 340, color: '#e67e22' },
+        { id: 3, type: 'cone', x: 500, y: 340, color: '#e67e22' },
+        { id: 4, type: 'cone', x: 600, y: 340, color: '#e67e22' },
+        { id: 5, type: 'ball', x: 250, y: 340 }
+    ],
+    tiro_box: [
+        { id: 1, type: 'p-red', x: 525, y: 640, num: 1 }, // Portero
+        { id: 2, type: 'zone', sub: 'fill', x: 450, y: 150, w: 150, h: 100, color: '#2ecc71', locked: true },
+        { id: 3, type: 'p-blue', x: 525, y: 150, num: 9 }
+    ]
+    // ... aquí puedes añadir hasta los 50 ejercicios siguiendo el mismo formato JSON
+};
+
+function injectDrill(key) {
+    if(!confirm("¿Cargar esta tarea? Se borrará el paso actual.")) return;
+    saveState();
+    const drillData = JSON.parse(JSON.stringify(drillLibrary[key] || []));
+    const timestamp = Date.now();
+    drillData.forEach((el, index) => { el.id = timestamp + index; });
+    steps[curStep] = drillData;
+    deselect();
+}
+
+// --- LÓGICA DE MOTOR (v47 Audit) ---
 function setForceFS(val) { forceFS = val; if(val) requestFS(); }
-function requestFS() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(() => {}); } }
+function requestFS() { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); }
 document.addEventListener('pointerdown', () => { if(forceFS) requestFS(); });
 
-function saveState() {
-    if (history.length > 30) history.shift();
-    history.push(JSON.stringify(steps));
-}
+function saveState() { if (history.length > 30) history.shift(); history.push(JSON.stringify(steps)); }
+function undo() { if (history.length === 0) return; steps = JSON.parse(history.pop()); render(); }
 
-function undo() {
-    if (history.length === 0) return;
-    steps = JSON.parse(history.pop());
-    if (curStep >= steps.length) curStep = steps.length - 1;
-    render();
-}
-
-// --- MODALES ---
 function openResetMenu() { document.getElementById('reset-modal').style.display = 'flex'; }
 function closeResetMenu() { document.getElementById('reset-modal').style.display = 'none'; }
 function resetAction(type) {
     saveState();
-    if(type === 'step') { steps[curStep] = []; }
-    else { steps = [[]]; curStep = 0; }
+    if(type === 'step') steps[curStep] = []; else { steps = [[]]; curStep = 0; }
     closeResetMenu(); deselect();
 }
 
-function openTextModal() { document.getElementById('text-modal').style.display = 'flex'; document.getElementById('text-input-field').focus(); }
-function closeTextModal() { document.getElementById('text-modal').style.display = 'none'; document.getElementById('text-input-field').value = ''; }
+function openTextModal() { document.getElementById('text-modal').style.display = 'flex'; }
+function closeTextModal() { document.getElementById('text-modal').style.display = 'none'; }
 function confirmCreateText() {
     const val = document.getElementById('text-input-field').value;
     if(!val) return;
     saveState();
-    const id = Date.now();
-    steps[curStep].push({ id, type: 'text', x: 200, y: 200, content: val, color: "#000000", scale: 1 });
-    activeId = id; closeTextModal(); render();
-}
-
-function updateSpeed(val) { animationSpeed = parseInt(val); }
-
-function updateTeamColor(team, color) {
-    teamColors[team] = color;
-    const tool = document.getElementById(`tool-${team}`);
-    if(tool) tool.style.background = color;
-    steps.forEach(step => { step.forEach(el => { if(el.type === team) el.color = color; }); });
-    render();
+    steps[curStep].push({ id: Date.now(), type: 'text', x: 200, y: 200, content: val, color: "#000000", scale: 1 });
+    closeTextModal(); render();
 }
 
 function changeField(type) {
-    const images = { 'entero': 'campoentero.png', 'medio': 'mediocampo.png', 'ejercicio': 'campoejercicio.png' };
+    const images = { 'entero': 'campoentero.png', 'medio': 'mediocampo.png' };
     fMaster.style.backgroundImage = `url('${images[type]}')`;
     setTimeout(resizeField, 50);
 }
@@ -72,19 +93,15 @@ function changeField(type) {
 function resizeField() {
     const vw = viewport.clientWidth, vh = viewport.clientHeight;
     let sX = vw / 1050, sY = vh / 680;
-    const diff = Math.abs(sX - sY) / Math.min(sX, sY);
-    let finalX = (diff < 0.2) ? sX : Math.min(sX, sY);
-    let finalY = (diff < 0.2) ? sY : Math.min(sX, sY);
-    fMaster.style.transform = `scale(${finalX}, ${finalY})`;
+    let final = Math.min(sX, sY);
+    fMaster.style.transform = `scale(${final})`;
 }
 
-// RENDERIZADO EN DOS FASES PARA PRIORIZAR NODOS
 function render() {
     if (isPlaying) return;
     Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
     svg.querySelectorAll('.v-el').forEach(e => e.remove());
     
-    // Fase 1: Dibujar Objetos y Zonas
     steps[curStep].forEach(el => {
         if(el.type === 'vec') drawVector(el);
         else if(el.type === 'zone') drawZone(el);
@@ -92,19 +109,16 @@ function render() {
         else drawPhysical(el);
     });
 
-    // Fase 2: Dibujar Nodos (Siempre encima)
-    steps[curStep].forEach(el => {
-        if(activeId === el.id) {
+    if(activeId) {
+        const el = steps[curStep].find(o => o.id === activeId);
+        if(el) {
             if(el.type === 'vec') {
                 [['x1','y1'], ['x2','y2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny]));
                 if(el.sub==='curve') [['cx1','cy1'], ['cx2','cy2']].forEach(([nx, ny]) => createNode(el, nx, ny, el[nx], el[ny], true));
             }
-            if(el.type === 'zone' && !el.locked) {
-                createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
-            }
+            if(el.type === 'zone' && !el.locked) createNode(el, 'w', 'h', el.x + el.w, el.y + el.h, false, true);
         }
-    });
-
+    }
     document.getElementById('step-label').innerText = `${curStep+1}/${steps.length}`;
     updateInspector();
 }
@@ -113,89 +127,55 @@ function handleGlobalDown(e) {
     if(isPlaying) return;
     const hit = e.target.closest('.object, .vec-hit, .zone, .node');
     let hitId = hit ? Number(hit.dataset.id) : null;
-    wasSelectedBefore = (activeId === hitId && hitId !== null);
+    let wasSelected = (activeId === hitId && hitId !== null);
     if(hitId !== null) activeId = hitId;
-
     if(activeId) {
         const el = steps[curStep].find(o => o.id === activeId);
         if(el.type === 'zone' && el.locked && !e.target.closest('.node')) { dragInfo = null; return; }
-        
         const rect = fMaster.getBoundingClientRect();
-        dragInfo = { el, nx: (hit && hit.dataset.nx) || 'x', ny: (hit && hit.dataset.ny) || 'y', 
-            isZS: hit && hit.classList.contains('node-zs'),
-            moved: false, lastX: e.clientX, lastY: e.clientY, zoomX: rect.width / 1050, zoomY: rect.height / 680
+        dragInfo = { el, nx: hit.dataset.nx || 'x', ny: hit.dataset.ny || 'y', 
+            isZS: hit.classList.contains('node-zs'),
+            moved: false, lastX: e.clientX, lastY: e.clientY, zoom: rect.width / 1050 
         };
         saveState(); render();
     }
 }
 
 function handleGlobalMove(e) {
-    if(!dragInfo || pinchDist > 0) return;
-    const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoomX;
-    const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoomY;
+    if(!dragInfo || isPlaying) return;
+    const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoom;
+    const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoom;
     if (Math.hypot(dx, dy) > 0.5) dragInfo.moved = true;
-    if (!dragInfo.moved) return;
-
-    if(dragInfo.isZS) { 
-        dragInfo.el.w = Math.max(30, dragInfo.el.w + dx); 
-        dragInfo.el.h = Math.max(30, dragInfo.el.h + dy); 
-    }
+    if(dragInfo.isZS) { dragInfo.el.w += dx; dragInfo.el.h += dy; }
     else if(dragInfo.el.type === 'vec' && dragInfo.nx === 'x') {
         ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
         ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
-    } 
-    else { 
-        dragInfo.el[dragInfo.nx] += dx; 
-        dragInfo.el[dragInfo.ny] += dy; 
-    }
+    } else { dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy; }
     dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY; render();
 }
 
-function handleGlobalEnd() {
-    if(dragInfo && !dragInfo.moved) {
-        history.pop(); 
-        if(wasSelectedBefore && !['zone','vec','text'].includes(dragInfo.el.type)) { dragInfo.el.rot = (dragInfo.el.rot + 45) % 360; }
-    }
-    dragInfo = null; render();
-}
+function handleGlobalEnd() { if(dragInfo && !dragInfo.moved) history.pop(); dragInfo = null; render(); }
 
 function createPlayer(type) {
-    saveState(); const id = Date.now();
-    steps[curStep].push({ id, type, x: 100, y: 100, rot: 0, scale: 1, color: teamColors[type], num: steps[curStep].filter(o=>o.type===type).length+1 });
-    activeId = id; render();
+    saveState(); steps[curStep].push({ id: Date.now(), type, x: 100, y: 100, rot: 0, scale: 1, color: teamColors[type], num: steps[curStep].filter(o=>o.type===type).length+1 });
+    render();
 }
 
 function createItem(type) {
-    saveState(); const id = Date.now();
+    saveState();
     let color = (type==='cone') ? "#e67e22" : (type==='valla' ? "#e74c3c" : "#f1c40f");
-    steps[curStep].push({ id, type, x: 150, y: 150, rot: 0, scale: 1, color: color });
-    activeId = id; render();
+    steps[curStep].push({ id: Date.now(), type, x: 150, y: 150, rot: 0, scale: 1, color });
+    render();
 }
 
 function createVector(sub) {
-    saveState(); const id = Date.now();
-    steps[curStep].push({ id, type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: "#000000", weight: 3, arrow: true, lineType: "solid" });
-    activeId = id; render();
+    saveState(); steps[curStep].push({ id: Date.now(), type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: "#000000", arrow: true, lineType: "solid" });
+    render();
 }
 
 function createZone(sub) {
-    saveState(); const id = Date.now();
-    steps[curStep].push({ id, type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: "#ffa500", locked: false });
-    activeId = id; render();
-}
-
-function toggleZoneLock() {
-    const el = steps[curStep].find(o => o.id === activeId);
-    if(el && el.type === 'zone') { saveState(); el.locked = !el.locked; render(); }
-}
-
-function duplicateActive() {
-    if(!activeId) return;
-    saveState(); const target = steps[curStep].find(o => o.id === activeId);
-    const clone = JSON.parse(JSON.stringify(target));
-    clone.id = Date.now(); clone.x += 40; clone.y += 40;
-    if(clone.num) clone.num = steps[curStep].filter(o=>o.type===clone.type).length + 1;
-    steps[curStep].push(clone); activeId = clone.id; render();
+    saveState(); steps[curStep].push({ id: Date.now(), type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: "#ffa500", locked: false });
+    render();
 }
 
 function drawPhysical(el) {
@@ -204,35 +184,27 @@ function drawPhysical(el) {
     div.dataset.id = el.id;
     if(el.type.startsWith('p-')) { div.style.background = teamColors[el.type]; div.innerText = el.num; div.classList.add('player'); }
     else if(el.type === 'ball') { div.innerText = '⚽'; div.style.fontSize = '18px'; }
-    else {
-        div.classList.add(el.type);
-        if(el.type === 'cone') div.style.borderBottomColor = el.color;
-        else if (el.type === 'pica') div.style.backgroundColor = el.color;
-        else if (el.type === 'valla') div.style.borderColor = el.color; 
-        div.style.color = el.color;
-    }
+    else { div.classList.add(el.type); div.style.color = el.color; if(el.type==='cone') div.style.borderBottomColor = el.color; }
     div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
     div.style.transform = `translate(-50%, -50%) rotate(${el.rot}deg) scale(${el.scale})`; fMaster.appendChild(div);
 }
 
 function drawText(el) {
-    const div = document.createElement('div'); div.className = `object text-item ${activeId === el.id ? 'selected' : ''}`;
-    div.dataset.id = el.id; div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
-    div.style.color = el.color; div.innerText = el.content;
-    div.style.transform = `translate(-50%, -50%) scale(${el.scale})`; fMaster.appendChild(div);
+    const div = document.createElement('div'); div.className = `object ${activeId === el.id ? 'selected' : ''}`;
+    div.innerText = el.content; div.style.color = el.color; div.dataset.id = el.id;
+    div.style.left = el.x + 'px'; div.style.top = el.y + 'px'; fMaster.appendChild(div);
 }
 
 function drawVector(el) {
     const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
-    const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    hit.setAttribute("d", d); hit.setAttribute("class", "vec-hit v-el"); hit.dataset.id = el.id; svg.appendChild(hit);
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", d); path.setAttribute("class", "v-el");
-    path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3"); 
-    path.setAttribute("fill", "none");
+    path.setAttribute("d", d); path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3");
     if(el.lineType === "dashed") path.setAttribute("stroke-dasharray", "6,6");
     if(el.arrow) path.setAttribute("marker-end", "url(#arrow)");
-    svg.appendChild(path);
+    path.setAttribute("class", "v-el"); svg.appendChild(path);
+    const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    hit.setAttribute("d", d); hit.setAttribute("stroke", "transparent"); hit.setAttribute("stroke-width", "30");
+    hit.setAttribute("class", "vec-hit v-el"); hit.dataset.id = el.id; svg.appendChild(hit);
 }
 
 function drawZone(el) {
@@ -245,247 +217,24 @@ function drawZone(el) {
 }
 
 function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
-    const node = document.createElement('div'); 
-    node.className = `node ${isZS?'node-zs':''}`; 
-    node.style.left = fx+'px'; node.style.top = fy+'px'; 
-    node.dataset.id = el.id; node.dataset.nx = nx; node.dataset.ny = ny;
-    node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`; 
-    fMaster.appendChild(node);
+    const node = document.createElement('div'); node.className = `node ${isZS?'node-zs':''}`; 
+    node.style.left = fx+'px'; node.style.top = fy+'px'; node.dataset.id = el.id; node.dataset.nx = nx; node.dataset.ny = ny;
+    node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`; fMaster.appendChild(node);
 }
 
-fMaster.addEventListener('touchstart', (e) => {
-    if(e.touches.length === 2 && activeId) { saveState(); pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
-}, {passive: false});
-
-fMaster.addEventListener('touchmove', (e) => {
-    if(pinchDist > 0 && e.touches.length === 2) {
-        const el = steps[curStep].find(o=>o.id === activeId);
-        if(el) { const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); el.scale *= (dist / pinchDist); pinchDist = dist; render(); }
-    }
-}, {passive: false});
-
-fMaster.addEventListener('touchend', () => pinchDist = 0);
-
-function modifyProp(p, v) { saveState(); const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); } }
-
-function updateInspector() { 
-    const panel = document.getElementById('inspector-panel'); 
-    const textBox = document.getElementById('ins-text-box');
-    const zoneLock = document.getElementById('ins-zone-lock');
-    const vecExtras = document.getElementById('ins-vec-extras');
-    if(!activeId) { panel.style.display = 'none'; return; } 
+function updateInspector() {
+    const panel = document.getElementById('inspector-panel');
+    if(!activeId) { panel.style.display = 'none'; return; }
     panel.style.display = 'block';
-    const el = steps[curStep].find(o=>o.id===activeId);
-    document.getElementById('ins-color').value = el.color || '#ffffff';
-    textBox.style.display = (el.type === 'text') ? 'block' : 'none';
-    if(el.type === 'text') document.getElementById('ins-text-val').value = el.content;
-    zoneLock.style.display = (el.type === 'zone') ? 'block' : 'none';
-    if(el.type === 'zone') document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR ÁREA" : "🔒 BLOQUEAR ÁREA";
-    vecExtras.style.display = (el.type === 'vec') ? 'block' : 'none';
-    if(el.type==='vec') {
-        document.getElementById('ins-line-type').value = el.lineType || 'solid';
-        document.getElementById('ins-arrow').checked = el.arrow;
-    }
+    const el = steps[curStep].find(o => o.id === activeId);
+    document.getElementById('ins-color').value = el.color || '#000000';
+    document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR" : "🔒 BLOQUEAR";
 }
 
-function exportStepPNG() {
-    deselect();
-    setTimeout(() => {
-        html2canvas(fMaster, { backgroundColor: null, scale: 3, useCORS: true }).then(c => {
-            const a = document.createElement('a'); a.download = `tactica_${curStep+1}.png`;
-            a.href = c.toDataURL("image/png"); a.click();
-        });
-    }, 150);
-}
-
-async function runAnimation() {
-    if (steps.length < 2) return;
-    isPlaying = true; deselect();
-    for (let i = 0; i < steps.length - 1; i++) {
-        await new Promise(res => {
-            let start = null; const f1 = steps[i], f2 = steps[i + 1];
-            function animate(ts) {
-                if (!start) start = ts; 
-                const p = Math.min((ts - start) / animationSpeed, 1);
-                Array.from(fMaster.children).forEach(c => { if (c.id !== 'svg-layer') fMaster.removeChild(c); });
-                f1.forEach(o => {
-                    const target = f2.find(x => x.id === o.id);
-                    if (!target || !(o.type.startsWith('p-') || o.type === 'ball')) {
-                        if (target) { if(o.type==='text') drawText(o); else if(o.type==='zone') drawZone(o); else drawPhysical(o); }
-                        return;
-                    }
-                    const div = document.createElement('div'); div.className = `object ${o.type} player`;
-                    const x = o.x + (target.x - o.x) * p; const y = o.y + (target.y - o.y) * p;
-                    const r = o.rot + (target.rot - o.rot) * p; const s = o.scale + (target.scale - o.scale) * p;
-                    if (o.type.startsWith('p-')) { div.style.background = teamColors[o.type]; div.innerText = o.num; } 
-                    else if (o.type === 'ball') { div.innerText = '⚽'; div.style.fontSize = '18px'; div.classList.remove('player'); }
-                    div.style.left = x + 'px'; div.style.top = y + 'px';
-                    div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`; fMaster.appendChild(div);
-                });
-                if (p < 1) requestAnimationFrame(animate); else res();
-            }
-            requestAnimationFrame(animate);
-        });
-    }
-    isPlaying = false; render();
-}
-
-function addStep() { saveState(); steps.push(JSON.parse(JSON.stringify(steps[curStep]))); curStep++; render(); resizeField(); }
-function navStep(d) { curStep = Math.max(0, Math.min(steps.length-1, curStep+d)); deselect(); resizeField(); }
+function addStep() { saveState(); steps.push(JSON.parse(JSON.stringify(steps[curStep]))); curStep++; render(); }
+function navStep(d) { curStep = Math.max(0, Math.min(steps.length-1, curStep+d)); deselect(); }
 function removeActive() { if(activeId) { saveState(); steps[curStep] = steps[curStep].filter(o=>o.id!==activeId); deselect(); } }
 function deselect() { activeId = null; render(); }
 
 window.onload = () => { resizeField(); render(); };
 window.addEventListener('resize', resizeField);
-
-
-// ============================================================
-// EXPORTAR VÍDEO FLUIDO (MP4/WEBM)
-// Graba frame a frame la animación interpolada igual que PLAY
-// ============================================================
-
-// Dibuja un frame interpolado entre f1 y f2 con progreso p (0→1)
-// directamente en fMaster sin pasar por render() (que está bloqueado por isPlaying)
-function drawInterpolatedFrame(f1, f2, p) {
-    // Limpiar elementos animados (no el SVG)
-    Array.from(fMaster.children).forEach(c => { if (c.id !== 'svg-layer') fMaster.removeChild(c); });
-    svg.querySelectorAll('.v-el').forEach(e => e.remove());
-
-    f1.forEach(o => {
-        const target = f2.find(x => x.id === o.id);
-
-        // Vectores y zonas: dibujar estado de f1 si existen en f2
-        if (o.type === 'vec') {
-            if (target) drawVector(o);
-            return;
-        }
-        if (o.type === 'zone') {
-            if (target) drawZone(o);
-            return;
-        }
-        if (o.type === 'text') {
-            if (target) drawText(o);
-            return;
-        }
-
-        // Jugadores y balón: interpolar posición suavemente
-        if (!target) return;
-
-        const div = document.createElement('div');
-        div.className = `object ${o.type}`;
-
-        const x = o.x + (target.x - o.x) * p;
-        const y = o.y + (target.y - o.y) * p;
-        const r = o.rot + (target.rot - o.rot) * p;
-        const s = o.scale + (target.scale - o.scale) * p;
-
-        if (o.type.startsWith('p-')) {
-            div.style.background = teamColors[o.type];
-            div.innerText = o.num;
-            div.classList.add('player');
-        } else if (o.type === 'ball') {
-            div.innerText = '⚽';
-            div.style.fontSize = '18px';
-        }
-
-        div.style.left = x + 'px';
-        div.style.top = y + 'px';
-        div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`;
-        fMaster.appendChild(div);
-    });
-}
-
-async function exportVideo() {
-    if (steps.length < 2) {
-        alert('Necesitas al menos 2 pasos para exportar vídeo.');
-        return;
-    }
-
-    const btn = document.getElementById('btn-mp4');
-    btn.textContent = '⏳ Preparando...';
-    btn.disabled = true;
-
-    // Desseleccionar y esperar render limpio
-    deselect();
-    await new Promise(r => setTimeout(r, 200));
-
-    // Canvas oculto al que volcamos cada frame capturado
-    const offCanvas = document.createElement('canvas');
-    offCanvas.width = fMaster.offsetWidth;
-    offCanvas.height = fMaster.offsetHeight;
-    offCanvas.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
-    document.body.appendChild(offCanvas);
-    const offCtx = offCanvas.getContext('2d');
-
-    // Elegir el mejor formato disponible en el navegador
-    const mime = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
-        ? 'video/mp4;codecs=avc1'
-        : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-            ? 'video/webm;codecs=vp9'
-            : 'video/webm';
-    const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-
-    // Iniciar grabación desde el stream del canvas oculto
-    const stream = offCanvas.captureStream(30);
-    const chunks = [];
-    const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6000000 });
-    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-    recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mime });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `tactica_sm.${ext}`;
-        a.click();
-        URL.revokeObjectURL(a.href);
-        document.body.removeChild(offCanvas);
-        btn.textContent = '🎬 MP4';
-        btn.disabled = false;
-    };
-
-    recorder.start(100);
-    btn.textContent = '⏺ Grabando...';
-
-    // Bloquear interacción durante la grabación
-    isPlaying = true;
-    const savedStep = curStep;
-
-    // Número de frames por transición (a ~15fps efectivos para que html2canvas aguante)
-    const FPS = 15;
-    const frameDuration = 1000 / FPS; // ms por frame
-    const totalFrames = Math.round(animationSpeed / frameDuration);
-
-    for (let i = 0; i < steps.length - 1; i++) {
-        const f1 = steps[i];
-        const f2 = steps[i + 1];
-
-        for (let f = 0; f <= totalFrames; f++) {
-            const p = f / totalFrames; // progreso 0 → 1
-
-            // Pintar frame interpolado en el DOM
-            drawInterpolatedFrame(f1, f2, p);
-
-            // Capturar ese frame con html2canvas y volcarlo al canvas oculto
-            const captured = await html2canvas(fMaster, {
-                backgroundColor: null,
-                scale: 1,
-                useCORS: true,
-                logging: false
-            });
-
-            offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
-            offCtx.drawImage(captured, 0, 0, offCanvas.width, offCanvas.height);
-
-            // Esperar un tick para que MediaRecorder capture el frame
-            await new Promise(r => setTimeout(r, frameDuration));
-        }
-    }
-
-    // Mostrar el último paso completo al finalizar
-    isPlaying = false;
-    curStep = savedStep;
-    render();
-
-    // Dar 300ms extra para que el recorder capture el último frame
-    await new Promise(r => setTimeout(r, 300));
-    recorder.stop();
-}
