@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v52</title>
+    <title>SoccerBoard Pro v55</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -12,7 +12,7 @@
         <div id="top-bar">
             <div class="btn-group">
                 <button class="btn btn-dark" onclick="openLibrary()">📚 BIBLIOTECA</button>
-                <button class="btn" onclick="undo()" title="Deshacer">⟲</button>
+                <button class="btn" onclick="undo()">⟲</button>
                 <button class="btn btn-danger" onclick="openResetMenu()">✨</button>
                 <div class="divider"></div>
                 <button class="btn" onclick="navStep(-1)">◀</button>
@@ -30,28 +30,22 @@
 
         <div id="library-modal" class="modal-overlay">
             <div class="modal-content lib-content">
-                <div class="modal-header">
-                    <h3>BIBLIOTECA DE TAREAS</h3>
-                    <button class="btn btn-danger" onclick="closeLibrary()">CERRAR</button>
-                </div>
-                <div class="lib-body">
-                    <div class="lib-grid">
-                        <button class="btn-drill" onclick="injectDrill('rondo42')">Rondo 4x2</button>
-                        <button class="btn-drill" onclick="injectDrill('slalom')">Slalom Conducción</button>
-                        <button class="btn-drill" onclick="injectDrill('y_drill')">Ejercicio en Y</button>
-                        <button class="btn-drill" onclick="injectDrill('tiro_box')">Tiro y Remate</button>
-                        <button class="btn-drill" onclick="injectDrill('cuadrado_p')">Cuadrado Técnico</button>
-                    </div>
+                <div class="modal-header"><h3>BIBLIOTECA TÁCTICA</h3><button class="btn btn-danger" onclick="closeLibrary()">X</button></div>
+                <div class="lib-grid">
+                    <button class="btn-drill" onclick="injectDrill('rondo42')">Rondo 4x2</button>
+                    <button class="btn-drill" onclick="injectDrill('slalom')">Slalom Regate</button>
+                    <button class="btn-drill" onclick="injectDrill('tiro')">Tiro a Puerta</button>
+                    <button class="btn-drill" onclick="injectDrill('y_drill')">Ejercicio en Y</button>
                 </div>
             </div>
         </div>
 
         <div id="reset-modal" class="modal-overlay">
-            <div class="modal-content reset-menu">
-                <h3>Reiniciar</h3>
-                <button class="btn btn-dark" onclick="resetAction('step')">BORRAR PASO</button>
-                <button class="btn btn-danger" onclick="resetAction('project')">TODO EL PROYECTO</button>
-                <button class="btn close-btn" onclick="closeResetMenu()">CANCELAR</button>
+            <div class="modal-content">
+                <h3>Reiniciar Proyecto</h3>
+                <button class="btn btn-dark w-100" onclick="resetAction('step')">BORRAR PASO</button>
+                <button class="btn btn-danger w-100" style="margin-top:10px" onclick="resetAction('project')">BORRAR TODO</button>
+                <button class="btn w-100" style="margin-top:10px" onclick="closeResetMenu()">CANCELAR</button>
             </div>
         </div>
 
@@ -88,52 +82,38 @@
             <div id="viewport" onpointerdown="handleGlobalDown(event)" onpointermove="handleGlobalMove(event)" onpointerup="handleGlobalEnd()">
                 <div id="field-master">
                     <svg id="svg-layer">
-                        <defs>
-                            <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                                <polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" />
-                            </marker>
-                        </defs>
+                        <defs><marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" /></marker></defs>
                     </svg>
                 </div>
             </div>
 
             <div id="sidebar-right">
                 <div id="inspector-panel" style="display:none">
-                    <div class="panel-header">EDITOR OBJETO</div>
-                    <div class="side-item">
-                        <label>COLOR</label>
-                        <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
-                    </div>
-                    <div id="ins-zone-lock" class="side-item">
-                        <button id="lock-btn" class="btn btn-dark w-100" onclick="toggleZoneLock()"></button>
-                    </div>
-                    <button class="btn btn-accent w-100" onclick="duplicateActive()">➕ DUPLICAR</button>
+                    <div class="panel-header">EDITOR</div>
+                    <div class="side-item"><label>COLOR</label><input type="color" id="ins-color" oninput="modifyProp('color', this.value)"></div>
+                    <button id="lock-btn" class="btn btn-dark w-100" onclick="toggleZoneLock()"></button>
+                    <button class="btn btn-accent w-100" style="margin-top:10px" onclick="duplicateActive()">➕ DUPLICAR</button>
                     <button class="btn btn-dark w-100" style="margin-top:10px" onclick="deselect()">LISTO</button>
                     <div class="divider"></div>
                 </div>
 
                 <div class="panel-header">EQUIPOS</div>
-                <div class="side-item">
-                    <div class="team-grid-side">
-                        <input type="color" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
-                        <input type="color" value="#2e86de" oninput="updateTeamColor('p-blue', this.value)">
-                        <input type="color" value="#f1c40f" oninput="updateTeamColor('p-yellow', this.value)">
-                        <input type="color" value="#2ecc71" oninput="updateTeamColor('p-green', this.value)">
-                    </div>
+                <div class="team-grid-side">
+                    <input type="color" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
+                    <input type="color" value="#2e86de" oninput="updateTeamColor('p-blue', this.value)">
+                    <input type="color" value="#f1c40f" oninput="updateTeamColor('p-yellow', this.value)">
+                    <input type="color" value="#2ecc71" oninput="updateTeamColor('p-green', this.value)">
                 </div>
 
-                <div class="panel-header">AJUSTES CAMPO</div>
-                <div class="side-item flex-row">
-                    <label>PANTALLA COMPLETA</label>
-                    <input type="checkbox" id="force-fs-check" onchange="setForceFS(this.checked)">
-                </div>
-                <div class="side-item">
-                    <label>FONDO</label>
-                    <select onchange="changeField(this.value)">
-                        <option value="entero">Campo Completo</option>
-                        <option value="medio">Medio Campo</option>
-                        <option value="ejercicio">Ejercicio</option>
-                    </select>
+                <div class="panel-header">CAMPO</div>
+                <select class="custom-input" onchange="changeField(this.value)">
+                    <option value="entero">Completo</option>
+                    <option value="medio">Medio</option>
+                    <option value="ejercicio">Ejercicio</option>
+                </select>
+                <div class="side-item flex-row" style="margin-top:15px">
+                    <label>FULLSCREEN</label>
+                    <input type="checkbox" onchange="setForceFS(this.checked)">
                 </div>
             </div>
         </div>
