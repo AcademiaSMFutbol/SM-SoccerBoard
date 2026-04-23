@@ -38,6 +38,7 @@
       <button class="tool" onclick="createVector('line')"><span class="ti">⎯</span><span class="tl">Línea</span></button>
       <button class="tool" onclick="createVector('curve')"><span class="ti">⤴</span><span class="tl">Curva</span></button>
       <button class="tool" onclick="startPolyMode()"><span class="ti">⟁</span><span class="tl">Poly</span></button>
+      <button class="tool" onclick="createTextEl()"><span class="ti" style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:20px;">T</span><span class="tl">Texto</span></button>
 
       <div class="cat">ZONAS</div>
       <button class="tool" onclick="createZone('fill')"><span class="ti zone-fill-i"></span><span class="tl">Relleno</span></button>
@@ -74,6 +75,7 @@
         <div class="irow" id="r-stripe" style="display:none"><span>Color 2</span><input type="color" id="ins-stripe" oninput="setProp('stripeColor',this.value)"></div>
         <div class="irow" id="r-strtog" style="display:none"><span>Rayas</span><label class="tog"><input type="checkbox" id="ins-strtog" onchange="toggleStripe(this.checked)"><span class="tslider"></span></label></div>
         <div class="irow" id="r-num" style="display:none"><span>Nº</span><input type="number" id="ins-num" min="1" max="99" oninput="setProp('num',+this.value)" style="width:50px;background:#2d3436;color:#fff;border:1px solid #444;border-radius:5px;padding:3px 7px;font-size:13px;"></div>
+        <div class="irow" id="r-numcolor" style="display:none"><span>Color dorsal</span><input type="color" id="ins-numcolor" value="#ffffff" oninput="setProp('numColor',this.value)"></div>
         <div class="irow" id="r-arrow" style="display:none"><span>Flecha</span><label class="tog"><input type="checkbox" id="ins-arrow" onchange="setProp('arrow',this.checked)"><span class="tslider"></span></label></div>
         <div class="irow" id="r-dash" style="display:none"><span>Punteada</span><label class="tog"><input type="checkbox" id="ins-dash" onchange="setProp('dashed',this.checked)"><span class="tslider"></span></label></div>
         <div class="irow" id="r-lock" style="display:none"><span>🔒 Bloquear</span><label class="tog"><input type="checkbox" id="ins-lock" onchange="toggleLock(this.checked)"><span class="tslider"></span></label></div>
