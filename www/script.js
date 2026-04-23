@@ -56,7 +56,7 @@ function getZoom(){ return fMaster.getBoundingClientRect().width/FW; }
 // ── CAMPO SVG (solo se borra al cambiar campo, NUNCA en wipe) ─
 function drawFieldBG(type){
   const old=document.getElementById('field-bg'); if(old)old.remove();
-  const BG={full:'#2d8a47',half:'#2d8a47',drill:'#2e7d32',futsal:'#1a3a5c',blank:'#1a5c2a'};
+  const BG={full:'#2d8a47',half:'#2d8a47',futsal:'#1a3a5c',blank:'#1a5c2a'};
   fMaster.style.background=BG[type]||'#2d8a47';
   if(type==='blank')return;
 
@@ -64,86 +64,92 @@ function drawFieldBG(type){
   const svg=document.createElementNS(ns,'svg');
   svg.id='field-bg';
   svg.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
-  svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;';
+  svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:visible;';
 
   const LC=type==='futsal'?'rgba(79,195,247,0.85)':'rgba(255,255,255,0.82)';
   const LW=2.5;
 
-  // Franjas césped
+  // Franjas decorativas de cesped
   for(let i=0;i<10;i+=2){
     const r=document.createElementNS(ns,'rect');
-    r.setAttribute('x',i*(FW/10));r.setAttribute('y',0);r.setAttribute('width',FW/10);r.setAttribute('height',FH);
-    r.setAttribute('fill','rgba(0,0,0,0.06)');r.setAttribute('stroke','none');
+    r.setAttribute('x',i*(FW/10));r.setAttribute('y',0);
+    r.setAttribute('width',FW/10);r.setAttribute('height',FH);
+    r.setAttribute('fill','rgba(0,0,0,0.055)');r.setAttribute('stroke','none');
     svg.appendChild(r);
   }
 
-  function L(x1,y1,x2,y2){
-    const l=document.createElementNS(ns,'line');
-    l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
-    l.setAttribute('stroke',LC);l.setAttribute('stroke-width',LW);svg.appendChild(l);
-  }
-  function R(x,y,w,h){
-    const r=document.createElementNS(ns,'rect');
-    r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);
-    r.setAttribute('fill','none');r.setAttribute('stroke',LC);r.setAttribute('stroke-width',LW);svg.appendChild(r);
-  }
-  function C(cx,cy,r){
-    const c=document.createElementNS(ns,'circle');
-    c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);
-    c.setAttribute('fill','none');c.setAttribute('stroke',LC);c.setAttribute('stroke-width',LW);svg.appendChild(c);
-  }
-  function DOT(cx,cy){
-    const c=document.createElementNS(ns,'circle');
-    c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',3.5);
-    c.setAttribute('fill',LC);c.setAttribute('stroke','none');svg.appendChild(c);
-  }
-  function P(d){
-    const p=document.createElementNS(ns,'path');
-    p.setAttribute('d',d);p.setAttribute('fill','none');
-    p.setAttribute('stroke',LC);p.setAttribute('stroke-width',LW);svg.appendChild(p);
-  }
-  function ARC(cx,cy,r,a1,a2){
-    const rad1=a1*Math.PI/180,rad2=a2*Math.PI/180;
-    const x1=cx+r*Math.cos(rad1),y1=cy+r*Math.sin(rad1);
-    const x2=cx+r*Math.cos(rad2),y2=cy+r*Math.sin(rad2);
-    P(`M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`);
-  }
+  function L(x1,y1,x2,y2){const l=document.createElementNS(ns,'line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',LC);l.setAttribute('stroke-width',LW);svg.appendChild(l);}
+  function R(x,y,w,h){const r=document.createElementNS(ns,'rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);r.setAttribute('fill','none');r.setAttribute('stroke',LC);r.setAttribute('stroke-width',LW);svg.appendChild(r);}
+  function C(cx,cy,r){const c=document.createElementNS(ns,'circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);c.setAttribute('fill','none');c.setAttribute('stroke',LC);c.setAttribute('stroke-width',LW);svg.appendChild(c);}
+  function DOT(cx,cy,rr){const c=document.createElementNS(ns,'circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',rr||3.5);c.setAttribute('fill',LC);c.setAttribute('stroke','none');svg.appendChild(c);}
+  function P(d){const p=document.createElementNS(ns,'path');p.setAttribute('d',d);p.setAttribute('fill','none');p.setAttribute('stroke',LC);p.setAttribute('stroke-width',LW);svg.appendChild(p);}
+  function ARC(cx,cy,r,a1,a2){const ra1=a1*Math.PI/180,ra2=a2*Math.PI/180;const x1=cx+r*Math.cos(ra1),y1=cy+r*Math.sin(ra1);const x2=cx+r*Math.cos(ra2),y2=cy+r*Math.sin(ra2);P(`M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`);}
 
   if(type==='full'){
-    R(28,24,FW-56,FH-48);
-    L(FW/2,24,FW/2,FH-24);
-    C(FW/2,FH/2,72); DOT(FW/2,FH/2);
-    R(28,FH/2-115,140,230); R(FW-168,FH/2-115,140,230);
-    R(28,FH/2-50,55,100);   R(FW-83,FH/2-50,55,100);
-    R(8,FH/2-32,20,64);     R(FW-28,FH/2-32,20,64);
-    DOT(28+100,FH/2); DOT(FW-128,FH/2);
-    P(`M 168 ${FH/2-49} A 100 100 0 0 1 168 ${FH/2+49}`);
-    P(`M ${FW-168} ${FH/2-49} A 100 100 0 0 0 ${FW-168} ${FH/2+49}`);
-    ARC(28,24,13,0,90); ARC(FW-28,24,13,90,180);
-    ARC(28,FH-24,13,270,360); ARC(FW-28,FH-24,13,180,270);
+    // Campo 105m x 68m. FW=1050px=105m, FH=680px=68m (10px/m). Sin margenes.
+    R(0,0,FW,FH);                                      // perimetro
+    L(FW/2,0,FW/2,FH);                                 // linea central
+    C(FW/2,FH/2,91.5); DOT(FW/2,FH/2);                // circulo central (r=9.15m)
+    // Area grande (40.32m x 16.5m = 403x165px)
+    R(0,FH/2-82.5,403,165); R(FW-403,FH/2-82.5,403,165);
+    // Area chica (18.32m x 5.5m = 183x55px)
+    R(0,FH/2-27.5,183,55); R(FW-183,FH/2-27.5,183,55);
+    // Porterias (7.32m x 2.44m = 73x24px, fuera del perimetro)
+    R(-24,FH/2-36.6,24,73.2); R(FW,FH/2-36.6,24,73.2);
+    // Puntos de penalti (11m = 110px)
+    DOT(110,FH/2); DOT(FW-110,FH/2);
+    // Semicirculos de area (r=9.15m=91.5px, tangente al area grande)
+    P(`M 403 ${FH/2-50} A 91.5 91.5 0 0 1 403 ${FH/2+50}`);
+    P(`M ${FW-403} ${FH/2-50} A 91.5 91.5 0 0 0 ${FW-403} ${FH/2+50}`);
+    // Corners (r=1m=10px)
+    ARC(0,0,10,0,90); ARC(FW,0,10,90,180);
+    ARC(0,FH,10,270,360); ARC(FW,FH,10,180,270);
+
   } else if(type==='half'){
-    R(28,24,FW-56,FH-48);
-    L(28,FH/2,FW-28,FH/2);
-    C(FW/2,FH/2,72); DOT(FW/2,FH/2);
-    R(FW/2-115,24,230,140); R(FW/2-50,24,100,55);
-    R(FW/2-33,4,66,20); DOT(FW/2,24+100);
-    P(`M ${FW/2-49} 164 A 100 100 0 0 0 ${FW/2+49} 164`);
-  } else if(type==='drill'){
-    R(40,35,FW-80,FH-70);
-    L(FW/2,35,FW/2,FH-35); DOT(FW/2,FH/2);
+    // Medio campo: 52.5m x 68m. Porteria ARRIBA, linea central ABAJO.
+    // FW=1050 representa 52.5m (20px/m), FH=680 representa 68m (~10px/m)
+    // Lineas de contorno (3 lados: arriba, izq, der; abajo=linea central)
+    L(0,0,FW,0);           // linea de fondo (porteria, arriba)
+    L(0,0,0,FH);            // lateral izquierdo
+    L(FW,0,FW,FH);          // lateral derecho
+    L(0,FH,FW,FH);          // linea central (abajo)
+    // Area grande: 40.32m x 16.5m — en FW=1050=52.5m: 40.32/52.5*1050=806px, alto=16.5/68*680=165px
+    const AGW=806, AGH=165;
+    R(FW/2-AGW/2,0,AGW,AGH);
+    // Area chica: 18.32m x 5.5m — 18.32/52.5*1050=366px, 5.5/68*680=55px
+    const ACW=366, ACH=55;
+    R(FW/2-ACW/2,0,ACW,ACH);
+    // Porteria: 7.32m x 2.44m — 7.32/68*680=73px ancho, 2.44/52.5*1050=49px alto
+    R(FW/2-36.6,-49,73.2,49);
+    // Punto de penalti: 11m desde linea de fondo = 11/52.5*1050=220px
+    DOT(FW/2,220);
+    // Semicirculo del area: r=9.15m = 9.15/52.5*1050=183px, tangente al area grande
+    P(`M ${FW/2-91.5} ${AGH} A 183 183 0 0 0 ${FW/2+91.5} ${AGH}`);
+    // Corners arriba
+    ARC(0,0,10,0,90); ARC(FW,0,10,90,180);
+    // Punto central en linea central
+    DOT(FW/2,FH);
+
   } else if(type==='futsal'){
-    R(28,24,FW-56,FH-48);
-    L(FW/2,24,FW/2,FH-24);
-    C(FW/2,FH/2,60); DOT(FW/2,FH/2);
-    P(`M 28 ${FH/2-100} A 130 130 0 0 1 28 ${FH/2+100}`);
-    P(`M ${FW-28} ${FH/2-100} A 130 130 0 0 0 ${FW-28} ${FH/2+100}`);
-    R(8,FH/2-26,20,52); R(FW-28,FH/2-26,20,52);
-    DOT(28+80,FH/2); DOT(FW-108,FH/2);
+    // Futbol sala 40m x 20m. 1050/40=26.25px/m, 680/20=34px/m
+    R(0,0,FW,FH);
+    L(FW/2,0,FW/2,FH);
+    C(FW/2,FH/2,79); DOT(FW/2,FH/2); // circulo r=3m=79px
+    // Semicirculos de area r=6m: 6*26.25=157.5px
+    P(`M 0 ${FH/2-157.5} A 157.5 157.5 0 0 1 0 ${FH/2+157.5}`);
+    P(`M ${FW} ${FH/2-157.5} A 157.5 157.5 0 0 0 ${FW} ${FH/2+157.5}`);
+    // Porterias: 3m x 1m = 78.75 x 26.25px
+    R(-26.25,FH/2-39.375,26.25,78.75); R(FW,FH/2-39.375,26.25,78.75);
+    // Puntos de penalti: 6m=157.5px y 10m=262.5px
+    DOT(157.5,FH/2); DOT(FW-157.5,FH/2);
+    DOT(262.5,FH/2,2.5); DOT(FW-262.5,FH/2,2.5);
+    ARC(0,0,7,0,90); ARC(FW,0,7,90,180);
+    ARC(0,FH,7,270,360); ARC(FW,FH,7,180,270);
   }
 
-  // Insertar ANTES del svg-layer (queda detrás de los objetos)
   fMaster.insertBefore(svg, svgLayer);
 }
+
 
 // ── PUNTERO ──────────────────────────────────────────────────
 vp.addEventListener('pointerdown', onDown);
@@ -384,8 +390,9 @@ function syncInspector(el){
   if(isVec){setck('ins-arrow',!!el.arrow);setck('ins-dash',!!el.dashed);}
   tog('r-num',isPly);tog('r-strtog',isPly);tog('r-stripe',isPly&&el.striped);
   if(isPly){setv('ins-num',el.num||1);setck('ins-strtog',!!el.striped);setv('ins-stripe',el.stripeColor||TC[el.type].c2);}
-  tog('r-lock',isZone);
-  if(isZone)setck('ins-lock',!!el.locked);
+  // Bloqueo: visible solo para zonas
+  document.getElementById('r-lock').style.display = isZone ? 'flex' : 'none';
+  if(isZone) setck('ins-lock',!!el.locked);
   document.getElementById('btn-fpoly').style.display=(isVec&&el.sub==='poly'&&isDrawingPoly)?'block':'none';
 }
 function show(id){document.getElementById(id).style.display='flex';}
@@ -576,6 +583,9 @@ function renderForExport(f1,f2,ease){
   });
 }
 async function doMP4(){
+  // Ocultar box-shadow durante la captura para evitar sombra negra en el video
+  const origShadow=fMaster.style.boxShadow;
+  fMaster.style.boxShadow='none';
   const FPS=25,dur=getDur();
   const fp=Math.round((dur/1000)*FPS),total=fp*(steps.length-1);
   setProg(5,`Capturando ${total} frames...`);deselect();isPlaying=true;
@@ -594,7 +604,7 @@ async function doMP4(){
   renderForExport(steps[steps.length-1],steps[steps.length-1],0);await tick(60);
   const ls=await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:fMaster.style.background||'#2d8a47',logging:false});
   for(let k=0;k<FPS;k++)snaps.push(ls);
-  isPlaying=false;render();setProg(62,'Ensamblando WebM...');
+  isPlaying=false;fMaster.style.boxShadow=origShadow;render();setProg(62,'Ensamblando WebM...');
   const mime=['video/webm;codecs=vp8,opus','video/webm;codecs=vp8','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
   const stream=rc.captureStream(FPS),rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:4e6}),chunks=[];
   rec.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};rec.start();
