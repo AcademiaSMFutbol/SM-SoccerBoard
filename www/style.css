@@ -71,12 +71,14 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 #vp{
   flex:1;min-width:0;min-height:0;
   position:relative;
-  background:#2d8a47; /* mismo verde que el campo */
+  /* Fondo verde igual al campo para que el espacio sobrante sea invisible */
+  background:#2d8a47;
   overflow:hidden;
   touch-action:none;
   display:flex;
-  align-items:center;
-  justify-content:flex-start;
+  align-items:flex-start;    /* campo pegado arriba */
+  justify-content:flex-start; /* campo pegado a la izquierda */
+  padding:0;margin:0;
 }
 :fullscreen #vp{ background:#000; }
 :-webkit-full-screen #vp{ background:#000; }
@@ -110,10 +112,10 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 .vec-hit{pointer-events:auto;cursor:pointer;}
 
 /* ── OBJETOS EN CAMPO ── */
-.object{position:absolute;z-index:20;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:grab;background:transparent;border:none;outline:none;}
+.object{position:absolute;z-index:20;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;pointer-events:auto;cursor:grab;background:transparent;border:none;outline:none;line-height:0;}
 .object:active{cursor:grabbing;}
-.object.sel{outline:2.5px solid var(--warn);outline-offset:5px;z-index:50;}
-/* triángulo de dirección desactivado — se muestra dentro del SVG de camiseta */
+/* Sin outline en .object.sel para evitar rectángulo negro — el highlight va dentro del elemento */
+.object.sel{z-index:50;}
 .object::before{display:none;}
 .ball-obj{font-size:24px;cursor:grab;}
 
@@ -211,8 +213,7 @@ hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
 /* ── TEXTO EN CAMPO ── */
 .txt-obj{
-  position:absolute;z-index:20;
-  transform:translate(-50%,-50%);
+  position:absolute;
   display:inline-block;
   pointer-events:auto;cursor:grab;
   background:transparent;
@@ -220,8 +221,32 @@ hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
   font-family:'Barlow Condensed',sans-serif;
   font-weight:800;
   text-shadow:1px 1px 3px rgba(0,0,0,0.7);
+  user-select:none;
+  /* SIN outline — la selección se muestra con borde de color en el texto */
 }
-.txt-obj.sel{outline:2px solid var(--warn);outline-offset:4px;z-index:50;}
+.txt-obj.sel{
+  z-index:50;
+  text-shadow:0 0 8px var(--warn),1px 1px 3px rgba(0,0,0,0.7);
+}
 
 /* txt-sh — handle de escala para texto */
 .txt-sh{pointer-events:auto;cursor:se-resize;}
+
+/* Highlight de selección por tipo — sin rectángulo negro */
+.object.sel .shirt-svg circle:first-child{
+  stroke:var(--warn) !important;
+  stroke-width:3 !important;
+}
+.object.sel .cone-obj,
+.object.sel .cone_low-obj{
+  filter:drop-shadow(0 0 4px var(--warn));
+}
+.object.sel .pica-obj,
+.object.sel .valla-obj,
+.object.sel .ladder-obj,
+.object.sel .weight-obj{
+  box-shadow:0 0 0 2px var(--warn);
+}
+.object.sel .ball-obj{
+  filter:drop-shadow(0 0 5px var(--warn));
+}
