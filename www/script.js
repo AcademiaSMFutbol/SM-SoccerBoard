@@ -36,18 +36,20 @@ function updateSpeedLabel(){
 }
 function getDur(){ return 3300-+document.getElementById('speed-slider').value; }
 
-// ── RESIZE: width/height directos, sin scale ─────────────────
+// ── RESIZE: campo llena el viewport sin desbordamiento ────────
 function resizeField(){
   const r=vp.getBoundingClientRect();
+  if(r.width<=0||r.height<=0)return;
+  // Ratio que llena el ancho completo del viewport disponible
+  // usando contain (no cortar nada)
   const ratio=Math.min(r.width/FW, r.height/FH);
-  const w=Math.round(FW*ratio), h=Math.round(FH*ratio);
-  // field-master es position:relative dentro del flex — solo fijamos tamaño
+  const w=Math.round(FW*ratio);
+  const h=Math.round(FH*ratio);
   fMaster.style.width =w+'px';
   fMaster.style.height=h+'px';
-  // Quitar cualquier left/top residual de versiones anteriores
+  fMaster.style.position='relative';
   fMaster.style.left='';
   fMaster.style.top='';
-  fMaster.style.position='relative';
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   drawFieldBG(currentField);
 }
@@ -106,30 +108,32 @@ function drawFieldBG(type){
     ARC(0,FH,10,270,360); ARC(FW,FH,10,180,270);
 
   } else if(type==='half'){
-    // Medio campo: 52.5m x 68m. Porteria ARRIBA, linea central ABAJO.
-    // FW=1050 representa 52.5m (20px/m), FH=680 representa 68m (~10px/m)
-    // Lineas de contorno (3 lados: arriba, izq, der; abajo=linea central)
-    L(0,0,FW,0);           // linea de fondo (porteria, arriba)
-    L(0,0,0,FH);            // lateral izquierdo
-    L(FW,0,FW,FH);          // lateral derecho
-    L(0,FH,FW,FH);          // linea central (abajo)
-    // Area grande: 40.32m x 16.5m — en FW=1050=52.5m: 40.32/52.5*1050=806px, alto=16.5/68*680=165px
-    const AGW=806, AGH=165;
+    // Medio campo: porteria ARRIBA (y=0), linea central ABAJO (y=FH)
+    // Canvas FW=1050 = 68m ancho, FH=680 = 52.5m profundidad
+    // Escala: X=1050/68=15.44px/m, Y=680/52.5=12.95px/m
+    const Xs=1050/68, Ys=680/52.5;
+    // Linea de fondo (arriba), laterales y linea central (abajo)
+    L(0,0,FW,0); L(0,0,0,FH); L(FW,0,FW,FH); L(0,FH,FW,FH);
+    // Area grande: 40.32m ancho x 16.5m profundidad
+    const AGW=Math.round(40.32*Xs), AGH=Math.round(16.5*Ys);
     R(FW/2-AGW/2,0,AGW,AGH);
-    // Area chica: 18.32m x 5.5m — 18.32/52.5*1050=366px, 5.5/68*680=55px
-    const ACW=366, ACH=55;
+    // Area chica: 18.32m x 5.5m
+    const ACW=Math.round(18.32*Xs), ACH=Math.round(5.5*Ys);
     R(FW/2-ACW/2,0,ACW,ACH);
-    // Porteria: 7.32m x 2.44m — 7.32/68*680=73px ancho, 2.44/52.5*1050=49px alto
-    R(FW/2-36.6,-49,73.2,49);
-    // Punto de penalti: 11m desde linea de fondo = 11/52.5*1050=220px
-    DOT(FW/2,220);
-    // Semicirculo del area: r=9.15m = 9.15/52.5*1050=183px, tangente al area grande
-    P(`M ${FW/2-91.5} ${AGH} A 183 183 0 0 0 ${FW/2+91.5} ${AGH}`);
-    // Corners arriba
+    // Porteria: 7.32m x 2.44m (encima de y=0)
+    const GW=Math.round(7.32*Xs), GH=Math.round(2.44*Ys);
+    R(FW/2-GW/2,-GH,GW,GH);
+    // Punto penalti: 11m desde linea de fondo
+    const PP=Math.round(11*Ys);
+    DOT(FW/2,PP);
+    // Semicirculo: r=9.15m, tangente al area grande por abajo
+    // r en Y: 9.15*Ys=118.5, pero usamos un radio visual uniforme
+    const SR=Math.round(9.15*Ys);
+    P(`M ${FW/2-SR*0.55} ${AGH} A ${SR} ${SR} 0 0 0 ${FW/2+SR*0.55} ${AGH}`);
+    // Corners
     ARC(0,0,10,0,90); ARC(FW,0,10,90,180);
-    // Punto central en linea central
+    // Punto en linea central
     DOT(FW/2,FH);
-
   } else if(type==='futsal'){
     // Futbol sala 40m x 20m. 1050/40=26.25px/m, 680/20=34px/m
     R(0,0,FW,FH);
@@ -176,7 +180,11 @@ function onDown(e){
     activeId=hitId||null;
     if(activeId){
       const el=steps[curStep].find(o=>o.id===activeId);
-      if(el&&el.locked&&el.type==='zone'){activeId=null;render();return;}
+      if(el&&el.locked&&el.type==='zone'){
+        // Zona bloqueada: seleccionable para poder desbloquear desde inspector
+        activeId=hitId;
+        syncInspector(el); render(); return;
+      }
       if(el&&(was||hit?.classList.contains('node')||hit?.classList.contains('zone-sh'))){
         saveState();
         dragInfo={el,isSH:hit?.classList.contains('zone-sh'),
@@ -230,7 +238,7 @@ function onMove(e){
 }
 
 function onUp(e){
-  const ROT=['cone','cone_low','pica','valla','ladder','weight','ball'];
+  const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','A','B','C','D'];
   if(isPossibleTap&&activeId&&activePointers.size===1&&!isDrawingPoly){
     const el=steps[curStep].find(o=>o.id===activeId);
     if(el&&ROT.includes(el.type)){el.rot=((el.rot||0)+15)%360;render();}
@@ -258,7 +266,9 @@ function render(){
     }
   }
   document.getElementById('step-label').innerText=`${curStep+1} / ${steps.length}`;
-  document.getElementById('inspector').style.display=activeId?'block':'none';
+  // Mostrar inspector si hay elemento activo
+  const insEl = activeId ? steps[curStep].find(o=>o.id===activeId) : null;
+  document.getElementById('inspector').style.display = insEl ? 'block' : 'none';
 }
 
 // FIX CRÍTICO: wipe() nunca borra #field-bg ni defs del svg-layer
@@ -322,6 +332,12 @@ function makeShirt(c1,c2,striped,num){
   txt.setAttribute('font-family','Barlow Condensed,sans-serif');txt.setAttribute('font-size','14');txt.setAttribute('font-weight','800');
   txt.setAttribute('fill','#fff');txt.setAttribute('paint-order','stroke');txt.setAttribute('stroke','rgba(0,0,0,0.5)');txt.setAttribute('stroke-width','2');
   txt.textContent=num;svg.appendChild(txt);
+  // Triángulo de dirección (arriba del círculo, dentro del SVG)
+  const tri=document.createElementNS(ns,'polygon');
+  tri.setAttribute('points','19,1 23,9 15,9');
+  tri.setAttribute('fill','rgba(255,255,255,0.85)');
+  tri.setAttribute('stroke','none');
+  svg.appendChild(tri);
   return svg;
 }
 
@@ -402,7 +418,7 @@ function setck(id,v){document.getElementById(id).checked=v;}
 
 function setProp(prop,val){const el=steps[curStep].find(o=>o.id===activeId);if(!el)return;el[prop]=val;render();syncInspector(el);}
 function toggleStripe(on){const el=steps[curStep].find(o=>o.id===activeId);if(!el)return;el.striped=on;tog('r-stripe',on);render();}
-function toggleLock(on){const el=steps[curStep].find(o=>o.id===activeId);if(!el)return;el.locked=on;if(on)activeId=null;render();}
+function toggleLock(on){const el=steps[curStep].find(o=>o.id===activeId);if(!el)return;el.locked=on;render();syncInspector(el);}
 
 // ── CREAR ELEMENTOS ──────────────────────────────────────────
 function createPlayer(team){
