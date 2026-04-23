@@ -47,19 +47,18 @@ function updateSpeedLabel(){
 }
 function getDur(){ return 3300-+document.getElementById('speed-slider').value; }
 
-// ── RESIZE: campo ocupa exactamente el ancho real del vp ────
+// ── RESIZE: campo llena el viewport completamente ──────────
 function resizeField(){
-  // offsetWidth es el ancho real tras layout, sin decimales
-  const vpW=vp.offsetWidth;
-  const vpH=vp.offsetHeight;
+  const vpW=vp.clientWidth;   // ancho real sin bordes
+  const vpH=vp.clientHeight;
   if(vpW<=0||vpH<=0)return;
-  // Llenar ancho completo; si la altura resultante supera el vp, limitar
+  // Escalar por ancho primero (campo horizontal)
   let w=vpW, h=Math.round(vpW*FH/FW);
+  // Si la altura supera el vp, escalar por altura
   if(h>vpH){ h=vpH; w=Math.round(vpH*FW/FH); }
-  fMaster.style.width=w+'px';
-  fMaster.style.height=h+'px';
-  fMaster.style.position='relative';
-  fMaster.style.left=''; fMaster.style.top='';
+  fMaster.style.cssText=
+    `width:${w}px;height:${h}px;position:relative;`+
+    `background-size:100% 100%;background-repeat:no-repeat;`;
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   drawFieldBG(currentField);
 }
@@ -299,53 +298,96 @@ function render(){
 
 // FIX CRÍTICO: wipe() nunca borra #field-bg ni defs del svg-layer
 function wipe(){
-  fMaster.querySelectorAll('.object,.zone-obj,.node,.txt-obj').forEach(el=>el.remove());
+  fMaster.querySelectorAll('.object,.zone-obj,.node,.txt-obj,.shirt-svg').forEach(el=>el.remove());
   const defs=svgLayer.querySelector('defs');
   svgLayer.innerHTML='';
   if(defs)svgLayer.appendChild(defs);
 }
 
 // ── PAINT OBJECT ─────────────────────────────────────────────
+// Posicionamos sin translate(-50%,-50%) para evitar el salto:
+// left = x - halfW, top = y - halfH  con dimensiones conocidas por tipo
 function paintObj(el){
-  const div=document.createElement('div');
-  div.className='object'+(activeId===el.id?' sel':'');
-  div.dataset.id=el.id;
+  const isSel=activeId===el.id;
+  const sc=el.scale||1;
+  const rot=el.rot||0;
 
   if(['A','B','C','D'].includes(el.type)){
     const c1=el.color||TC[el.type].c1;
     const c2=el.stripeColor||TC[el.type].c2;
-    // Forzar dimensiones del div = dimensiones del SVG para evitar rectángulo negro
-    div.style.width='38px'; div.style.height='38px';
-    div.style.display='block'; // no flex — elimina el layout rectangular del browser
-    const shirtSvg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,activeId===el.id);
-    div.appendChild(shirtSvg);
-  } else if(el.type==='ball'){
-    // Balón: sin div wrapper extra
-    div.style.display='block';
-    div.style.background='transparent';
-    div.style.lineHeight='1';
-    const b=document.createElement('div');b.className='ball-obj';b.textContent='⚽';div.appendChild(b);
-  } else {
-    const sh=document.createElement('div'); sh.className=el.type+'-obj';
-    const c=el.color;
-    if(el.type==='cone')     sh.style.borderBottomColor=c||'#e67e22';
-    if(el.type==='cone_low') sh.style.borderBottomColor=c||'#e74c3c';
-    if(el.type==='pica')     sh.style.background=c||'#f1c40f';
-    if(el.type==='valla')    sh.style.borderColor=c||'#e74c3c';
-    if(el.type==='ladder')  {sh.style.borderTopColor=c||'#f1c40f';sh.style.borderBottomColor=c||'#f1c40f';sh.style.backgroundImage=`repeating-linear-gradient(90deg,transparent,transparent 22px,${c||'#f1c40f'} 22px,${c||'#f1c40f'} 26px)`;}
-    // div wrapper sin fondo, tamaño exacto del hijo
-    div.style.display='contents'; // el div desaparece visualmente, solo el hijo es visible
-    div.appendChild(sh);
-    // Para display:contents el hit area y el dataset.id deben ir en el hijo
-    sh.dataset.id=el.id;
-    sh.style.cursor='grab';
-    sh.style.pointerEvents='auto';
-    // Como display:contents no aplica transform, volver a block
-    div.style.display='block';
-    div.style.background='transparent';
+    const sz=isSel?44:38; // ring de sel amplía el SVG
+    const half=sz/2;
+    const svg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,isSel);
+    svg.dataset.id=el.id;
+    svg.style.cssText=`position:absolute;left:${el.x-half}px;top:${el.y-half}px;`+
+      `width:${sz}px;height:${sz}px;cursor:grab;pointer-events:auto;z-index:20;`+
+      `transform:rotate(${rot}deg) scale(${sc});transform-origin:${half}px ${half}px;`;
+    fMaster.appendChild(svg);
+    return; // SVG directo, sin div wrapper
   }
-  div.style.left=el.x+'px';div.style.top=el.y+'px';
-  div.style.transform=`translate(-50%,-50%) rotate(${el.rot||0}deg) scale(${el.scale||1})`;
+
+  // Material y balón — usamos un div posicionado con left/top exacto
+  const div=document.createElement('div');
+  div.className='object'+(isSel?' sel':'');
+  div.dataset.id=el.id;
+  div.style.position='absolute';
+  div.style.background='transparent';
+  div.style.cursor='grab';
+  div.style.pointerEvents='auto';
+  div.style.zIndex='20';
+  div.style.transformOrigin='center center';
+
+  if(el.type==='ball'){
+    div.style.fontSize='26px';
+    div.style.lineHeight='1';
+    div.style.width='26px'; div.style.height='26px';
+    div.style.left=(el.x-13)+'px'; div.style.top=(el.y-13)+'px';
+    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
+    div.textContent='⚽';
+  } else if(el.type==='cone'||el.type==='cone_low'){
+    const bw=el.type==='cone'?14:12;
+    const bh=el.type==='cone'?28:14;
+    div.style.width='0'; div.style.height='0';
+    div.style.borderLeft=`${bw}px solid transparent`;
+    div.style.borderRight=`${bw}px solid transparent`;
+    div.style.borderBottom=`${bh}px solid ${el.color||(el.type==='cone'?'#e67e22':'#e74c3c')}`;
+    div.style.filter='drop-shadow(0 2px 3px rgba(0,0,0,.4))';
+    div.style.left=(el.x-bw)+'px'; div.style.top=(el.y-bh/2)+'px';
+    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
+  } else if(el.type==='pica'){
+    div.style.width='6px'; div.style.height='52px';
+    div.style.background=`linear-gradient(${el.color||'#f1c40f'},#e67e22 60%,#c0392b)`;
+    div.style.borderRadius='3px 3px 1px 1px';
+    div.style.left=(el.x-3)+'px'; div.style.top=(el.y-26)+'px';
+    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
+  } else if(el.type==='valla'){
+    div.style.width='48px'; div.style.height='27px';
+    div.style.border=`4px solid ${el.color||'#e74c3c'}`;
+    div.style.borderBottom='none';
+    div.style.borderRadius='5px 5px 0 0';
+    div.style.left=(el.x-24)+'px'; div.style.top=(el.y-13)+'px';
+    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
+  } else if(el.type==='ladder'){
+    div.style.width='155px'; div.style.height='33px';
+    div.style.borderTop=`4px solid ${el.color||'#f1c40f'}`;
+    div.style.borderBottom=`4px solid ${el.color||'#f1c40f'}`;
+    div.style.backgroundImage=`repeating-linear-gradient(90deg,transparent,transparent 22px,${el.color||'#f1c40f'} 22px,${el.color||'#f1c40f'} 26px)`;
+    div.style.left=(el.x-77)+'px'; div.style.top=(el.y-16)+'px';
+    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
+  } else if(el.type==='weight'){
+    div.style.width='30px'; div.style.height='19px';
+    div.style.background='linear-gradient(180deg,#bdc3c7,#7f8c8d)';
+    div.style.borderRadius='4px';
+    div.style.left=(el.x-15)+'px'; div.style.top=(el.y-9)+'px';
+    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
+  }
+
+  // Ring de selección para material via outline circular donde aplique
+  if(isSel){
+    div.style.outline='2.5px solid #f1c40f';
+    div.style.outlineOffset='4px';
+  }
+
   fMaster.appendChild(div);
 }
 
@@ -412,20 +454,26 @@ function paintTxt(el){
   div.className='txt-obj'+(activeId===el.id?' sel':'');
   div.dataset.id=el.id;
   const fs=el.fontSize||32;
-  // position:absolute + transform centra visualmente en x,y
-  // position:relative necesario para que el handle se posicione bien
-  div.style.cssText=`position:absolute;left:${el.x}px;top:${el.y}px;`+
+  const rot=el.rot||0;
+  // left/top = posición del punto central del texto.
+  // Usamos transform:translate(-50%,-50%) SOLO para centrar —
+  // el punto de anclaje del drag (el.x, el.y) ES el centro del texto.
+  // El salto anterior ocurría porque el dragInfo.zoom no se recalculaba.
+  // Ahora el zoom se recalcula en cada onDown desde el rect del campo.
+  div.style.cssText=
+    `position:absolute;`+
+    `left:${el.x}px;top:${el.y}px;`+
     `color:${el.color||'#ffffff'};font-size:${fs}px;`+
     `font-family:'Barlow Condensed',sans-serif;font-weight:800;`+
     `white-space:nowrap;line-height:1;cursor:grab;pointer-events:auto;`+
-    `background:transparent;transform:translate(-50%,-50%) rotate(${el.rot||0}deg);`+
-    `text-shadow:1px 1px 4px rgba(0,0,0,0.8);z-index:20;`;
+    `background:transparent;`+
+    `transform:translate(-50%,-50%) rotate(${rot}deg);`+
+    `text-shadow:1px 1px 4px rgba(0,0,0,0.8);z-index:20;`+
+    (activeId===el.id?`text-shadow:0 0 8px #f1c40f,1px 1px 4px rgba(0,0,0,0.8);`:'');
   div.textContent=el.text;
   if(activeId===el.id){
     const sh=document.createElement('div');
     sh.className='zone-sh txt-sh';sh.dataset.id=el.id;sh.textContent='⤡';
-    // El handle se posiciona relativo al texto mediante transform del padre
-    // Usamos un span flotante sobre el div
     sh.style.cssText='position:absolute;bottom:-14px;right:-14px;z-index:30;width:16px;height:16px;font-size:10px;';
     div.appendChild(sh);
   }
