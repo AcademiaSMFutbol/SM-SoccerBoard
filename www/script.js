@@ -13,7 +13,6 @@ const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
 const svg = document.getElementById('svg-layer');
 
-// --- DATOS BIBLIOTECA (Audit v51) ---
 const drillLibrary = {
     rondo42: [
         { id: 1, type: 'zone', sub: 'line', x: 400, y: 240, w: 250, h: 200, color: '#ffffff', locked: true },
@@ -42,9 +41,8 @@ const drillLibrary = {
     tiro_box: [
         { id: 1, type: 'p-blue', x: 525, y: 640, num: 1, color: '#2e86de' },
         { id: 2, type: 'valla', x: 450, y: 150, color: '#e74c3c' },
-        { id: 3, type: 'valla', x: 600, y: 150, color: '#e74c3c' },
-        { id: 4, type: 'p-red', x: 525, y: 250, num: 9, color: '#ff4757' },
-        { id: 5, type: 'ball', x: 525, y: 350 }
+        { id: 3, type: 'p-red', x: 525, y: 250, num: 9, color: '#ff4757' },
+        { id: 4, type: 'ball', x: 525, y: 350 }
     ],
     cuadrado_p: [
         { id: 1, type: 'cone', x: 300, y: 200, color: '#ffffff' },
@@ -66,28 +64,26 @@ function injectDrill(key) {
     closeLibrary(); render();
 }
 
-// --- MANEJO DE EVENTOS (Audit v51: Seleccionar para mover) ---
+// --- MANEJO DE EVENTOS (Selección previa para mover) ---
 function handleGlobalDown(e) {
     if(isPlaying) return;
     const hit = e.target.closest('.object, .vec-hit, .zone, .node, .player');
     let hitId = hit ? Number(hit.dataset.id) : null;
     
-    // Lógica clave: ¿Estaba seleccionado antes de tocar?
     const wasSelectedBefore = (activeId === hitId && hitId !== null);
     activeId = hitId;
 
     if(activeId) {
         const el = steps[curStep].find(o => o.id === activeId);
         
-        // Solo permitimos mover si ya estaba seleccionado O si es un nodo de control
+        // Solo movemos si ya estaba seleccionado O es un nodo de control
         if(wasSelectedBefore || hit.classList.contains('node')) {
             if(el.type === 'zone' && el.locked && !hit.classList.contains('node')) { dragInfo = null; return; }
             const rect = fMaster.getBoundingClientRect();
-            dragInfo = { el, nx: hit.dataset.nx || 'x', ny: hit.dataset.ny || 'y', 
-                isZS: hit.classList.contains('node-zs'), moved: false, lastX: e.clientX, lastY: e.clientY, zoom: rect.width / 1050 };
+            dragInfo = { el, nx: hit.dataset.nx || 'x', ny: hit.dataset.ny || 'y', isZS: hit.classList.contains('node-zs'), moved: false, lastX: e.clientX, lastY: e.clientY, zoom: rect.width / 1050 };
             saveState();
         } else {
-            dragInfo = null; // No movemos, solo seleccionamos
+            dragInfo = null;
         }
         render();
     } else {
@@ -106,13 +102,12 @@ function handleGlobalMove(e) {
         ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
         ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
     } else { dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy; }
-    
     dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY; render();
 }
 
 function handleGlobalEnd() { if(dragInfo && !dragInfo.moved) history.pop(); dragInfo = null; render(); }
 
-// --- RENDERIZADO ---
+// --- RENDER ---
 function render() {
     if (isPlaying) return;
     Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') fMaster.removeChild(c); });
@@ -159,27 +154,19 @@ function drawZone(el) {
     fMaster.appendChild(div);
 }
 
-// --- EXPORTAR MP4 ---
-async function exportMP4() {
-    if(steps.length < 2) return;
-    deselect();
-    const stream = fMaster.captureStream ? fMaster.captureStream(30) : null;
-    if(!stream) return;
-    const rec = new MediaRecorder(stream, { mimeType: 'video/webm' });
-    const chunks = [];
-    rec.ondataavailable = e => chunks.push(e.data);
-    rec.onstop = () => {
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(chunks, {type:'video/webm'}));
-        a.download = 'tactica.webm'; a.click();
-    };
-    rec.start(); await runAnimation(); setTimeout(() => rec.stop(), 500);
+function drawVector(el) {
+    const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", d); p.setAttribute("stroke", el.color); p.setAttribute("stroke-width", "3");
+    if(el.lineType === "dashed") p.setAttribute("stroke-dasharray", "6,6"); if(el.arrow) p.setAttribute("marker-end", "url(#arrow)"); p.setAttribute("class", "v-el"); svg.appendChild(p);
+    const h = document.createElementNS("http://www.w3.org/2000/svg", "path"); h.setAttribute("d", d); h.setAttribute("stroke", "transparent"); h.setAttribute("stroke-width", "30"); h.setAttribute("class", "vec-hit v-el"); h.dataset.id = el.id; svg.appendChild(h);
 }
 
-// --- FUNCIONES SOPORTE ---
+// --- SOPORTE ---
 function modifyProp(p, v) { saveState(); const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); } }
 function updateTeamColor(team, color) { teamColors[team] = color; document.getElementById(`tool-${team}`).style.background = color; steps.forEach(step => { step.forEach(el => { if(el.type === team) el.color = color; }); }); render(); }
 function changeField(type) { const imgs = { 'entero': 'campoentero.png', 'medio': 'mediocampo.png', 'ejercicio': 'campoejercicio.png' }; fMaster.style.backgroundImage = `url('${imgs[type]}')`; setTimeout(resizeField, 50); }
 function resizeField() { const vw = viewport.clientWidth, vh = viewport.clientHeight; let final = Math.min(vw / 1050, vh / 680); fMaster.style.transform = `scale(${final})`; }
+async function exportMP4() { if(steps.length < 2) return; deselect(); const stream = fMaster.captureStream(30); const rec = new MediaRecorder(stream, { mimeType: 'video/webm' }); const chunks = []; rec.ondataavailable = e => chunks.push(e.data); rec.onstop = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(chunks, {type:'video/webm'})); a.download = 'video.webm'; a.click(); }; rec.start(); await runAnimation(); setTimeout(() => rec.stop(), 500); }
 function setForceFS(v) { forceFS = v; if(v) document.documentElement.requestFullscreen().catch(()=>{}); }
 document.addEventListener('pointerdown', () => { if(forceFS && !document.fullscreenElement) document.documentElement.requestFullscreen(); });
 function saveState() { if (history.length > 30) history.shift(); history.push(JSON.stringify(steps)); }
@@ -196,7 +183,6 @@ function createZone(s) { saveState(); steps[curStep].push({ id: Date.now(), type
 function deselect() { activeId = null; render(); }
 function updateInspector() { const p = document.getElementById('inspector-panel'); if(!activeId) { p.style.display='none'; return; } p.style.display='block'; const el = steps[curStep].find(o=>o.id===activeId); document.getElementById('ins-color').value = el.color||'#000000'; document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR" : "🔒 BLOQUEAR"; }
 function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) { const node = document.createElement('div'); node.className = `node ${isZS?'node-zs':''}`; node.style.left = fx+'px'; node.style.top = fy+'px'; node.dataset.id = el.id; node.dataset.nx = nx; node.dataset.ny = ny; node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`; fMaster.appendChild(node); }
-function drawVector(el) { const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`; const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", d); p.setAttribute("stroke", el.color); p.setAttribute("stroke-width", "3"); if(el.lineType === "dashed") p.setAttribute("stroke-dasharray", "6,6"); if(el.arrow) p.setAttribute("marker-end", "url(#arrow)"); p.setAttribute("class", "v-el"); svg.appendChild(p); const h = document.createElementNS("http://www.w3.org/2000/svg", "path"); h.setAttribute("d", d); h.setAttribute("stroke", "transparent"); h.setAttribute("stroke-width", "30"); h.setAttribute("class", "vec-hit v-el"); h.dataset.id = el.id; svg.appendChild(h); }
 function exportStepPNG() { deselect(); setTimeout(() => { html2canvas(fMaster, { backgroundColor: null, scale: 3, useCORS: true }).then(c => { const a = document.createElement('a'); a.download = `tactica_${curStep+1}.png`; a.href = c.toDataURL(); a.click(); }); }, 150); }
 async function runAnimation() { if (steps.length < 2) return; isPlaying = true; deselect(); for (let i = 0; i < steps.length - 1; i++) { await new Promise(res => { let start = null; const f1 = steps[i], f2 = steps[i + 1]; function animate(ts) { if (!start) start = ts; const p = Math.min((ts - start) / animationSpeed, 1); Array.from(fMaster.children).forEach(c => { if (c.id !== 'svg-layer') fMaster.removeChild(c); }); f1.forEach(o => { const t = f2.find(x => x.id === o.id); if (!t || !(o.type.startsWith('p-') || o.type === 'ball')) { if (t) { if(o.type==='text') drawText(o); else if(o.type==='zone') drawZone(o); else drawPhysical(o); } return; } const div = document.createElement('div'); div.className = `object ${o.type} player`; const x = o.x + (t.x - o.x) * p; const y = o.y + (t.y - o.y) * p; const r = (o.rot||0) + ((t.rot||0) - (o.rot||0)) * p; const s = (o.scale||1) + ((t.scale||1) - (o.scale||1)) * p; if (o.type.startsWith('p-')) { div.style.background = o.color; div.innerText = o.num; } else if (o.type === 'ball') { div.innerText = '⚽'; div.style.fontSize = '18px'; div.classList.remove('player'); } div.style.left = x + 'px'; div.style.top = y + 'px'; div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`; fMaster.appendChild(div); }); if (p < 1) requestAnimationFrame(animate); else res(); } requestAnimationFrame(animate); }); } isPlaying = false; render(); }
 function openResetMenu() { document.getElementById('reset-modal').style.display='flex'; }
