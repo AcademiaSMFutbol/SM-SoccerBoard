@@ -14,57 +14,63 @@ const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
 const svg = document.getElementById('svg-layer');
 
-// --- BIBLIOTECA DE 50 SLOTS (Starter Pack) ---
+// --- BIBLIOTECA ---
 const drillLibrary = {
     rondo42: [
         { id: 1, type: 'zone', sub: 'line', x: 400, y: 240, w: 250, h: 200, color: '#ffffff', locked: true },
-        { id: 2, type: 'p-red', x: 400, y: 340, num: 1, color: '#ff4757' },
-        { id: 3, type: 'p-red', x: 650, y: 340, num: 2, color: '#ff4757' },
-        { id: 4, type: 'p-red', x: 525, y: 240, num: 3, color: '#ff4757' },
-        { id: 5, type: 'p-red', x: 525, y: 440, num: 4, color: '#ff4757' },
-        { id: 6, type: 'p-blue', x: 500, y: 340, num: 1, color: '#2e86de' },
-        { id: 7, type: 'p-blue', x: 550, y: 340, num: 2, color: '#2e86de' },
+        { id: 2, type: 'p-red', x: 400, y: 340, num: 1 }, { id: 3, type: 'p-red', x: 650, y: 340, num: 2 },
+        { id: 4, type: 'p-red', x: 525, y: 240, num: 3 }, { id: 5, type: 'p-red', x: 525, y: 440, num: 4 },
+        { id: 6, type: 'p-blue', x: 500, y: 340, num: 1 }, { id: 7, type: 'p-blue', x: 550, y: 340, num: 2 },
         { id: 8, type: 'ball', x: 420, y: 340 }
-    ],
-    y_drill: [
-        { id: 1, type: 'cone', x: 200, y: 340, color: '#e67e22' },
-        { id: 2, type: 'cone', x: 400, y: 340, color: '#e67e22' },
-        { id: 3, type: 'cone', x: 600, y: 200, color: '#e67e22' },
-        { id: 4, type: 'cone', x: 600, y: 480, color: '#e67e22' },
-        { id: 5, type: 'p-red', x: 180, y: 340, num: 1 }
     ],
     slalom: [
         { id: 1, type: 'cone', x: 300, y: 340, color: '#e67e22' },
         { id: 2, type: 'cone', x: 400, y: 340, color: '#e67e22' },
         { id: 3, type: 'cone', x: 500, y: 340, color: '#e67e22' },
-        { id: 4, type: 'cone', x: 600, y: 340, color: '#e67e22' },
-        { id: 5, type: 'ball', x: 250, y: 340 }
-    ],
-    tiro_box: [
-        { id: 1, type: 'p-red', x: 525, y: 640, num: 1 }, // Portero
-        { id: 2, type: 'zone', sub: 'fill', x: 450, y: 150, w: 150, h: 100, color: '#2ecc71', locked: true },
-        { id: 3, type: 'p-blue', x: 525, y: 150, num: 9 }
+        { id: 4, type: 'ball', x: 250, y: 340 }
     ]
-    // ... aquí puedes añadir hasta los 50 ejercicios siguiendo el mismo formato JSON
 };
 
+function openLibrary() { document.getElementById('library-modal').style.display = 'flex'; }
+function closeLibrary() { document.getElementById('library-modal').style.display = 'none'; }
+
 function injectDrill(key) {
-    if(!confirm("¿Cargar esta tarea? Se borrará el paso actual.")) return;
     saveState();
-    const drillData = JSON.parse(JSON.stringify(drillLibrary[key] || []));
-    const timestamp = Date.now();
-    drillData.forEach((el, index) => { el.id = timestamp + index; });
-    steps[curStep] = drillData;
-    deselect();
+    const data = JSON.parse(JSON.stringify(drillLibrary[key] || []));
+    const now = Date.now();
+    data.forEach((el, idx) => { el.id = now + idx; if(!el.color && el.type.startsWith('p-')) el.color = teamColors[el.type]; });
+    steps[curStep] = data;
+    closeLibrary(); render();
 }
 
-// --- LÓGICA DE MOTOR (v47 Audit) ---
+// --- EXPORTACIÓN MP4 (MOTOR DE GRABACIÓN) ---
+async function exportMP4() {
+    if(steps.length < 2) { alert("Necesitas al menos 2 pasos para exportar video."); return; }
+    deselect();
+    const stream = fMaster.captureStream ? fMaster.captureStream(30) : null;
+    if(!stream) { alert("Tu navegador no soporta captura de video directa."); return; }
+    
+    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    const chunks = [];
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'tactica.webm'; a.click();
+    };
+    
+    recorder.start();
+    await runAnimation();
+    setTimeout(() => recorder.stop(), 500);
+}
+
+// --- LÓGICA DE MOTOR ---
 function setForceFS(val) { forceFS = val; if(val) requestFS(); }
 function requestFS() { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); }
 document.addEventListener('pointerdown', () => { if(forceFS) requestFS(); });
 
 function saveState() { if (history.length > 30) history.shift(); history.push(JSON.stringify(steps)); }
-function undo() { if (history.length === 0) return; steps = JSON.parse(history.pop()); render(); }
+function undo() { if (history.length > 0) { steps = JSON.parse(history.pop()); render(); } }
 
 function openResetMenu() { document.getElementById('reset-modal').style.display = 'flex'; }
 function closeResetMenu() { document.getElementById('reset-modal').style.display = 'none'; }
@@ -79,8 +85,7 @@ function closeTextModal() { document.getElementById('text-modal').style.display 
 function confirmCreateText() {
     const val = document.getElementById('text-input-field').value;
     if(!val) return;
-    saveState();
-    steps[curStep].push({ id: Date.now(), type: 'text', x: 200, y: 200, content: val, color: "#000000", scale: 1 });
+    saveState(); steps[curStep].push({ id: Date.now(), type: 'text', x: 200, y: 200, content: val, color: "#000000", scale: 1 });
     closeTextModal(); render();
 }
 
@@ -92,8 +97,7 @@ function changeField(type) {
 
 function resizeField() {
     const vw = viewport.clientWidth, vh = viewport.clientHeight;
-    let sX = vw / 1050, sY = vh / 680;
-    let final = Math.min(sX, sY);
+    let final = Math.min(vw / 1050, vh / 680);
     fMaster.style.transform = `scale(${final})`;
 }
 
@@ -101,14 +105,12 @@ function render() {
     if (isPlaying) return;
     Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') c.remove(); });
     svg.querySelectorAll('.v-el').forEach(e => e.remove());
-    
     steps[curStep].forEach(el => {
         if(el.type === 'vec') drawVector(el);
         else if(el.type === 'zone') drawZone(el);
         else if(el.type === 'text') drawText(el);
         else drawPhysical(el);
     });
-
     if(activeId) {
         const el = steps[curStep].find(o => o.id === activeId);
         if(el) {
@@ -127,7 +129,6 @@ function handleGlobalDown(e) {
     if(isPlaying) return;
     const hit = e.target.closest('.object, .vec-hit, .zone, .node');
     let hitId = hit ? Number(hit.dataset.id) : null;
-    let wasSelected = (activeId === hitId && hitId !== null);
     if(hitId !== null) activeId = hitId;
     if(activeId) {
         const el = steps[curStep].find(o => o.id === activeId);
@@ -142,7 +143,7 @@ function handleGlobalDown(e) {
 }
 
 function handleGlobalMove(e) {
-    if(!dragInfo || isPlaying) return;
+    if(!dragInfo) return;
     const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoom;
     const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoom;
     if (Math.hypot(dx, dy) > 0.5) dragInfo.moved = true;
@@ -162,8 +163,7 @@ function createPlayer(type) {
 }
 
 function createItem(type) {
-    saveState();
-    let color = (type==='cone') ? "#e67e22" : (type==='valla' ? "#e74c3c" : "#f1c40f");
+    saveState(); let color = (type==='cone') ? "#e67e22" : (type==='valla' ? "#e74c3c" : "#f1c40f");
     steps[curStep].push({ id: Date.now(), type, x: 150, y: 150, rot: 0, scale: 1, color });
     render();
 }
@@ -182,7 +182,7 @@ function drawPhysical(el) {
     const div = document.createElement('div');
     div.className = `object ${el.type} ${activeId === el.id ? 'selected' : ''}`;
     div.dataset.id = el.id;
-    if(el.type.startsWith('p-')) { div.style.background = teamColors[el.type]; div.innerText = el.num; div.classList.add('player'); }
+    if(el.type.startsWith('p-')) { div.style.background = el.color; div.innerText = el.num; div.classList.add('player'); }
     else if(el.type === 'ball') { div.innerText = '⚽'; div.style.fontSize = '18px'; }
     else { div.classList.add(el.type); div.style.color = el.color; if(el.type==='cone') div.style.borderBottomColor = el.color; }
     div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
@@ -191,8 +191,7 @@ function drawPhysical(el) {
 
 function drawText(el) {
     const div = document.createElement('div'); div.className = `object ${activeId === el.id ? 'selected' : ''}`;
-    div.innerText = el.content; div.style.color = el.color; div.dataset.id = el.id;
-    div.style.left = el.x + 'px'; div.style.top = el.y + 'px'; fMaster.appendChild(div);
+    div.innerText = el.content; div.style.color = el.color; div.dataset.id = el.id; div.style.left = el.x + 'px'; div.style.top = el.y + 'px'; fMaster.appendChild(div);
 }
 
 function drawVector(el) {
@@ -231,6 +230,52 @@ function updateInspector() {
     document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR" : "🔒 BLOQUEAR";
 }
 
+function toggleZoneLock() {
+    const el = steps[curStep].find(o => o.id === activeId);
+    if(el && el.type === 'zone') { saveState(); el.locked = !el.locked; render(); }
+}
+
+function exportStepPNG() {
+    deselect();
+    setTimeout(() => {
+        html2canvas(fMaster, { backgroundColor: null, scale: 3, useCORS: true }).then(c => {
+            const a = document.createElement('a'); a.download = `tactica_${curStep+1}.png`; a.href = c.toDataURL(); a.click();
+        });
+    }, 150);
+}
+
+async function runAnimation() {
+    if (steps.length < 2) return;
+    isPlaying = true; deselect();
+    for (let i = 0; i < steps.length - 1; i++) {
+        await new Promise(res => {
+            let start = null; const f1 = steps[i], f2 = steps[i + 1];
+            function animate(ts) {
+                if (!start) start = ts; 
+                const p = Math.min((ts - start) / animationSpeed, 1);
+                Array.from(fMaster.children).forEach(c => { if (c.id !== 'svg-layer') fMaster.removeChild(c); });
+                f1.forEach(o => {
+                    const target = f2.find(x => x.id === o.id);
+                    if (!target || !(o.type.startsWith('p-') || o.type === 'ball')) {
+                        if (target) { if(o.type==='text') drawText(o); else if(o.type==='zone') drawZone(o); else drawPhysical(o); }
+                        return;
+                    }
+                    const div = document.createElement('div'); div.className = `object ${o.type} player`;
+                    const x = o.x + (target.x - o.x) * p; const y = o.y + (target.y - o.y) * p;
+                    const r = o.rot + (target.rot - o.rot) * p; const s = o.scale + (target.scale - o.scale) * p;
+                    if (o.type.startsWith('p-')) { div.style.background = o.color; div.innerText = o.num; } 
+                    else if (o.type === 'ball') { div.innerText = '⚽'; div.style.fontSize = '18px'; div.classList.remove('player'); }
+                    div.style.left = x + 'px'; div.style.top = y + 'px';
+                    div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`; fMaster.appendChild(div);
+                });
+                if (p < 1) requestAnimationFrame(animate); else res();
+            }
+            requestAnimationFrame(animate);
+        });
+    }
+    isPlaying = false; render();
+}
+
 function addStep() { saveState(); steps.push(JSON.parse(JSON.stringify(steps[curStep]))); curStep++; render(); }
 function navStep(d) { curStep = Math.max(0, Math.min(steps.length-1, curStep+d)); deselect(); }
 function removeActive() { if(activeId) { saveState(); steps[curStep] = steps[curStep].filter(o=>o.id!==activeId); deselect(); } }
@@ -238,3 +283,5 @@ function deselect() { activeId = null; render(); }
 
 window.onload = () => { resizeField(); render(); };
 window.addEventListener('resize', resizeField);
+function modifyProp(p, v) { saveState(); const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); } }
+function duplicateActive() { if(!activeId) return; saveState(); const target = steps[curStep].find(o => o.id === activeId); const clone = JSON.parse(JSON.stringify(target)); clone.id = Date.now(); clone.x += 40; clone.y += 40; steps[curStep].push(clone); activeId = clone.id; render(); }
