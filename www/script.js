@@ -36,18 +36,22 @@ function updateSpeedLabel(){
 }
 function getDur(){ return 3300-+document.getElementById('speed-slider').value; }
 
-// ── RESIZE: campo llena el viewport sin desbordamiento ────────
+// ── RESIZE: campo ocupa todo el ancho disponible ───────────
 function resizeField(){
   const r=vp.getBoundingClientRect();
   if(r.width<=0||r.height<=0)return;
-  // Ratio que llena el ancho completo del viewport disponible
-  // usando contain (no cortar nada)
-  const ratio=Math.min(r.width/FW, r.height/FH);
-  const w=Math.round(FW*ratio);
-  const h=Math.round(FH*ratio);
+  // Intentar llenar el ancho completo primero
+  let w=Math.round(r.width);
+  let h=Math.round(w * FH/FW);
+  // Si la altura supera el viewport, limitar por altura
+  if(h > r.height){
+    h=Math.round(r.height);
+    w=Math.round(h * FW/FH);
+  }
   fMaster.style.width =w+'px';
   fMaster.style.height=h+'px';
   fMaster.style.position='relative';
+  fMaster.style.margin='auto 0';   // centrar verticalmente si sobra espacio
   fMaster.style.left='';
   fMaster.style.top='';
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
@@ -181,9 +185,12 @@ function onDown(e){
     if(activeId){
       const el=steps[curStep].find(o=>o.id===activeId);
       if(el&&el.locked&&el.type==='zone'){
-        // Zona bloqueada: seleccionable para poder desbloquear desde inspector
+        // Zona bloqueada: seleccionar para mostrar inspector (desbloquear)
+        // NO iniciar drag ni saveState
         activeId=hitId;
-        syncInspector(el); render(); return;
+        syncInspector(el);
+        render();
+        return; // salir sin crear dragInfo
       }
       if(el&&(was||hit?.classList.contains('node')||hit?.classList.contains('zone-sh'))){
         saveState();
@@ -222,7 +229,11 @@ function onMove(e){
   const el=dragInfo.el;
 
   if(dragInfo.isSH){
-    el.w=Math.max(30,el.w+dx); el.h=Math.max(30,el.h+dy);
+    if(el.sub==='text'){
+      el.fontSize=Math.max(10,Math.min(200,(el.fontSize||28)+dx*0.5));
+    } else {
+      el.w=Math.max(30,el.w+dx); el.h=Math.max(30,el.h+dy);
+    }
   } else if(dragInfo.nx!=null&&dragInfo.nx!==''){
     if(el.sub==='poly'){el.pts[dragInfo.nx].x=clamp(el.pts[dragInfo.nx].x+dx,0,FW);el.pts[dragInfo.nx].y=clamp(el.pts[dragInfo.nx].y+dy,0,FH);}
     else{el[dragInfo.nx]+=dx;el[dragInfo.ny]+=dy;}
@@ -288,7 +299,7 @@ function paintObj(el){
   if(['A','B','C','D'].includes(el.type)){
     const c1=el.color||TC[el.type].c1;
     const c2=el.stripeColor||TC[el.type].c2;
-    div.appendChild(makeShirt(c1,c2,el.striped,el.num||1));
+    div.appendChild(makeShirt(c1,c2,el.striped,el.num||1,el.numColor));
   } else if(el.type==='ball'){
     const b=document.createElement('div');b.className='ball-obj';b.textContent='⚽';div.appendChild(b);
   } else {
@@ -306,7 +317,7 @@ function paintObj(el){
   fMaster.appendChild(div);
 }
 
-function makeShirt(c1,c2,striped,num){
+function makeShirt(c1,c2,striped,num,numColor){
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
   svg.setAttribute('width',38);svg.setAttribute('height',38);svg.setAttribute('viewBox','0 0 38 38');
@@ -330,15 +341,9 @@ function makeShirt(c1,c2,striped,num){
   const txt=document.createElementNS(ns,'text');
   txt.setAttribute('x','19');txt.setAttribute('y','24');txt.setAttribute('text-anchor','middle');
   txt.setAttribute('font-family','Barlow Condensed,sans-serif');txt.setAttribute('font-size','14');txt.setAttribute('font-weight','800');
-  txt.setAttribute('fill','#fff');txt.setAttribute('paint-order','stroke');txt.setAttribute('stroke','rgba(0,0,0,0.5)');txt.setAttribute('stroke-width','2');
+  const nc=numColor||'#ffffff'; txt.setAttribute('fill',nc);txt.setAttribute('paint-order','stroke');txt.setAttribute('stroke',nc==='#ffffff'?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.3)');txt.setAttribute('stroke-width','2');
   txt.textContent=num;svg.appendChild(txt);
-  // Triángulo de dirección (arriba del círculo, dentro del SVG)
-  const tri=document.createElementNS(ns,'polygon');
-  tri.setAttribute('points','19,1 23,9 15,9');
-  tri.setAttribute('fill','rgba(255,255,255,0.85)');
-  tri.setAttribute('stroke','none');
-  svg.appendChild(tri);
-  return svg;
+  return svg; // sin triángulo (causa artefactos negros)
 }
 
 // ── PAINT ZONE ───────────────────────────────────────────────
@@ -351,7 +356,7 @@ function paintZone(el){
   div.style.borderColor=el.color||'#ffffff';
   div.style.borderStyle=el.sub==='fill'?'solid':'dashed';
   div.style.background=el.sub==='fill'?(el.color||'#fff')+'33':'transparent';
-  div.style.pointerEvents=el.locked?'none':'auto';
+  div.style.pointerEvents='auto'; // siempre clickeable (drag bloqueado en onMove)
   if(activeId===el.id&&!el.locked){
     const sh=document.createElement('div');sh.className='zone-sh';sh.dataset.id=el.id;sh.textContent='⤡';div.appendChild(sh);
   }
@@ -361,6 +366,34 @@ function paintZone(el){
 
 // ── PAINT VECTOR ─────────────────────────────────────────────
 function paintVec(el){
+  // Texto como elemento especial
+  if(el.sub==='text'){
+    const div=document.createElement('div');
+    div.className='object text-obj'+(activeId===el.id?' sel':'');
+    div.dataset.id=el.id;
+    div.style.left=el.x+'px';div.style.top=el.y+'px';
+    div.style.color=el.color||'#ffffff';
+    div.style.fontSize=(el.fontSize||28)+'px';
+    div.style.fontFamily="'Barlow Condensed',sans-serif";
+    div.style.fontWeight='800';
+    div.style.whiteSpace='nowrap';
+    div.style.lineHeight='1';
+    div.style.transform=`translate(-50%,-50%) rotate(${el.rot||0}deg)`;
+    div.style.textShadow='1px 1px 3px rgba(0,0,0,0.7)';
+    div.style.cursor='grab';
+    div.style.pointerEvents='auto';
+    div.style.background='transparent';
+    div.textContent=el.text;
+    // Handle de escala (esquina inf-der), igual que zonas
+    if(activeId===el.id){
+      const sh=document.createElement('div');sh.className='zone-sh';sh.dataset.id=el.id;sh.textContent='⤡';
+      sh.style.position='absolute';sh.style.bottom='-7px';sh.style.right='-7px';
+      div.style.position='absolute';
+      div.appendChild(sh);
+    }
+    fMaster.appendChild(div);
+    return;
+  }
   let d='';
   if(el.sub==='line')d=`M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
   else if(el.sub==='curve')d=`M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1},${el.cx2} ${el.cy2},${el.x2} ${el.y2}`;
@@ -402,10 +435,12 @@ function syncInspector(el){
   if(!el)return;
   const isVec=el.type==='vec', isPly=['A','B','C','D'].includes(el.type), isZone=el.type==='zone';
   show('r-color'); setv('ins-color',el.color||(isPly?TC[el.type].c1:'#000000'));
-  tog('r-arrow',isVec);tog('r-dash',isVec);
-  if(isVec){setck('ins-arrow',!!el.arrow);setck('ins-dash',!!el.dashed);}
+  const isText=isVec&&el.sub==='text';
+  tog('r-arrow',isVec&&!isText);tog('r-dash',isVec&&!isText);
+  if(isVec&&!isText){setck('ins-arrow',!!el.arrow);setck('ins-dash',!!el.dashed);}
   tog('r-num',isPly);tog('r-strtog',isPly);tog('r-stripe',isPly&&el.striped);
-  if(isPly){setv('ins-num',el.num||1);setck('ins-strtog',!!el.striped);setv('ins-stripe',el.stripeColor||TC[el.type].c2);}
+  tog('r-numcolor',isPly);
+  if(isPly){setv('ins-num',el.num||1);setck('ins-strtog',!!el.striped);setv('ins-stripe',el.stripeColor||TC[el.type].c2);setv('ins-numcolor',el.numColor||'#ffffff');}
   // Bloqueo: visible solo para zonas
   document.getElementById('r-lock').style.display = isZone ? 'flex' : 'none';
   if(isZone) setck('ins-lock',!!el.locked);
@@ -448,6 +483,16 @@ function startPolyMode(){
 function finishPoly(){
   isDrawingPoly=false;document.getElementById('poly-ind').style.display='none';document.getElementById('btn-fpoly').style.display='none';render();
 }
+function createTextEl(){
+  // Modal de entrada de texto
+  const txt=prompt('Escribe el texto:','');
+  if(!txt||!txt.trim())return;
+  saveState();const id=uid();
+  steps[curStep].push({id,type:'vec',sub:'text',text:txt.trim(),
+    x:300,y:300,fontSize:28,color:'#ffffff',w:txt.length*16+20,h:44,rot:0});
+  activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
+}
+
 function createZone(sub){
   saveState();const id=uid();
   steps[curStep].push({id,type:'zone',sub,x:200,y:150,w:250,h:180,color:'#ffffff',locked:false});
