@@ -3,11 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SoccerBoard Pro v48</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#12171b">
+    <title>SoccerBoard Pro v49</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -16,8 +12,8 @@
         <div id="top-bar">
             <div class="btn-group">
                 <button class="btn btn-dark" onclick="openLibrary()">📚 BIBLIOTECA</button>
-                <button class="btn" onclick="undo()" title="Deshacer">⟲</button>
-                <button class="btn btn-danger" onclick="openResetMenu()" title="Reiniciar">✨</button>
+                <button class="btn" onclick="undo()">⟲</button>
+                <button class="btn btn-danger" onclick="openResetMenu()">✨</button>
                 <div class="divider"></div>
                 <button class="btn" onclick="navStep(-1)">◀</button>
                 <span id="step-label">1/1</span>
@@ -40,26 +36,12 @@
                 </div>
                 <div class="lib-body">
                     <div class="lib-section">
-                        <h4>CONTROL Y PASO</h4>
+                        <h4>EJERCICIOS TÉCNICOS</h4>
                         <div class="lib-grid">
                             <button class="btn-drill" onclick="injectDrill('rondo42')">Rondo 4x2 Cuadrado</button>
-                            <button class="btn-drill" onclick="injectDrill('rondo52')">Rondo 5x2 Círculo</button>
-                            <button class="btn-drill" onclick="injectDrill('y_drill')">Ejercicio en Y</button>
-                            <button class="btn-drill" onclick="injectDrill('cuadrado_p')">Cuadrado Técnico</button>
-                        </div>
-                    </div>
-                    <div class="lib-section">
-                        <h4>REGATE Y CONDUCCIÓN</h4>
-                        <div class="lib-grid">
-                            <button class="btn-drill" onclick="injectDrill('slalom')">Slalom de Conos</button>
-                            <button class="btn-drill" onclick="injectDrill('duelo11')">Duelo 1x1 Frontal</button>
-                        </div>
-                    </div>
-                    <div class="lib-section">
-                        <h4>TIRO Y REMATE</h4>
-                        <div class="lib-grid">
-                            <button class="btn-drill" onclick="injectDrill('tiro_box')">Tiro tras Pared</button>
-                            <button class="btn-drill" onclick="injectDrill('centro_r')">Centro y Remate</button>
+                            <button class="btn-drill" onclick="injectDrill('slalom')">Slalom Conos (Conducción)</button>
+                            <button class="btn-drill" onclick="injectDrill('y_drill')">Ejercicio en Y (Pase)</button>
+                            <button class="btn-drill" onclick="injectDrill('tiro_box')">Finalización</button>
                         </div>
                     </div>
                 </div>
@@ -69,23 +51,23 @@
         <div id="reset-modal" class="modal-overlay">
             <div class="modal-content reset-menu">
                 <h3>Reiniciar</h3>
-                <button class="btn btn-dark" onclick="resetAction('step')">BORRAR PASO ACTUAL</button>
-                <button class="btn btn-danger" onclick="resetAction('project')">BORRAR TODO EL PROYECTO</button>
+                <button class="btn btn-dark" onclick="resetAction('step')">PASO ACTUAL</button>
+                <button class="btn btn-danger" onclick="resetAction('project')">TODO EL PROYECTO</button>
                 <button class="btn close-btn" onclick="closeResetMenu()">CANCELAR</button>
             </div>
         </div>
 
         <div id="text-modal" class="modal-overlay">
             <div class="modal-content">
-                <h3>Nota de Texto</h3>
+                <h3>Texto</h3>
                 <input type="text" id="text-input-field" class="custom-input">
-                <button class="btn btn-accent w-100" style="margin-top:10px" onclick="confirmCreateText()">INSERTAR</button>
+                <button class="btn btn-accent w-100" style="margin-top:10px" onclick="confirmCreateText()">OK</button>
             </div>
         </div>
 
         <div id="main-layout">
             <div id="sidebar-left">
-                <div class="cat-label">Dibujo</div>
+                <div class="cat-label">Trazos</div>
                 <div class="tool" onclick="createVector('line')">⎯</div>
                 <div class="tool" onclick="createVector('curve')">⤴</div>
                 <div class="tool" onclick="openTextModal()">T</div>
@@ -119,29 +101,40 @@
 
             <div id="sidebar-right">
                 <div id="inspector-panel" style="display:none">
-                    <div class="panel-header">EDITOR</div>
+                    <div class="panel-header">EDITOR OBJETO</div>
                     <div class="side-item">
-                        <label>COLOR</label>
+                        <label>CAMBIAR COLOR</label>
                         <input type="color" id="ins-color" oninput="modifyProp('color', this.value)">
                     </div>
                     <div id="ins-zone-lock" class="side-item">
                         <button id="lock-btn" class="btn btn-dark w-100" onclick="toggleZoneLock()"></button>
                     </div>
                     <button class="btn btn-accent w-100" onclick="duplicateActive()">➕ DUPLICAR</button>
-                    <button class="btn btn-dark w-100" style="margin-top:10px" onclick="deselect()">OK</button>
+                    <button class="btn btn-dark w-100" style="margin-top:10px" onclick="deselect()">LISTO</button>
                     <div class="divider"></div>
                 </div>
 
-                <div class="panel-header">AJUSTES</div>
+                <div class="panel-header">AJUSTES EQUIPOS</div>
+                <div class="side-item">
+                    <div class="team-grid-side">
+                        <input type="color" id="team-color-red" value="#ff4757" oninput="updateTeamColor('p-red', this.value)">
+                        <input type="color" id="team-color-blue" value="#2e86de" oninput="updateTeamColor('p-blue', this.value)">
+                        <input type="color" id="team-color-yellow" value="#f1c40f" oninput="updateTeamColor('p-yellow', this.value)">
+                        <input type="color" id="team-color-green" value="#2ecc71" oninput="updateTeamColor('p-green', this.value)">
+                    </div>
+                </div>
+
+                <div class="panel-header">AJUSTES CAMPO</div>
                 <div class="side-item flex-row">
-                    <label>PANTALLA COMPLETA</label>
+                    <label>FULLSCREEN</label>
                     <input type="checkbox" id="force-fs-check" onchange="setForceFS(this.checked)">
                 </div>
                 <div class="side-item">
-                    <label>CAMPO</label>
+                    <label>FONDO</label>
                     <select onchange="changeField(this.value)">
-                        <option value="entero">Completo</option>
-                        <option value="medio">Medio</option>
+                        <option value="entero">Campo Completo</option>
+                        <option value="medio">Medio Campo</option>
+                        <option value="ejercicio">Ejercicio</option>
                     </select>
                 </div>
             </div>
