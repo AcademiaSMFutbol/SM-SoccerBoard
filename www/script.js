@@ -13,23 +13,47 @@ const viewport = document.getElementById('viewport');
 const fMaster = document.getElementById('field-master');
 const svg = document.getElementById('svg-layer');
 
+// --- DATOS BIBLIOTECA (Audit v51) ---
 const drillLibrary = {
     rondo42: [
         { id: 1, type: 'zone', sub: 'line', x: 400, y: 240, w: 250, h: 200, color: '#ffffff', locked: true },
-        { id: 2, type: 'p-red', x: 400, y: 340, num: 1 }, { id: 3, type: 'p-red', x: 650, y: 340, num: 2 },
-        { id: 4, type: 'p-red', x: 525, y: 240, num: 3 }, { id: 5, type: 'p-red', x: 525, y: 440, num: 4 },
-        { id: 6, type: 'p-blue', x: 500, y: 340, num: 1 }, { id: 7, type: 'p-blue', x: 550, y: 340, num: 2 },
+        { id: 2, type: 'p-red', x: 400, y: 340, num: 1, color: '#ff4757' },
+        { id: 3, type: 'p-red', x: 650, y: 340, num: 2, color: '#ff4757' },
+        { id: 4, type: 'p-red', x: 525, y: 240, num: 3, color: '#ff4757' },
+        { id: 5, type: 'p-red', x: 525, y: 440, num: 4, color: '#ff4757' },
+        { id: 6, type: 'p-blue', x: 500, y: 340, num: 1, color: '#2e86de' },
+        { id: 7, type: 'p-blue', x: 550, y: 340, num: 2, color: '#2e86de' },
         { id: 8, type: 'ball', x: 420, y: 340 }
     ],
     slalom: [
         { id: 1, type: 'cone', x: 300, y: 340, color: '#e67e22' },
-        { id: 2, type: 'cone', x: 400, y: 340, color: '#e67e22' },
+        { id: 2, type: 'cone', x: 400, y: 300, color: '#e67e22' },
         { id: 3, type: 'cone', x: 500, y: 340, color: '#e67e22' },
-        { id: 4, type: 'ball', x: 250, y: 340 }
+        { id: 4, type: 'p-red', x: 200, y: 340, num: 1, color: '#ff4757' },
+        { id: 5, type: 'ball', x: 240, y: 340 }
+    ],
+    y_drill: [
+        { id: 1, type: 'cone', x: 200, y: 340, color: '#ffffff' },
+        { id: 2, type: 'cone', x: 400, y: 340, color: '#ffffff' },
+        { id: 3, type: 'cone', x: 600, y: 200, color: '#ffffff' },
+        { id: 4, type: 'cone', x: 600, y: 480, color: '#ffffff' },
+        { id: 5, type: 'ball', x: 220, y: 340 }
+    ],
+    tiro_box: [
+        { id: 1, type: 'p-blue', x: 525, y: 640, num: 1, color: '#2e86de' },
+        { id: 2, type: 'valla', x: 450, y: 150, color: '#e74c3c' },
+        { id: 3, type: 'valla', x: 600, y: 150, color: '#e74c3c' },
+        { id: 4, type: 'p-red', x: 525, y: 250, num: 9, color: '#ff4757' },
+        { id: 5, type: 'ball', x: 525, y: 350 }
+    ],
+    cuadrado_p: [
+        { id: 1, type: 'cone', x: 300, y: 200, color: '#ffffff' },
+        { id: 2, type: 'cone', x: 700, y: 200, color: '#ffffff' },
+        { id: 3, type: 'cone', x: 700, y: 500, color: '#ffffff' },
+        { id: 4, type: 'cone', x: 300, y: 500, color: '#ffffff' }
     ]
 };
 
-// BIBLIOTECA
 function openLibrary() { document.getElementById('library-modal').style.display = 'flex'; }
 function closeLibrary() { document.getElementById('library-modal').style.display = 'none'; }
 
@@ -37,36 +61,58 @@ function injectDrill(key) {
     saveState();
     const data = JSON.parse(JSON.stringify(drillLibrary[key] || []));
     const now = Date.now();
-    data.forEach((el, idx) => { 
-        el.id = now + idx; 
-        if(!el.color && el.type.startsWith('p-')) el.color = teamColors[el.type]; 
-    });
+    data.forEach((el, idx) => { el.id = now + idx; });
     steps[curStep] = data;
     closeLibrary(); render();
 }
 
-// AJUSTES EQUIPOS
-function updateTeamColor(team, color) {
-    teamColors[team] = color;
-    document.getElementById(`tool-${team}`).style.background = color;
-    steps.forEach(step => {
-        step.forEach(el => { if(el.type === team) el.color = color; });
-    });
-    render();
+// --- MANEJO DE EVENTOS (Audit v51: Seleccionar para mover) ---
+function handleGlobalDown(e) {
+    if(isPlaying) return;
+    const hit = e.target.closest('.object, .vec-hit, .zone, .node, .player');
+    let hitId = hit ? Number(hit.dataset.id) : null;
+    
+    // Lógica clave: ¿Estaba seleccionado antes de tocar?
+    const wasSelectedBefore = (activeId === hitId && hitId !== null);
+    activeId = hitId;
+
+    if(activeId) {
+        const el = steps[curStep].find(o => o.id === activeId);
+        
+        // Solo permitimos mover si ya estaba seleccionado O si es un nodo de control
+        if(wasSelectedBefore || hit.classList.contains('node')) {
+            if(el.type === 'zone' && el.locked && !hit.classList.contains('node')) { dragInfo = null; return; }
+            const rect = fMaster.getBoundingClientRect();
+            dragInfo = { el, nx: hit.dataset.nx || 'x', ny: hit.dataset.ny || 'y', 
+                isZS: hit.classList.contains('node-zs'), moved: false, lastX: e.clientX, lastY: e.clientY, zoom: rect.width / 1050 };
+            saveState();
+        } else {
+            dragInfo = null; // No movemos, solo seleccionamos
+        }
+        render();
+    } else {
+        deselect();
+    }
 }
 
-function changeField(type) {
-    const images = { 'entero': 'campoentero.png', 'medio': 'mediocampo.png', 'ejercicio': 'campoejercicio.png' };
-    fMaster.style.backgroundImage = `url('${images[type]}')`;
-    setTimeout(resizeField, 50);
+function handleGlobalMove(e) {
+    if(!dragInfo) return;
+    const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoom;
+    const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoom;
+    if (Math.hypot(dx, dy) > 0.5) dragInfo.moved = true;
+    
+    if(dragInfo.isZS) { dragInfo.el.w += dx; dragInfo.el.h += dy; }
+    else if(dragInfo.el.type === 'vec' && dragInfo.nx === 'x') {
+        ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
+        ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
+    } else { dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy; }
+    
+    dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY; render();
 }
 
-function resizeField() {
-    const vw = viewport.clientWidth, vh = viewport.clientHeight;
-    let final = Math.min(vw / 1050, vh / 680);
-    fMaster.style.transform = `scale(${final})`;
-}
+function handleGlobalEnd() { if(dragInfo && !dragInfo.moved) history.pop(); dragInfo = null; render(); }
 
+// --- RENDERIZADO ---
 function render() {
     if (isPlaying) return;
     Array.from(fMaster.children).forEach(c => { if(c.id !== 'svg-layer') fMaster.removeChild(c); });
@@ -93,35 +139,6 @@ function render() {
     updateInspector();
 }
 
-function handleGlobalDown(e) {
-    if(isPlaying) return;
-    const hit = e.target.closest('.object, .vec-hit, .zone, .node');
-    let hitId = hit ? Number(hit.dataset.id) : null;
-    if(hitId !== null) activeId = hitId;
-    if(activeId) {
-        const el = steps[curStep].find(o => o.id === activeId);
-        if(el.type === 'zone' && el.locked && !e.target.closest('.node')) { dragInfo = null; return; }
-        const rect = fMaster.getBoundingClientRect();
-        dragInfo = { el, nx: hit.dataset.nx || 'x', ny: hit.dataset.ny || 'y', isZS: hit.classList.contains('node-zs'), moved: false, lastX: e.clientX, lastY: e.clientY, zoom: rect.width / 1050 };
-        saveState(); render();
-    }
-}
-
-function handleGlobalMove(e) {
-    if(!dragInfo) return;
-    const dx = (e.clientX - dragInfo.lastX) / dragInfo.zoom;
-    const dy = (e.clientY - dragInfo.lastY) / dragInfo.zoom;
-    if (Math.hypot(dx, dy) > 0.5) dragInfo.moved = true;
-    if(dragInfo.isZS) { dragInfo.el.w += dx; dragInfo.el.h += dy; }
-    else if(dragInfo.el.type === 'vec' && dragInfo.nx === 'x') {
-        ['x1','x2','cx1','cx2'].forEach(k => dragInfo.el[k]+=dx);
-        ['y1','y2','cy1','cy2'].forEach(k => dragInfo.el[k]+=dy);
-    } else { dragInfo.el[dragInfo.nx] += dx; dragInfo.el[dragInfo.ny] += dy; }
-    dragInfo.lastX = e.clientX; dragInfo.lastY = e.clientY; render();
-}
-
-function handleGlobalEnd() { if(dragInfo && !dragInfo.moved) history.pop(); dragInfo = null; render(); }
-
 function drawPhysical(el) {
     const div = document.createElement('div');
     div.className = `object ${el.type} ${activeId === el.id ? 'selected' : ''}`;
@@ -137,67 +154,56 @@ function drawZone(el) {
     const div = document.createElement('div');
     div.className = `zone ${el.sub==='fill'?'zone-fill':'zone-line'} ${activeId === el.id ? 'selected' : ''} ${el.locked?'zone-locked':''}`;
     div.dataset.id = el.id; div.style.left = el.x + 'px'; div.style.top = el.y + 'px';
-    div.style.width = el.w + 'px'; div.style.height = el.h + 'px';
-    div.style.borderColor = el.color; // Color aplicado al trazo
+    div.style.width = el.w + 'px'; div.style.height = el.h + 'px'; div.style.borderColor = el.color;
     if(el.sub === 'fill') div.style.backgroundColor = el.color + '66';
     fMaster.appendChild(div);
 }
 
-function drawVector(el) {
-    const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", d); path.setAttribute("stroke", el.color); path.setAttribute("stroke-width", "3");
-    if(el.lineType === "dashed") path.setAttribute("stroke-dasharray", "6,6");
-    if(el.arrow) path.setAttribute("marker-end", "url(#arrow)");
-    path.setAttribute("class", "v-el"); svg.appendChild(path);
-    const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    hit.setAttribute("d", d); hit.setAttribute("stroke", "transparent"); hit.setAttribute("stroke-width", "30");
-    hit.setAttribute("class", "vec-hit v-el"); hit.dataset.id = el.id; svg.appendChild(hit);
+// --- EXPORTAR MP4 ---
+async function exportMP4() {
+    if(steps.length < 2) return;
+    deselect();
+    const stream = fMaster.captureStream ? fMaster.captureStream(30) : null;
+    if(!stream) return;
+    const rec = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    const chunks = [];
+    rec.ondataavailable = e => chunks.push(e.data);
+    rec.onstop = () => {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(chunks, {type:'video/webm'}));
+        a.download = 'tactica.webm'; a.click();
+    };
+    rec.start(); await runAnimation(); setTimeout(() => rec.stop(), 500);
 }
 
-function drawText(el) {
-    const div = document.createElement('div'); div.className = `object ${activeId === el.id ? 'selected' : ''}`;
-    div.innerText = el.content; div.style.color = el.color; div.dataset.id = el.id; div.style.left = el.x + 'px'; div.style.top = el.y + 'px'; fMaster.appendChild(div);
-}
-
-function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) {
-    const node = document.createElement('div'); node.className = `node ${isZS?'node-zs':''}`; 
-    node.style.left = fx+'px'; node.style.top = fy+'px'; node.dataset.id = el.id; node.dataset.nx = nx; node.dataset.ny = ny;
-    node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`; fMaster.appendChild(node);
-}
-
-function modifyProp(p, v) { 
-    saveState(); 
-    const el = steps[curStep].find(o=>o.id===activeId); 
-    if(el) { 
-        el[p]=v; 
-        // Si es un jugador, también actualizamos el color global de su equipo si es necesario
-        if(el.type.startsWith('p-') && p === 'color') teamColors[el.type] = v;
-        render(); 
-    } 
-}
-
-function updateInspector() {
-    const panel = document.getElementById('inspector-panel');
-    if(!activeId) { panel.style.display = 'none'; return; }
-    panel.style.display = 'block';
-    const el = steps[curStep].find(o => o.id === activeId);
-    document.getElementById('ins-color').value = el.color || '#000000';
-    document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR" : "🔒 BLOQUEAR";
-}
-
-// RESTO DE FUNCIONES (undo, addStep, runAnimation...) se mantienen igual que en v48.
-window.onload = () => { resizeField(); render(); };
-window.addEventListener('resize', resizeField);
-function createPlayer(type) { saveState(); steps[curStep].push({ id: Date.now(), type, x: 100, y: 100, color: teamColors[type], num: steps[curStep].filter(o=>o.type===type).length+1 }); render(); }
-function createItem(type) { saveState(); steps[curStep].push({ id: Date.now(), type, x: 150, y: 150, color: "#ffffff" }); render(); }
-function createVector(sub) { saveState(); steps[curStep].push({ id: Date.now(), type: 'vec', sub, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: "#000000", arrow: true }); render(); }
-function createZone(sub) { saveState(); steps[curStep].push({ id: Date.now(), type: 'zone', sub, x: 100, y: 100, w: 200, h: 150, color: "#ffa500", locked: false }); render(); }
-function deselect() { activeId = null; render(); }
-function openResetMenu() { document.getElementById('reset-modal').style.display = 'flex'; }
-function closeResetMenu() { document.getElementById('reset-modal').style.display = 'none'; }
-function resetAction(t) { saveState(); if(t==='step') steps[curStep]=[]; else {steps=[[]]; curStep=0;} closeResetMenu(); render(); }
+// --- FUNCIONES SOPORTE ---
+function modifyProp(p, v) { saveState(); const el = steps[curStep].find(o=>o.id===activeId); if(el) { el[p]=v; render(); } }
+function updateTeamColor(team, color) { teamColors[team] = color; document.getElementById(`tool-${team}`).style.background = color; steps.forEach(step => { step.forEach(el => { if(el.type === team) el.color = color; }); }); render(); }
+function changeField(type) { const imgs = { 'entero': 'campoentero.png', 'medio': 'mediocampo.png', 'ejercicio': 'campoejercicio.png' }; fMaster.style.backgroundImage = `url('${imgs[type]}')`; setTimeout(resizeField, 50); }
+function resizeField() { const vw = viewport.clientWidth, vh = viewport.clientHeight; let final = Math.min(vw / 1050, vh / 680); fMaster.style.transform = `scale(${final})`; }
+function setForceFS(v) { forceFS = v; if(v) document.documentElement.requestFullscreen().catch(()=>{}); }
+document.addEventListener('pointerdown', () => { if(forceFS && !document.fullscreenElement) document.documentElement.requestFullscreen(); });
+function saveState() { if (history.length > 30) history.shift(); history.push(JSON.stringify(steps)); }
+function undo() { if (history.length > 0) { steps = JSON.parse(history.pop()); render(); } }
+function resetAction(t) { saveState(); if(t==='step') steps[curStep]=[]; else {steps=[[]]; curStep=0;} document.getElementById('reset-modal').style.display='none'; render(); }
 function addStep() { saveState(); steps.push(JSON.parse(JSON.stringify(steps[curStep]))); curStep++; render(); }
 function navStep(d) { curStep = Math.max(0, Math.min(steps.length-1, curStep+d)); deselect(); }
 function removeActive() { if(activeId) { saveState(); steps[curStep]=steps[curStep].filter(o=>o.id!==activeId); deselect(); } }
 function toggleZoneLock() { const el = steps[curStep].find(o=>o.id===activeId); if(el && el.type==='zone') { el.locked = !el.locked; render(); } }
+function createPlayer(t) { saveState(); steps[curStep].push({ id: Date.now(), type: t, x: 100, y: 100, color: teamColors[t], num: steps[curStep].filter(o=>o.type===t).length+1 }); render(); }
+function createItem(t) { saveState(); let c = t==='cone'?'#e67e22':(t==='valla'?'#e74c3c':'#f1c40f'); steps[curStep].push({ id: Date.now(), type: t, x: 150, y: 150, color: c }); render(); }
+function createVector(s) { saveState(); steps[curStep].push({ id: Date.now(), type: 'vec', sub: s, x1: 50, y1: 50, x2: 150, y2: 50, cx1: 75, cy1: 100, cx2: 125, cy2: 100, color: "#000000", arrow: true }); render(); }
+function createZone(s) { saveState(); steps[curStep].push({ id: Date.now(), type: 'zone', sub: s, x: 100, y: 100, w: 200, h: 150, color: "#ffa500", locked: false }); render(); }
+function deselect() { activeId = null; render(); }
+function updateInspector() { const p = document.getElementById('inspector-panel'); if(!activeId) { p.style.display='none'; return; } p.style.display='block'; const el = steps[curStep].find(o=>o.id===activeId); document.getElementById('ins-color').value = el.color||'#000000'; document.getElementById('lock-btn').innerText = el.locked ? "🔓 DESBLOQUEAR" : "🔒 BLOQUEAR"; }
+function createNode(el, nx, ny, fx, fy, isC=false, isZS=false) { const node = document.createElement('div'); node.className = `node ${isZS?'node-zs':''}`; node.style.left = fx+'px'; node.style.top = fy+'px'; node.dataset.id = el.id; node.dataset.nx = nx; node.dataset.ny = ny; node.innerHTML = `<div class="node-in" style="${isC?'background:cyan':''}"></div>`; fMaster.appendChild(node); }
+function drawVector(el) { const d = el.sub==='curve' ? `M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1}, ${el.cx2} ${el.cy2}, ${el.x2} ${el.y2}` : `M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`; const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", d); p.setAttribute("stroke", el.color); p.setAttribute("stroke-width", "3"); if(el.lineType === "dashed") p.setAttribute("stroke-dasharray", "6,6"); if(el.arrow) p.setAttribute("marker-end", "url(#arrow)"); p.setAttribute("class", "v-el"); svg.appendChild(p); const h = document.createElementNS("http://www.w3.org/2000/svg", "path"); h.setAttribute("d", d); h.setAttribute("stroke", "transparent"); h.setAttribute("stroke-width", "30"); h.setAttribute("class", "vec-hit v-el"); h.dataset.id = el.id; svg.appendChild(h); }
+function exportStepPNG() { deselect(); setTimeout(() => { html2canvas(fMaster, { backgroundColor: null, scale: 3, useCORS: true }).then(c => { const a = document.createElement('a'); a.download = `tactica_${curStep+1}.png`; a.href = c.toDataURL(); a.click(); }); }, 150); }
+async function runAnimation() { if (steps.length < 2) return; isPlaying = true; deselect(); for (let i = 0; i < steps.length - 1; i++) { await new Promise(res => { let start = null; const f1 = steps[i], f2 = steps[i + 1]; function animate(ts) { if (!start) start = ts; const p = Math.min((ts - start) / animationSpeed, 1); Array.from(fMaster.children).forEach(c => { if (c.id !== 'svg-layer') fMaster.removeChild(c); }); f1.forEach(o => { const t = f2.find(x => x.id === o.id); if (!t || !(o.type.startsWith('p-') || o.type === 'ball')) { if (t) { if(o.type==='text') drawText(o); else if(o.type==='zone') drawZone(o); else drawPhysical(o); } return; } const div = document.createElement('div'); div.className = `object ${o.type} player`; const x = o.x + (t.x - o.x) * p; const y = o.y + (t.y - o.y) * p; const r = (o.rot||0) + ((t.rot||0) - (o.rot||0)) * p; const s = (o.scale||1) + ((t.scale||1) - (o.scale||1)) * p; if (o.type.startsWith('p-')) { div.style.background = o.color; div.innerText = o.num; } else if (o.type === 'ball') { div.innerText = '⚽'; div.style.fontSize = '18px'; div.classList.remove('player'); } div.style.left = x + 'px'; div.style.top = y + 'px'; div.style.transform = `translate(-50%, -50%) rotate(${r}deg) scale(${s})`; fMaster.appendChild(div); }); if (p < 1) requestAnimationFrame(animate); else res(); } requestAnimationFrame(animate); }); } isPlaying = false; render(); }
+function openResetMenu() { document.getElementById('reset-modal').style.display='flex'; }
+function closeResetMenu() { document.getElementById('reset-modal').style.display='none'; }
+function openTextModal() { document.getElementById('text-modal').style.display = 'flex'; }
+function closeTextModal() { document.getElementById('text-modal').style.display = 'none'; }
+function confirmCreateText() { const val = document.getElementById('text-input-field').value; if(!val) return; saveState(); steps[curStep].push({ id: Date.now(), type: 'text', x: 200, y: 200, content: val, color: "#000000" }); closeTextModal(); render(); }
+function drawText(el) { const div = document.createElement('div'); div.className = `object ${activeId === el.id ? 'selected' : ''}`; div.innerText = el.content; div.style.color = el.color; div.dataset.id = el.id; div.style.left = el.x + 'px'; div.style.top = el.y + 'px'; fMaster.appendChild(div); }
+window.onload = () => { resizeField(); render(); };
+window.addEventListener('resize', resizeField);
