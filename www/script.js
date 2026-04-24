@@ -833,6 +833,8 @@ function injectDrill(d){
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function openResetMenu(){openModal('m-reset');}
+function openHelp(){openModal('m-help');}
+function closeHelp(){closeModal('m-help');}
 
 // ── EXPORTAR PNG ─────────────────────────────────────────────
 async function exportPNG(){
