@@ -13,6 +13,7 @@ let isPlaying=false, isDrawingPoly=false;
 let activePointers=new Map(), initialPinchDist=null;
 let tapStartX=0, tapStartY=0, isPossibleTap=false, wasActiveOnDown=false;
 let idCounter=1, currentField='full';
+let globalPlayerScale=1; // Escala global para los jugadores
 
 const FW=1050, FH=680;
 const ANIM=new Set(['A','B','C','D','ball']);
@@ -46,6 +47,19 @@ function updateSpeedLabel(){
   document.getElementById('speed-val').textContent=(3300-raw)+'ms';
 }
 function getDur(){ return 3300-+document.getElementById('speed-slider').value; }
+
+// ── ESCALA GLOBAL DE JUGADORES ───────────────────────────────
+function setGlobalScale(val) {
+  globalPlayerScale = parseFloat(val);
+  steps.forEach(step => {
+    step.forEach(el => {
+      if (['A','B','C','D'].includes(el.type)) {
+        el.scale = globalPlayerScale;
+      }
+    });
+  });
+  render();
+}
 
 // ── RESIZE: el campo ocupa 100% del vp (CSS lo controla)
 // JS solo actualiza el SVG viewBox para que las coordenadas
@@ -557,10 +571,30 @@ function toggleLock(on){const el=steps[curStep].find(o=>o.id===activeId);if(!el)
 // ── CREAR ELEMENTOS ──────────────────────────────────────────
 function createPlayer(team){
   saveState();const id=uid();
-  steps[curStep].push({id,type:team,x:clamp(300+Math.random()*400,20,FW-20),y:clamp(180+Math.random()*300,20,FH-20),
-    num:steps[curStep].filter(o=>o.type===team).length+1,color:TC[team].c1,stripeColor:TC[team].c2,striped:false,scale:1,rot:0});
+  const teamPlayers = steps[curStep].filter(o=>o.type===team);
+  let maxNum = 0;
+  let ref = null;
+  teamPlayers.forEach(p => {
+    if(p.num > maxNum) maxNum = p.num;
+    ref = p; // Usamos el último analizado como referencia visual
+  });
+
+  steps[curStep].push({
+    id, 
+    type:team,
+    x:clamp(300+Math.random()*400,20,FW-20),
+    y:clamp(180+Math.random()*300,20,FH-20),
+    num: maxNum + 1,
+    color: ref ? ref.color : TC[team].c1,
+    stripeColor: ref ? ref.stripeColor : TC[team].c2,
+    striped: ref ? ref.striped : false,
+    numColor: ref ? ref.numColor : '#ffffff',
+    scale: ref ? ref.scale : globalPlayerScale,
+    rot: 0
+  });
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
 }
+
 function createItem(type){
   saveState();const id=uid();
   const CM={cone:'#e67e22',cone_low:'#e74c3c',pica:'#f1c40f',valla:'#e74c3c',ladder:'#f1c40f',weight:'#95a5a6',aro:'#3498db'};
@@ -922,14 +956,25 @@ function toggleFullscreen(){
 function saveState(){if(history.length>40)history.shift();history.push(JSON.stringify(steps));}
 function undo(){if(!history.length)return;steps=JSON.parse(history.pop());if(curStep>=steps.length)curStep=steps.length-1;render();}
 function deselect(){activeId=null;if(isDrawingPoly)finishPoly();render();}
+
 function dupActive(){
   if(!activeId)return;saveState();
   const o=steps[curStep].find(x=>x.id===activeId);if(!o)return;
   const c=JSON.parse(JSON.stringify(o));c.id=uid();
   if(c.type==='zone'){c.x=clamp(c.x+20,0,FW-c.w);c.y=clamp(c.y+20,0,FH-c.h);}
   else if(c.type!=='vec'){c.x=clamp(c.x+40,0,FW);c.y=clamp(c.y+40,0,FH);}
+  
+  if(['A','B','C','D'].includes(c.type)){
+    let maxNum = 0;
+    steps[curStep].forEach(p => {
+      if(p.type === c.type && p.num > maxNum) maxNum = p.num;
+    });
+    c.num = maxNum + 1;
+  }
+  
   steps[curStep].push(c);activeId=c.id;render();
 }
+
 function delActive(){if(!activeId)return;saveState();steps[curStep]=steps[curStep].filter(o=>o.id!==activeId);activeId=null;render();}
 function doReset(t){saveState();if(t==='step')steps[curStep]=[];else{steps=[[]];curStep=0;}closeModal('m-reset');deselect();}
 function uid(){return(++idCounter)+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);}
