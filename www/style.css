@@ -111,8 +111,13 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 /* ── OBJETOS EN CAMPO ── */
 .object{position:absolute;background:transparent;border:none;outline:none;pointer-events:auto;cursor:grab;}
 .object:active{cursor:grabbing;}
-/* Selección via box-shadow — NO mueve ni redimensiona el elemento */
-.object.sel{box-shadow:0 0 0 2.5px #f1c40f, 0 0 8px rgba(241,196,15,0.4);}
+
+/* Reemplazo: Borde trazado con drop-shadow múltiple en lugar de glow */
+.object.sel {
+  filter: drop-shadow(1.5px 0 0 #f1c40f) drop-shadow(-1.5px 0 0 #f1c40f) drop-shadow(0 1.5px 0 #f1c40f) drop-shadow(0 -1.5px 0 #f1c40f);
+  box-shadow: none;
+}
+
 .ball-obj{font-size:24px;cursor:grab;}
 
 /* Material */
