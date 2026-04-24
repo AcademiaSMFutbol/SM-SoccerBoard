@@ -185,7 +185,14 @@ function onDown(e){
 
   if(activePointers.size===1){
     const was=activeId===hitId&&hitId!=null;
-    activeId=hitId||null;
+    const isHitEmpty = (hitId == null);
+
+    // Si tocamos el vacío pero hay un objeto activo, NO deseleccionamos.
+    // Conservamos activeId para permitir el arrastre remoto.
+    if (!isHitEmpty) {
+      activeId = hitId;
+    }
+
     if(activeId){
       const el=steps[curStep].find(o=>o.id===activeId);
       if(el&&el.locked&&el.type==='zone'){
@@ -198,9 +205,10 @@ function onDown(e){
       }
       const isTxt=el&&el.type==='txt';
       const isPlayer=['A','B','C','D'].includes(el?.type);
-      // Iniciar drag si: primer click en jugador/texto, doble en otros, o node/handle
+      
+      // Añadimos isHitEmpty para que inicie el drag aunque toquemos el césped
       const startDrag=el&&(
-        isPlayer||isTxt||was||
+        isPlayer||isTxt||was||isHitEmpty||
         hit?.classList.contains('node')||
         hit?.classList.contains('zone-sh')||
         hit?.classList.contains('txt-sh')
@@ -264,9 +272,18 @@ function onMove(e){
 
 function onUp(e){
   const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','A','B','C','D'];
-  if(isPossibleTap&&activeId&&activePointers.size===1&&!isDrawingPoly){
-    const el=steps[curStep].find(o=>o.id===activeId);
-    if(el&&ROT.includes(el.type)){el.rot=((el.rot||0)+15)%360;render();}
+  if(isPossibleTap && activeId && activePointers.size===1 && !isDrawingPoly){
+    const hit = e.target.closest('.object,.shirt-svg,.txt-obj');
+    const hitId = hit ? hit.dataset.id : null;
+
+    if (hitId === activeId) {
+      // Tap explícito SOBRE el objeto activo -> Rota
+      const el=steps[curStep].find(o=>o.id===activeId);
+      if(el&&ROT.includes(el.type)){el.rot=((el.rot||0)+15)%360; render();}
+    } else if (!hitId && !e.target.closest('.tool, .btn, .irow, .cat, #left, #right, #topbar, #inspector')) {
+      // Tap limpio en el césped sin mover -> Deselecciona
+      deselect();
+    }
   }
   activePointers.delete(e.pointerId);
   if(activePointers.size<2)initialPinchDist=null;
@@ -344,15 +361,19 @@ function paintObj(el){
   div.style.transformOrigin='center center';
 
   if(el.type==='ball'){
-    div.style.fontSize='28px';
-    div.style.lineHeight='28px';
     div.style.width='28px'; div.style.height='28px';
-    div.style.textAlign='center';
-    div.style.overflow='visible';
     div.style.left=(el.x*(window._RZ?.x||1)-14)+'px';
     div.style.top =(el.y*(window._RZ?.y||1)-14)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-    div.textContent='⚽';
+    div.innerHTML=`<svg viewBox="0 0 24 24" width="100%" height="100%" style="overflow:visible">
+      <circle cx="12" cy="12" r="11.5" fill="#fff" stroke="#111" stroke-width="1"/>
+      <path d="M12 6.5 L15.5 9 L14 14.5 L10 14.5 L8.5 9 Z" fill="#222"/>
+      <path d="M12 6.5 L12 0.5" stroke="#222" stroke-width="1.5"/>
+      <path d="M15.5 9 L22.5 7" stroke="#222" stroke-width="1.5"/>
+      <path d="M14 14.5 L18.5 20.5" stroke="#222" stroke-width="1.5"/>
+      <path d="M10 14.5 L5.5 20.5" stroke="#222" stroke-width="1.5"/>
+      <path d="M8.5 9 L1.5 7" stroke="#222" stroke-width="1.5"/>
+    </svg>`;
   } else if(el.type==='cone'||el.type==='cone_low'){
     const bw=el.type==='cone'?14:12;
     const bh=el.type==='cone'?28:14;
@@ -392,48 +413,6 @@ function paintObj(el){
   }
 
   fMaster.appendChild(div);
-
-  // Indicador de selección: div separado que NO afecta al elemento
-  if(isSel){
-    const ring=document.createElement('div');
-    ring.dataset.ring='1';
-    ring.style.position='absolute';
-    ring.style.pointerEvents='none';
-    ring.style.border='2.5px solid #f1c40f';
-    ring.style.zIndex='19';
-    ring.style.boxSizing='border-box';
-    const rx=el.x*(window._RZ?.x||1);
-    const ry=el.y*(window._RZ?.y||1);
-    if(el.type==='ball'){
-      const r=18; ring.style.width=r*2+'px'; ring.style.height=r*2+'px';
-      ring.style.borderRadius='50%';
-      ring.style.left=(rx-r)+'px'; ring.style.top=(ry-r)+'px';
-    } else if(el.type==='cone'||el.type==='cone_low'){
-      const bw=el.type==='cone'?14:12, bh=el.type==='cone'?28:14;
-      ring.style.width=(bw*2+8)+'px'; ring.style.height=(bh+8)+'px';
-      ring.style.borderRadius='3px';
-      ring.style.left=(rx-bw-4)+'px'; ring.style.top=(ry-bh/2-4)+'px';
-    } else if(el.type==='pica'){
-      ring.style.width='14px'; ring.style.height='60px';
-      ring.style.borderRadius='4px';
-      ring.style.left=(rx-7)+'px'; ring.style.top=(ry-30)+'px';
-    } else if(el.type==='valla'){
-      ring.style.width='56px'; ring.style.height='35px';
-      ring.style.borderRadius='5px';
-      ring.style.left=(rx-28)+'px'; ring.style.top=(ry-17)+'px';
-    } else if(el.type==='ladder'){
-      ring.style.width='163px'; ring.style.height='41px';
-      ring.style.borderRadius='4px';
-      ring.style.left=(rx-81)+'px'; ring.style.top=(ry-20)+'px';
-    } else if(el.type==='weight'){
-      ring.style.width='38px'; ring.style.height='27px';
-      ring.style.borderRadius='4px';
-      ring.style.left=(rx-19)+'px'; ring.style.top=(ry-13)+'px';
-    }
-    if(el.rot){ ring.style.transform=`rotate(${el.rot}deg)`; ring.style.transformOrigin='center center'; }
-    ring.style.scale=el.scale||1;
-    fMaster.appendChild(ring);
-  }
 }
 
 function makeShirt(c1,c2,striped,num,numColor,isSelected){
