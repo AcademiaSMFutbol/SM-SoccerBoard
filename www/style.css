@@ -120,12 +120,8 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 
 .ball-obj{font-size:24px;cursor:grab;}
 
-/* Material */
-.cone-obj{width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-bottom:26px solid #e67e22;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));}
-.cone_low-obj{width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:13px solid #e74c3c;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}
-.pica-obj{width:6px;height:52px;background:linear-gradient(#f1c40f,#e67e22 60%,#c0392b);border-radius:3px 3px 1px 1px;box-shadow:1px 0 3px rgba(0,0,0,.3);}
+/* Material (Conservamos las CSS de valla y peso que aún no son SVG) */
 .valla-obj{width:48px;height:27px;border:4px solid #e74c3c;border-bottom:none;border-radius:5px 5px 0 0;}
-.ladder-obj{width:155px;height:33px;border-top:4px solid #f1c40f;border-bottom:4px solid #f1c40f;background:repeating-linear-gradient(90deg,transparent,transparent 22px,#f1c40f 22px,#f1c40f 26px);}
 .weight-obj{width:30px;height:19px;background:linear-gradient(180deg,#bdc3c7,#7f8c8d);border-radius:4px;position:relative;box-shadow:0 2px 4px rgba(0,0,0,.4);}
 .weight-obj::before{content:'kg';position:absolute;top:3px;left:50%;transform:translateX(-50%);font-size:6px;font-weight:800;color:#2c3e50;}
 .weight-obj::after{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:6px;height:5px;background:#7f8c8d;border-radius:2px 2px 0 0;}
@@ -183,7 +179,7 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 .w100{width:100%;}
 hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
 
-/* ── MODALES ── */
+/* ── MODALES Y BIBLIOTECA ── */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:5000;backdrop-filter:blur(8px);}
 .modal.open{display:flex;}
 .mc{background:var(--panel);padding:24px 20px;border-radius:14px;border:1px solid var(--border);width:90%;max-width:400px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.6);}
@@ -198,6 +194,34 @@ hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
 .ldesc{font-size:9px;color:var(--muted);margin-top:2px;}
 .pbar{background:var(--border);border-radius:20px;height:5px;overflow:hidden;}
 #pbar-fill{height:100%;background:var(--accent);border-radius:20px;width:0%;transition:width .2s;}
+
+/* Estilos para la biblioteca personal */
+.lib-warning {
+  background: #4a3701;
+  color: #f1c40f;
+  padding: 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  margin-bottom: 15px;
+  text-align: left;
+  border: 1px solid #f1c40f;
+  grid-column: 1 / -1;
+}
+.local-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel2);
+  padding: 10px;
+  margin-bottom: 5px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+}
+.btn-del {
+  background: var(--danger);
+  padding: 4px 8px;
+  font-size: 10px;
+}
 
 /* ── MOBILE ── */
 @media(max-width:700px){
