@@ -11,7 +11,7 @@ let steps=[[]], history=[], curStep=0;
 let activeId=null, dragInfo=null;
 let isPlaying=false, isDrawingPoly=false;
 let activePointers=new Map(), initialPinchDist=null;
-let tapStartX=0, tapStartY=0, isPossibleTap=false;
+let tapStartX=0, tapStartY=0, isPossibleTap=false, wasActiveOnDown=false;
 let idCounter=1, currentField='full';
 
 const FW=1050, FH=680;
@@ -185,6 +185,7 @@ function onDown(e){
 
   if(activePointers.size===1){
     const was=activeId===hitId&&hitId!=null;
+    wasActiveOnDown = was;
     const isHitEmpty = (hitId == null);
 
     // Si tocamos el vacío pero hay un objeto activo, NO deseleccionamos.
@@ -251,8 +252,8 @@ function onMove(e){
 
   if(dragInfo.isSH){
     if(el.type==='txt'){
-      const delta=(dx+dy)*0.5;
-      el.fontSize=Math.max(8,Math.min(300,(el.fontSize||32)+delta));
+      const delta=(dx+dy)*0.01;
+      el.scale=Math.max(0.2, (el.scale||1)+delta);
     } else {
       el.w=Math.max(30,el.w+dx); el.h=Math.max(30,el.h+dy);
     }
@@ -271,17 +272,18 @@ function onMove(e){
 }
 
 function onUp(e){
-  const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','A','B','C','D'];
+  const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','A','B','C','D','txt'];
   if(isPossibleTap && activeId && activePointers.size===1 && !isDrawingPoly){
     const hit = e.target.closest('.object,.shirt-svg,.txt-obj');
     const hitId = hit ? hit.dataset.id : null;
 
-    if (hitId === activeId) {
-      // Tap explícito SOBRE el objeto activo -> Rota
+    if (hitId === activeId && wasActiveOnDown) {
       const el=steps[curStep].find(o=>o.id===activeId);
-      if(el&&ROT.includes(el.type)){el.rot=((el.rot||0)+15)%360; render();}
+      if(el&&ROT.includes(el.type)){
+        el.rot=((el.rot||0)+45)%360;
+        render();
+      }
     } else if (!hitId && !e.target.closest('.tool, .btn, .irow, .cat, #left, #right, #topbar, #inspector')) {
-      // Tap limpio en el césped sin mover -> Deselecciona
       deselect();
     }
   }
@@ -365,7 +367,6 @@ function paintObj(el){
     div.style.left=(el.x*(window._RZ?.x||1)-14)+'px';
     div.style.top =(el.y*(window._RZ?.y||1)-14)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-    // Carga el archivo externo como fondo ajustado al div
     div.style.backgroundImage="url('balon.svg')";
     div.style.backgroundSize="100% 100%";
     div.style.backgroundRepeat="no-repeat";
@@ -474,17 +475,18 @@ function paintTxt(el){
   div.dataset.id=el.id;
   const fs=el.fontSize||32;
   const rot=el.rot||0;
+  const sc=el.scale||1;
   const isSel=activeId===el.id;
   // Anclar en top-left (el.x, el.y) SIN transform de desplazamiento.
   // Así el drag (+=dx/dy) es 1:1 con el movimiento del dedo/ratón.
   div.style.cssText=
     `position:absolute;left:${el.x*getZoom()}px;top:${el.y*getZoom()}px;`+
-    `display:inline-block;`+   /* ajusta el div al ancho exacto del texto */
-    `color:${el.color||'#ffffff'};font-size:${fs}px;`+  /* font-size explícito, no hereda :0 del vp */
+    `width:max-content;height:max-content;`+
+    `color:${el.color||'#ffffff'};font-size:${fs}px;`+
     `font-family:'Barlow Condensed',sans-serif;font-weight:800;`+
     `white-space:nowrap;line-height:${fs}px;cursor:grab;pointer-events:auto;`+
     `background:transparent;z-index:20;overflow:visible;`+
-    (rot?`transform:rotate(${rot}deg);`:'') +
+    `transform:rotate(${rot}deg) scale(${sc});transform-origin:top left;` +
     (isSel?`text-shadow:0 0 8px #f1c40f,1px 1px 4px rgba(0,0,0,0.8);outline:1.5px dashed #f1c40f;outline-offset:4px;`:
             `text-shadow:1px 1px 4px rgba(0,0,0,0.8);`);
   div.textContent=el.text;
