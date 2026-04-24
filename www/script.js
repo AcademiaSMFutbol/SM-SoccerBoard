@@ -272,7 +272,7 @@ function onMove(e){
 }
 
 function onUp(e){
-  const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','A','B','C','D','txt'];
+  const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','aro','A','B','C','D','txt'];
   if(isPossibleTap && activeId && activePointers.size===1 && !isDrawingPoly){
     const hit = e.target.closest('.object,.shirt-svg,.txt-obj');
     const hitId = hit ? hit.dataset.id : null;
@@ -335,12 +335,12 @@ function paintObj(el){
   const isSel=activeId===el.id;
   const sc=el.scale||1;
   const rot=el.rot||0;
+  const z=getZoom(); 
 
-  const z=getZoom(); // escala canvas→px reales
   if(['A','B','C','D'].includes(el.type)){
     const c1=el.color||TC[el.type].c1;
     const c2=el.stripeColor||TC[el.type].c2;
-    const sz=38; // tamaño fijo en px de pantalla (no canvas)
+    const sz=38; 
     const half=sz/2;
     const svg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,isSel);
     svg.dataset.id=el.id;
@@ -351,7 +351,6 @@ function paintObj(el){
     return;
   }
 
-  // Material y balón — usamos un div posicionado con left/top exacto
   const div=document.createElement('div');
   div.className='object'+(isSel?' sel':'');
   div.dataset.id=el.id;
@@ -362,52 +361,46 @@ function paintObj(el){
   div.style.zIndex='20';
   div.style.transformOrigin='center center';
 
-  if(el.type==='ball'){
-    div.style.width='28px'; div.style.height='28px';
-    div.style.left=(el.x*(window._RZ?.x||1)-14)+'px';
-    div.style.top =(el.y*(window._RZ?.y||1)-14)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-    div.style.backgroundImage="url('balon.svg')";
-    div.style.backgroundSize="100% 100%";
-    div.style.backgroundRepeat="no-repeat";
-  } else if(el.type==='cone'||el.type==='cone_low'){
-    const bw=el.type==='cone'?14:12;
-    const bh=el.type==='cone'?28:14;
-    div.style.width='0'; div.style.height='0';
-    div.style.borderLeft=`${bw}px solid transparent`;
-    div.style.borderRight=`${bw}px solid transparent`;
-    div.style.borderBottom=`${bh}px solid ${el.color||(el.type==='cone'?'#e67e22':'#e74c3c')}`;
-    div.style.filter='drop-shadow(0 2px 3px rgba(0,0,0,.4))';
-    div.style.left=(el.x*(window._RZ?.x||1)-bw)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-bh/2)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-  } else if(el.type==='pica'){
-    div.style.width='6px'; div.style.height='52px';
-    div.style.background=`linear-gradient(${el.color||'#f1c40f'},#e67e22 60%,#c0392b)`;
-    div.style.borderRadius='3px 3px 1px 1px';
-    div.style.left=(el.x*(window._RZ?.x||1)-3)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-26)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
+  const isSVGItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro'].includes(el.type);
+  if(isSVGItem) {
+    const sizes = {
+      'ball': [28, 28],
+      'cone': [28, 32],
+      'cone_low': [24, 24],
+      'pica': [8, 52],
+      'ladder': [155, 33],
+      'aro': [32, 32]
+    };
+    const files = {
+      'ball': 'balon.svg',
+      'cone': 'cono.svg',
+      'cone_low': 'chincheta.svg',
+      'pica': 'pica.svg',
+      'ladder': 'escalera.svg',
+      'aro': 'aro.svg'
+    };
+    const [w, h] = sizes[el.type];
+    div.style.width = w + 'px';
+    div.style.height = h + 'px';
+    div.style.left = (el.x * (window._RZ?.x || 1) - (w/2)) + 'px';
+    div.style.top = (el.y * (window._RZ?.y || 1) - (h/2)) + 'px';
+    div.style.backgroundImage = `url('${files[el.type]}')`;
+    div.style.backgroundSize = "100% 100%";
+    div.style.backgroundRepeat = "no-repeat";
   } else if(el.type==='valla'){
     div.style.width='48px'; div.style.height='27px';
     div.style.border=`4px solid ${el.color||'#e74c3c'}`;
     div.style.borderBottom='none';
     div.style.borderRadius='5px 5px 0 0';
     div.style.left=(el.x*(window._RZ?.x||1)-24)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-13)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-  } else if(el.type==='ladder'){
-    div.style.width='155px'; div.style.height='33px';
-    div.style.borderTop=`4px solid ${el.color||'#f1c40f'}`;
-    div.style.borderBottom=`4px solid ${el.color||'#f1c40f'}`;
-    div.style.backgroundImage=`repeating-linear-gradient(90deg,transparent,transparent 22px,${el.color||'#f1c40f'} 22px,${el.color||'#f1c40f'} 26px)`;
-    div.style.left=(el.x*(window._RZ?.x||1)-77)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-16)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   } else if(el.type==='weight'){
     div.style.width='30px'; div.style.height='19px';
     div.style.background='linear-gradient(180deg,#bdc3c7,#7f8c8d)';
     div.style.borderRadius='4px';
     div.style.left=(el.x*(window._RZ?.x||1)-15)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-9)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   }
-
+  
+  div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   fMaster.appendChild(div);
 }
 
@@ -571,7 +564,7 @@ function createPlayer(team){
 }
 function createItem(type){
   saveState();const id=uid();
-  const CM={cone:'#e67e22',cone_low:'#e74c3c',pica:'#f1c40f',valla:'#e74c3c',ladder:'#f1c40f',weight:'#95a5a6'};
+  const CM={cone:'#e67e22',cone_low:'#e74c3c',pica:'#f1c40f',valla:'#e74c3c',ladder:'#f1c40f',weight:'#95a5a6',aro:'#3498db'};
   steps[curStep].push({id,type,x:clamp(300+Math.random()*400,20,FW-20),y:clamp(180+Math.random()*300,20,FH-20),color:CM[type]||'#e67e22',scale:1,rot:0});
   activeId=id;render();
 }
@@ -664,7 +657,101 @@ function animStep(f1,f2,dur){
   });
 }
 
-// ── BIBLIOTECA ───────────────────────────────────────────────
+// ── GESTIÓN DE BIBLIOTECA PERSONAL (LocalStorage) ────────────
+function saveToLocal() {
+  if (steps[0].length === 0) return alert("La pizarra está vacía.");
+  
+  const nombre = prompt("Nombre de la jugada:");
+  if (!nombre) return;
+
+  const locales = JSON.parse(localStorage.getItem('smboard_locales') || '[]');
+  
+  const nuevaJugada = {
+    id: 'local_' + Date.now(),
+    name: nombre,
+    date: new Date().toLocaleDateString(),
+    data: steps
+  };
+
+  locales.push(nuevaJugada);
+  localStorage.setItem('smboard_locales', JSON.stringify(locales));
+  alert("¡Jugada guardada en tu biblioteca!");
+}
+
+function openLibrary() {
+  const g = document.getElementById('lib-grid');
+  g.innerHTML = '';
+  
+  const warning = document.createElement('div');
+  warning.className = 'lib-warning';
+  warning.innerHTML = `⚠️ <b>AVISO:</b> Esta biblioteca solo está disponible en este dispositivo. 
+  Si borras los datos del navegador o el historial, estas jugadas se perderán.`;
+  g.appendChild(warning);
+
+  const locales = JSON.parse(localStorage.getItem('smboard_locales') || '[]');
+  
+  if (locales.length > 0) {
+    const titulo = document.createElement('div');
+    titulo.className = 'cat';
+    titulo.innerText = "MIS JUGADAS";
+    titulo.style.gridColumn = "1 / -1";
+    g.appendChild(titulo);
+
+    locales.forEach(j => {
+      const card = document.createElement('div');
+      card.className = 'lcard';
+      card.innerHTML = `
+        <div class="licon">📋</div>
+        <div class="lname">${j.name}</div>
+        <div class="ldesc">${j.date}</div>
+        <button class="btn btn-del" style="margin-top:8px">BORRAR</button>
+      `;
+      
+      card.onclick = (e) => {
+        if(e.target.classList.contains('btn-del')) {
+          deleteLocal(j.id);
+        } else {
+          loadLocal(j.data);
+        }
+      };
+      g.appendChild(card);
+    });
+  }
+
+  const tituloAc = document.createElement('div');
+  tituloAc.className = 'cat';
+  tituloAc.innerText = "BIBLIOTECA ACADEMIA";
+  tituloAc.style.gridColumn = "1 / -1";
+  g.appendChild(tituloAc);
+
+  DRILLS.forEach(d => {
+    const c = document.createElement('div');
+    c.className = 'lcard';
+    c.innerHTML = `<div class="licon">${d.icon}</div><div class="lname">${d.name}</div><div class="ldesc">${d.desc}</div>`;
+    c.onclick = () => injectDrill(d);
+    g.appendChild(c);
+  });
+
+  openModal('m-lib');
+}
+
+function loadLocal(data) {
+  saveState();
+  steps = JSON.parse(JSON.stringify(data));
+  curStep = 0;
+  deselect();
+  closeLibrary();
+  render();
+}
+
+function deleteLocal(id) {
+  if (!confirm("¿Seguro que quieres borrar esta jugada?")) return;
+  let locales = JSON.parse(localStorage.getItem('smboard_locales') || '[]');
+  locales = locales.filter(j => j.id !== id);
+  localStorage.setItem('smboard_locales', JSON.stringify(locales));
+  openLibrary(); 
+}
+
 const DRILLS=[
   {key:'r41',name:'Rondo 4×1',icon:'🔵',desc:'Posesión 4 vs 1',steps:[
     [{_bid:'z1',type:'zone',sub:'line',x:340,y:180,w:290,h:290,color:'#fff',locked:false},{_bid:'a1',type:'A',x:340,y:180,num:1},{_bid:'a2',type:'A',x:630,y:180,num:2},{_bid:'a3',type:'A',x:340,y:470,num:3},{_bid:'a4',type:'A',x:630,y:470,num:4},{_bid:'b1',type:'B',x:485,y:325,num:1},{_bid:'bl',type:'ball',x:340,y:180}],
@@ -694,15 +781,6 @@ const DRILLS=[
   ]}
 ];
 
-function openLibrary(){
-  const g=document.getElementById('lib-grid');g.innerHTML='';
-  DRILLS.forEach(d=>{
-    const c=document.createElement('div');c.className='lcard';
-    c.innerHTML=`<div class="licon">${d.icon}</div><div class="lname">${d.name}</div><div class="ldesc">${d.desc}</div>`;
-    c.onclick=()=>injectDrill(d);g.appendChild(c);
-  });
-  openModal('m-lib');
-}
 function closeLibrary(){closeModal('m-lib');}
 function injectDrill(d){
   saveState();
@@ -755,7 +833,6 @@ function renderForExport(f1,f2,ease){
   });
 }
 async function doMP4(){
-  // Ocultar box-shadow durante la captura para evitar sombra negra en el video
   const origShadow=fMaster.style.boxShadow;
   fMaster.style.boxShadow='none';
   const FPS=25,dur=getDur();
