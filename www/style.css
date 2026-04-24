@@ -71,11 +71,12 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 #vp{
   flex:1;min-width:0;min-height:0;
   position:relative;
-  background:#2d8a47; /* verde campo para que no haya espacio visible */
+  background:#2d8a47;
   overflow:hidden;
   touch-action:none;
-  /* NO flex: el campo ocupa width/height exactos con position:relative */
-  display:block;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   padding:0;margin:0;
 }
 :fullscreen #vp{ background:#000; }
@@ -84,10 +85,13 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 
 /* field-master: width/height fijados por JS, centrado por el flex de #vp */
 #field-master{
-  /* Dimensiones y fondo los controla JS via resizeField() */
-  display:block;
+  /* Dimensiones las controla JS (resizeField). Centrado por el flex del #vp */
+  flex-shrink:0;
   overflow:hidden;
   background:#2d8a47;
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+  background-position:center;
 }
 /* En pantalla completa, sin sombra */
 :fullscreen #field-master{ box-shadow:none; }
