@@ -102,6 +102,13 @@
         <div class="tr"><div class="tsw" id="sw-D"></div><span>D</span><input type="color" id="cD1" value="#2ecc71" oninput="setTeamColor('D','c1',this.value)"><input type="color" id="cD2" value="#ffffff" oninput="setTeamColor('D','c2',this.value)"></div>
       </div>
 
+      <div class="cat" style="margin-top:14px">TAMAÑO JUGADORES</div>
+      <div class="spd">
+        <span style="font-size:12px;font-weight:bold;">A</span>
+        <input type="range" id="global-p-scale" min="0.4" max="2.5" value="1" step="0.1" oninput="setGlobalScale(this.value)">
+        <span style="font-size:18px;font-weight:bold;">A</span>
+      </div>
+
       <div class="cat" style="margin-top:14px">CAMPO</div>
       <select class="sel" onchange="setField(this.value)">
         <option value="full">Campo Completo</option>
