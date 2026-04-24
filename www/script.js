@@ -54,25 +54,26 @@ function resizeField(){
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   drawFieldBG(currentField);
 }
-function getZoom(){
-  // offsetWidth es más fiable que getBoundingClientRect durante renders
-  // Usar FH para Y y FW para X (el campo puede distorsionarse)
-  return fMaster.offsetWidth/FW;
-}
-function getZoomY(){ return fMaster.offsetHeight/FH; }
+// Con posicionamiento en %, getZoom solo se usa para convertir
+// eventos del puntero (px de pantalla) a coordenadas de canvas
+function getZoom(){ return fMaster.getBoundingClientRect().width/FW; }
+function getZoomY(){ return fMaster.getBoundingClientRect().height/FH; }
 
-// ── CAMPO — siempre en SVG (sin depender de imágenes externas) ─
+// ── CAMPO — dibujado dentro del svgLayer (sin elementos extra) ─
 function drawFieldBG(type){
-  const old=document.getElementById('field-bg'); if(old)old.remove();
+  // Quitar grupo de campo anterior si existe
+  const old=svgLayer.querySelector('#field-lines');
+  if(old)old.remove();
+
   const BG={full:'#2d8a47',half:'#2d8a47',futsal:'#1a3a5c',blank:'#1a5c2a'};
   fMaster.style.background=BG[type]||'#2d8a47';
   if(type==='blank')return;
 
   const ns='http://www.w3.org/2000/svg';
-  const svg=document.createElementNS(ns,'svg');
-  svg.id='field-bg';
-  svg.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
-  svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:visible;';
+  // Usamos un <g> dentro del svgLayer existente — no un SVG separado
+  const svg=document.createElementNS(ns,'g');
+  svg.id='field-lines';
+  svg.setAttribute('pointer-events','none');
 
   const LC=type==='futsal'?'rgba(79,195,247,0.85)':'rgba(255,255,255,0.82)';
   const LW=2.5;
@@ -157,7 +158,9 @@ function drawFieldBG(type){
     ARC(0,FH,7,270,360); ARC(FW,FH,7,180,270);
   }
 
-  fMaster.insertBefore(svg, svgLayer);
+  // Insertar el grupo de campo como PRIMER hijo del svgLayer
+  // (detrás de todos los vectores/objetos)
+  svgLayer.insertBefore(svg, svgLayer.firstChild);
 }
 
 
@@ -311,9 +314,6 @@ function paintObj(el){
   const sc=el.scale||1;
   const rot=el.rot||0;
 
-  // Escala X e Y independiente (campo puede estar distorsionado)
-  const zx=fMaster.offsetWidth/FW;
-  const zy=fMaster.offsetHeight/FH;
   if(['A','B','C','D'].includes(el.type)){
     const c1=el.color||TC[el.type].c1;
     const c2=el.stripeColor||TC[el.type].c2;
@@ -321,7 +321,10 @@ function paintObj(el){
     const half=sz/2;
     const svg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,isSel);
     svg.dataset.id=el.id;
-    svg.style.cssText=`position:absolute;left:${el.x*zx-half}px;top:${el.y*zy-half}px;`+
+    // Posición en % — funciona con cualquier tamaño de campo
+    svg.style.cssText=`position:absolute;`+
+      `left:calc(${(el.x/FW)*100}% - ${half}px);`+
+      `top:calc(${(el.y/FH)*100}% - ${half}px);`+
       `width:${sz}px;height:${sz}px;cursor:grab;pointer-events:auto;z-index:20;`+
       `transform:rotate(${rot}deg) scale(${sc});transform-origin:${half}px ${half}px;`;
     fMaster.appendChild(svg);
@@ -354,33 +357,33 @@ function paintObj(el){
     div.style.borderRight=`${bw}px solid transparent`;
     div.style.borderBottom=`${bh}px solid ${el.color||(el.type==='cone'?'#e67e22':'#e74c3c')}`;
     div.style.filter='drop-shadow(0 2px 3px rgba(0,0,0,.4))';
-    div.style.left=(el.x*zx-bw)+'px'; div.style.top=(el.y*zy-bh/2)+'px';
+    div.style.left=`calc(${(el.x/FW)*100}% - ${bw}px)`; div.style.top=`calc(${(el.y/FH)*100}% - ${bh/2}px)`;
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   } else if(el.type==='pica'){
     div.style.width='6px'; div.style.height='52px';
     div.style.background=`linear-gradient(${el.color||'#f1c40f'},#e67e22 60%,#c0392b)`;
     div.style.borderRadius='3px 3px 1px 1px';
-    div.style.left=(el.x*zx-3)+'px'; div.style.top=(el.y*zy-26)+'px';
+    div.style.left=`calc(${(el.x/FW)*100}% - 3px)`; div.style.top=`calc(${(el.y/FH)*100}% - 26px)`;
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   } else if(el.type==='valla'){
     div.style.width='48px'; div.style.height='27px';
     div.style.border=`4px solid ${el.color||'#e74c3c'}`;
     div.style.borderBottom='none';
     div.style.borderRadius='5px 5px 0 0';
-    div.style.left=(el.x*zx-24)+'px'; div.style.top=(el.y*zy-13)+'px';
+    div.style.left=`calc(${(el.x/FW)*100}% - 24px)`; div.style.top=`calc(${(el.y/FH)*100}% - 13px)`;
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   } else if(el.type==='ladder'){
     div.style.width='155px'; div.style.height='33px';
     div.style.borderTop=`4px solid ${el.color||'#f1c40f'}`;
     div.style.borderBottom=`4px solid ${el.color||'#f1c40f'}`;
     div.style.backgroundImage=`repeating-linear-gradient(90deg,transparent,transparent 22px,${el.color||'#f1c40f'} 22px,${el.color||'#f1c40f'} 26px)`;
-    div.style.left=(el.x*zx-77)+'px'; div.style.top=(el.y*zy-16)+'px';
+    div.style.left=`calc(${(el.x/FW)*100}% - 77px)`; div.style.top=`calc(${(el.y/FH)*100}% - 16px)`;
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   } else if(el.type==='weight'){
     div.style.width='30px'; div.style.height='19px';
     div.style.background='linear-gradient(180deg,#bdc3c7,#7f8c8d)';
     div.style.borderRadius='4px';
-    div.style.left=(el.x*zx-15)+'px'; div.style.top=(el.y*zy-9)+'px';
+    div.style.left=`calc(${(el.x/FW)*100}% - 15px)`; div.style.top=`calc(${(el.y/FH)*100}% - 9px)`;
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   }
 
@@ -436,9 +439,8 @@ function paintZone(el){
   const div=document.createElement('div');
   div.className='zone-obj'+(activeId===el.id?' sel':'')+(el.locked?' locked':'');
   div.dataset.id=el.id;
-  const zx=fMaster.offsetWidth/FW, zy=fMaster.offsetHeight/FH;
-  div.style.left=(el.x*zx)+'px';div.style.top=(el.y*zy)+'px';
-  div.style.width=(el.w*zx)+'px';div.style.height=(el.h*zy)+'px';
+  div.style.left=`${(el.x/FW)*100}%`;div.style.top=`${(el.y/FH)*100}%`;
+  div.style.width=`${(el.w/FW)*100}%`;div.style.height=`${(el.h/FH)*100}%`;
   div.style.borderColor=el.color||'#ffffff';
   div.style.borderStyle=el.sub==='fill'?'solid':'dashed';
   div.style.background=el.sub==='fill'?(el.color||'#fff')+'33':'transparent';
@@ -462,7 +464,7 @@ function paintTxt(el){
   // Anclar en top-left (el.x, el.y) SIN transform de desplazamiento.
   // Así el drag (+=dx/dy) es 1:1 con el movimiento del dedo/ratón.
   div.style.cssText=
-    `position:absolute;left:${el.x*fMaster.offsetWidth/FW}px;top:${el.y*fMaster.offsetHeight/FH}px;`+
+    `position:absolute;left:${(el.x/FW)*100}%;top:${(el.y/FH)*100}%;`+
     `display:inline-block;`+   /* ajusta el div al ancho exacto del texto */
     `color:${el.color||'#ffffff'};font-size:${fs}px;`+  /* font-size explícito, no hereda :0 del vp */
     `font-family:'Barlow Condensed',sans-serif;font-weight:800;`+
@@ -512,12 +514,10 @@ function ensureMarker(color){
 }
 
 function mkN(el,nx,ny,fx,fy,ctrl=false){
-  // Escalar coordenadas de canvas a píxeles reales del campo
-  // X e Y tienen escalas independientes si el campo está distorsionado
-  const zx=fMaster.offsetWidth/FW;
-  const zy=fMaster.offsetHeight/FH;
   const n=document.createElement('div');n.className='node'+(ctrl?' ctrl':'');
-  n.style.left=(fx*zx)+'px';n.style.top=(fy*zy)+'px';
+  // Usar % para que el nodo coincida con el SVG viewBox (misma transformación)
+  n.style.left=`${(fx/FW)*100}%`;
+  n.style.top=`${(fy/FH)*100}%`;
   n.dataset.id=el.id;n.dataset.nx=nx;
   if(ny!=null)n.dataset.ny=ny;
   const i=document.createElement('div');i.className='node-in';n.appendChild(i);fMaster.appendChild(n);
