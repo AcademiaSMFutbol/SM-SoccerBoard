@@ -74,8 +74,8 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
   background:#2d8a47;
   overflow:hidden;
   touch-action:none;
-  display:block;   /* el campo hijo ocupa 100% con width/height:100% */
   padding:0;margin:0;
+  /* display:block + hijo absolute inset:0 = sin margen en ningún lado */
 }
 :fullscreen #vp{ background:#000; }
 :-webkit-full-screen #vp{ background:#000; }
@@ -83,10 +83,9 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 
 /* field-master: width/height fijados por JS, centrado por el flex de #vp */
 #field-master{
-  /* Campo ocupa 100% del viewport disponible — JS solo actualiza el campo SVG */
-  width:100% !important;
-  height:100% !important;
-  position:relative;
+  /* Pegado a todos los bordes del #vp — sin margen en ningún lado */
+  position:absolute;
+  inset:0;           /* top:0 right:0 bottom:0 left:0 */
   overflow:hidden;
   background:#2d8a47;
   background-size:100% 100%;
