@@ -75,7 +75,8 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
   overflow:hidden;
   touch-action:none;
   padding:0;margin:0;
-  /* display:block + hijo absolute inset:0 = sin margen en ningún lado */
+  line-height:0; /* evita espacio inline entre elementos block */
+  font-size:0;   /* idem */
 }
 :fullscreen #vp{ background:#000; }
 :-webkit-full-screen #vp{ background:#000; }
