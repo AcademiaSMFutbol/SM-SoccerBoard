@@ -61,16 +61,10 @@ function getZoom(){
 }
 function getZoomY(){ return fMaster.offsetHeight/FH; }
 
-// ── CAMPO — imágenes PNG para full/half, SVG para futsal/blank ─
+// ── CAMPO — siempre en SVG (sin depender de imágenes externas) ─
 function drawFieldBG(type){
   const old=document.getElementById('field-bg'); if(old)old.remove();
-  // Usar imágenes PNG del repositorio cuando estén disponibles
-  const IMGS={full:'campoentero.png', half:'mediocampo.png'};
-  if(IMGS[type]){
-    fMaster.style.background=`#2d8a47 url('${IMGS[type]}') no-repeat center/100% 100%`;
-    return; // imagen cubre todo, no necesitamos SVG
-  }
-  const BG={futsal:'#1a3a5c',blank:'#1a5c2a'};
+  const BG={full:'#2d8a47',half:'#2d8a47',futsal:'#1a3a5c',blank:'#1a5c2a'};
   fMaster.style.background=BG[type]||'#2d8a47';
   if(type==='blank')return;
 
