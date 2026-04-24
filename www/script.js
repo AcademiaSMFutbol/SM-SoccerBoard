@@ -303,7 +303,7 @@ function render(){
 
 // FIX CRÍTICO: wipe() nunca borra #field-bg ni defs del svg-layer
 function wipe(){
-  fMaster.querySelectorAll('.object,.zone-obj,.node,.txt-obj,.shirt-svg').forEach(el=>el.remove());
+  fMaster.querySelectorAll('.object,.zone-obj,.node,.txt-obj,.shirt-svg,[data-ring]').forEach(el=>el.remove());
   const defs=svgLayer.querySelector('defs');
   svgLayer.innerHTML='';
   if(defs)svgLayer.appendChild(defs);
@@ -344,12 +344,15 @@ function paintObj(el){
   div.style.transformOrigin='center center';
 
   if(el.type==='ball'){
-    const bsz=26;
-    div.style.width=bsz+'px'; div.style.height=bsz+'px';
-    div.style.left=(el.x*(window._RZ?.x||1)-bsz/2)+'px';
-    div.style.top =(el.y*(window._RZ?.y||1)-bsz/2)+'px';
+    div.style.fontSize='28px';
+    div.style.lineHeight='28px';
+    div.style.width='28px'; div.style.height='28px';
+    div.style.textAlign='center';
+    div.style.overflow='visible';
+    div.style.left=(el.x*(window._RZ?.x||1)-14)+'px';
+    div.style.top =(el.y*(window._RZ?.y||1)-14)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-    div.innerHTML='<svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#fff" stroke="#333" stroke-width="1.5"/><circle cx="13" cy="13" r="4" fill="#333"/><line x1="13" y1="1" x2="13" y2="25" stroke="#333" stroke-width="0.8"/><line x1="1" y1="13" x2="25" y2="13" stroke="#333" stroke-width="0.8"/><line x1="4.5" y1="4.5" x2="21.5" y2="21.5" stroke="#333" stroke-width="0.7"/><line x1="21.5" y1="4.5" x2="4.5" y2="21.5" stroke="#333" stroke-width="0.7"/></svg>';
+    div.textContent='⚽';
   } else if(el.type==='cone'||el.type==='cone_low'){
     const bw=el.type==='cone'?14:12;
     const bh=el.type==='cone'?28:14;
@@ -388,12 +391,49 @@ function paintObj(el){
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   }
 
-  // Glow de selección — drop-shadow no cambia dimensiones ni forma
-  if(isSel){
-    const prev=div.style.filter||'';
-    div.style.filter=(prev?prev+' ':'')+'drop-shadow(0 0 4px #f1c40f) drop-shadow(0 0 2px #f1c40f)';
-  }
   fMaster.appendChild(div);
+
+  // Indicador de selección: div separado que NO afecta al elemento
+  if(isSel){
+    const ring=document.createElement('div');
+    ring.dataset.ring='1';
+    ring.style.position='absolute';
+    ring.style.pointerEvents='none';
+    ring.style.border='2.5px solid #f1c40f';
+    ring.style.zIndex='19';
+    ring.style.boxSizing='border-box';
+    const rx=el.x*(window._RZ?.x||1);
+    const ry=el.y*(window._RZ?.y||1);
+    if(el.type==='ball'){
+      const r=18; ring.style.width=r*2+'px'; ring.style.height=r*2+'px';
+      ring.style.borderRadius='50%';
+      ring.style.left=(rx-r)+'px'; ring.style.top=(ry-r)+'px';
+    } else if(el.type==='cone'||el.type==='cone_low'){
+      const bw=el.type==='cone'?14:12, bh=el.type==='cone'?28:14;
+      ring.style.width=(bw*2+8)+'px'; ring.style.height=(bh+8)+'px';
+      ring.style.borderRadius='3px';
+      ring.style.left=(rx-bw-4)+'px'; ring.style.top=(ry-bh/2-4)+'px';
+    } else if(el.type==='pica'){
+      ring.style.width='14px'; ring.style.height='60px';
+      ring.style.borderRadius='4px';
+      ring.style.left=(rx-7)+'px'; ring.style.top=(ry-30)+'px';
+    } else if(el.type==='valla'){
+      ring.style.width='56px'; ring.style.height='35px';
+      ring.style.borderRadius='5px';
+      ring.style.left=(rx-28)+'px'; ring.style.top=(ry-17)+'px';
+    } else if(el.type==='ladder'){
+      ring.style.width='163px'; ring.style.height='41px';
+      ring.style.borderRadius='4px';
+      ring.style.left=(rx-81)+'px'; ring.style.top=(ry-20)+'px';
+    } else if(el.type==='weight'){
+      ring.style.width='38px'; ring.style.height='27px';
+      ring.style.borderRadius='4px';
+      ring.style.left=(rx-19)+'px'; ring.style.top=(ry-13)+'px';
+    }
+    if(el.rot){ ring.style.transform=`rotate(${el.rot}deg)`; ring.style.transformOrigin='center center'; }
+    ring.style.scale=el.scale||1;
+    fMaster.appendChild(ring);
+  }
 }
 
 function makeShirt(c1,c2,striped,num,numColor,isSelected){
