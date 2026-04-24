@@ -47,18 +47,10 @@ function updateSpeedLabel(){
 }
 function getDur(){ return 3300-+document.getElementById('speed-slider').value; }
 
-// ── RESIZE: campo llena 100% del espacio disponible ─────────
+// ── RESIZE: el campo ocupa 100% del vp (CSS lo controla)
+// JS solo actualiza el SVG viewBox para que las coordenadas
+// internas (0,0)-(FW,FH) mapeen correctamente al tamaño real.
 function resizeField(){
-  // Campo ocupa TODO el viewport — sin preservar ratio exacto
-  // (el usuario aceptó que se distorsione un poco)
-  const vpW=vp.clientWidth, vpH=vp.clientHeight;
-  if(vpW<=0||vpH<=0)return;
-  // Mantener ratio pero ajustar al contenedor de forma contain
-  const ratio=Math.min(vpW/FW, vpH/FH);
-  const w=Math.round(FW*ratio);
-  const h=Math.round(FH*ratio);
-  fMaster.style.width=w+'px';
-  fMaster.style.height=h+'px';
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   drawFieldBG(currentField);
 }
