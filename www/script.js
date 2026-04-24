@@ -47,18 +47,18 @@ function updateSpeedLabel(){
 }
 function getDur(){ return 3300-+document.getElementById('speed-slider').value; }
 
-// ── RESIZE: campo llena el viewport completamente ──────────
+// ── RESIZE: campo llena 100% del espacio disponible ─────────
 function resizeField(){
-  const vpW=vp.clientWidth;   // ancho real sin bordes
-  const vpH=vp.clientHeight;
+  // Campo ocupa TODO el viewport — sin preservar ratio exacto
+  // (el usuario aceptó que se distorsione un poco)
+  const vpW=vp.clientWidth, vpH=vp.clientHeight;
   if(vpW<=0||vpH<=0)return;
-  // Escalar por ancho primero (campo horizontal)
-  let w=vpW, h=Math.round(vpW*FH/FW);
-  // Si la altura supera el vp, escalar por altura
-  if(h>vpH){ h=vpH; w=Math.round(vpH*FW/FH); }
-  fMaster.style.cssText=
-    `width:${w}px;height:${h}px;position:relative;`+
-    `background-size:100% 100%;background-repeat:no-repeat;`;
+  // Mantener ratio pero ajustar al contenedor de forma contain
+  const ratio=Math.min(vpW/FW, vpH/FH);
+  const w=Math.round(FW*ratio);
+  const h=Math.round(FH*ratio);
+  fMaster.style.width=w+'px';
+  fMaster.style.height=h+'px';
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   drawFieldBG(currentField);
 }
@@ -178,7 +178,7 @@ window.addEventListener('pointerup', onUp);
 function onDown(e){
   if(isPlaying)return;
   tapStartX=e.clientX; tapStartY=e.clientY; isPossibleTap=true;
-  const hit=e.target.closest('.object,.vec-hit,.zone-obj,.node,.zone-sh,.txt-obj,.txt-sh');
+  const hit=e.target.closest('.object,.shirt-svg,.vec-hit,.zone-obj,.node,.zone-sh,.txt-obj,.txt-sh');
   const hitId=hit?hit.dataset.id:null;
   activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   const rect=fMaster.getBoundingClientRect();
@@ -204,7 +204,15 @@ function onDown(e){
         return; // salir sin crear dragInfo
       }
       const isTxt=el&&el.type==='txt';
-      if(el&&(was||isTxt||hit?.classList.contains('node')||hit?.classList.contains('zone-sh')||hit?.classList.contains('txt-sh'))){
+      const isPlayer=['A','B','C','D'].includes(el?.type);
+      // Iniciar drag si: primer click en jugador/texto, doble en otros, o node/handle
+      const startDrag=el&&(
+        isPlayer||isTxt||was||
+        hit?.classList.contains('node')||
+        hit?.classList.contains('zone-sh')||
+        hit?.classList.contains('txt-sh')
+      );
+      if(startDrag){
         saveState();
         dragInfo={el,isSH:hit?.classList.contains('zone-sh')||hit?.classList.contains('txt-sh'),
           nx:hit?.dataset.nx,ny:hit?.dataset.ny,lastX:e.clientX,lastY:e.clientY,zoom};
@@ -455,23 +463,20 @@ function paintTxt(el){
   div.dataset.id=el.id;
   const fs=el.fontSize||32;
   const rot=el.rot||0;
-  // left/top = posición del punto central del texto.
-  // Usamos transform:translate(-50%,-50%) SOLO para centrar —
-  // el punto de anclaje del drag (el.x, el.y) ES el centro del texto.
-  // El salto anterior ocurría porque el dragInfo.zoom no se recalculaba.
-  // Ahora el zoom se recalcula en cada onDown desde el rect del campo.
+  const isSel=activeId===el.id;
+  // Anclar en top-left (el.x, el.y) SIN transform de desplazamiento.
+  // Así el drag (+=dx/dy) es 1:1 con el movimiento del dedo/ratón.
   div.style.cssText=
-    `position:absolute;`+
-    `left:${el.x}px;top:${el.y}px;`+
+    `position:absolute;left:${el.x}px;top:${el.y}px;`+
     `color:${el.color||'#ffffff'};font-size:${fs}px;`+
     `font-family:'Barlow Condensed',sans-serif;font-weight:800;`+
     `white-space:nowrap;line-height:1;cursor:grab;pointer-events:auto;`+
-    `background:transparent;`+
-    `transform:translate(-50%,-50%) rotate(${rot}deg);`+
-    `text-shadow:1px 1px 4px rgba(0,0,0,0.8);z-index:20;`+
-    (activeId===el.id?`text-shadow:0 0 8px #f1c40f,1px 1px 4px rgba(0,0,0,0.8);`:'');
+    `background:transparent;z-index:20;`+
+    (rot?`transform:rotate(${rot}deg);`:'') +
+    (isSel?`text-shadow:0 0 8px #f1c40f,1px 1px 4px rgba(0,0,0,0.8);`:
+            `text-shadow:1px 1px 4px rgba(0,0,0,0.8);`);
   div.textContent=el.text;
-  if(activeId===el.id){
+  if(isSel){
     const sh=document.createElement('div');
     sh.className='zone-sh txt-sh';sh.dataset.id=el.id;sh.textContent='⤡';
     sh.style.cssText='position:absolute;bottom:-14px;right:-14px;z-index:30;width:16px;height:16px;font-size:10px;';
@@ -574,8 +579,9 @@ function createTextEl(){
   if(!txt||!txt.trim())return;
   saveState();const id=uid();
   // Tipo 'txt' propio para simplificar lógica (no depende de 'vec')
+  // x,y = top-left del texto (sin translate para evitar saltos)
   steps[curStep].push({id,type:'txt',text:txt.trim(),
-    x:Math.round(FW/2),y:Math.round(FH/2),fontSize:32,color:'#ffffff',rot:0});
+    x:Math.round(FW*0.35),y:Math.round(FH*0.45),fontSize:32,color:'#ffffff',rot:0});
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
 }
 
