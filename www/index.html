@@ -28,6 +28,7 @@
       <button class="btn bs" onclick="exportPNG()">PNG</button>
       <button class="btn bm" onclick="exportVideo()">🎬</button>
       <button class="btn bu" onclick="toggleFullscreen()" title="Pantalla completa">⛶</button>
+      <button class="btn bu" onclick="openHelp()" title="Ayuda">❓</button>
       <button class="btn bd" onclick="openResetMenu()">🗑</button>
     </div>
   </header>
@@ -119,6 +120,39 @@
     </aside>
   </div>
 </div>
+
+<div id="m-help" class="modal"><div class="mc" style="max-width: 500px;">
+  <div class="mh"><h3>📖 MANUAL DE USUARIO</h3><button class="btn bi" onclick="closeHelp()">✕</button></div>
+  <div style="text-align: left; font-size: 13px; color: var(--text); max-height: 60vh; overflow-y: auto; padding: 15px; background: var(--panel2); border-radius: var(--r); border: 1px solid var(--border);">
+    <h4 style="color: var(--accent); margin-top: 0;">1. CONTROLES BÁSICOS</h4>
+    <ul style="padding-left: 20px; margin-bottom: 15px;">
+      <li><b>Seleccionar:</b> Toca cualquier objeto.</li>
+      <li><b>Deseleccionar:</b> Toca el césped vacío.</li>
+      <li><b>Rotar (45º):</b> Selecciona un objeto y vuelve a tocarlo.</li>
+      <li><b>Escalar:</b> Haz "pellizco" con dos dedos sobre un objeto (o usa la barra lateral para jugadores y textos).</li>
+    </ul>
+
+    <h4 style="color: var(--accent);">2. HERRAMIENTA DE TEXTO</h4>
+    <p style="margin: 5px 0 15px;">Al crear texto (botón <b>T</b>), selecciónalo y arrastra el tirador inferior (⤡) para cambiar su tamaño sin distorsionarlo.</p>
+
+    <h4 style="color: var(--accent);">3. EQUIPOS Y JUGADORES</h4>
+    <ul style="padding-left: 20px; margin-bottom: 15px;">
+      <li><b>Numeración Automática:</b> Al añadir o duplicar, el sistema asigna el siguiente número libre.</li>
+      <li><b>Herencia:</b> Los nuevos jugadores copian el estilo (rayas, color, tamaño) del último jugador de su equipo.</li>
+      <li><b>Tamaño Global:</b> Usa la barra "A-A" del menú derecho para encoger/agrandar todos a la vez.</li>
+    </ul>
+
+    <h4 style="color: var(--accent);">4. BIBLIOTECA PERSONAL (💾)</h4>
+    <p style="margin: 5px 0 15px;">Guarda tus tácticas al instante. ⚠️ <i>Atención: Se guardan en la memoria interna de este navegador. Si borras el historial, se perderán.</i></p>
+
+    <h4 style="color: var(--accent);">5. ANIMACIÓN Y EXPORTACIÓN</h4>
+    <ul style="padding-left: 20px; margin-bottom: 0;">
+      <li><b>Pasos:</b> Añade pasos para crear secuencias de movimiento fluidas.</li>
+      <li><b>🎬 Exportar:</b> Puedes guardar tu animación como vídeo MP4 (ideal para WhatsApp) o GIF animado.</li>
+    </ul>
+  </div>
+  <button class="btn bd w100" style="margin-top:12px" onclick="closeHelp()">CERRAR</button>
+</div></div>
 
 <div id="m-lib" class="modal"><div class="mc">
   <div class="mh"><h3>📚 BIBLIOTECA</h3><button class="btn bi" onclick="closeLibrary()">✕</button></div>
