@@ -365,15 +365,10 @@ function paintObj(el){
     div.style.left=(el.x*(window._RZ?.x||1)-14)+'px';
     div.style.top =(el.y*(window._RZ?.y||1)-14)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-    div.innerHTML=`<svg viewBox="0 0 24 24" width="100%" height="100%" style="overflow:visible">
-      <circle cx="12" cy="12" r="11.5" fill="#fff" stroke="#111" stroke-width="1"/>
-      <path d="M12 6.5 L15.5 9 L14 14.5 L10 14.5 L8.5 9 Z" fill="#222"/>
-      <path d="M12 6.5 L12 0.5" stroke="#222" stroke-width="1.5"/>
-      <path d="M15.5 9 L22.5 7" stroke="#222" stroke-width="1.5"/>
-      <path d="M14 14.5 L18.5 20.5" stroke="#222" stroke-width="1.5"/>
-      <path d="M10 14.5 L5.5 20.5" stroke="#222" stroke-width="1.5"/>
-      <path d="M8.5 9 L1.5 7" stroke="#222" stroke-width="1.5"/>
-    </svg>`;
+    // Carga el archivo externo como fondo ajustado al div
+    div.style.backgroundImage="url('balon.svg')";
+    div.style.backgroundSize="100% 100%";
+    div.style.backgroundRepeat="no-repeat";
   } else if(el.type==='cone'||el.type==='cone_low'){
     const bw=el.type==='cone'?14:12;
     const bh=el.type==='cone'?28:14;
