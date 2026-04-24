@@ -312,18 +312,19 @@ function paintObj(el){
   const sc=el.scale||1;
   const rot=el.rot||0;
 
+  const z=getZoom(); // escala canvas→px reales
   if(['A','B','C','D'].includes(el.type)){
     const c1=el.color||TC[el.type].c1;
     const c2=el.stripeColor||TC[el.type].c2;
-    const sz=isSel?44:38; // ring de sel amplía el SVG
+    const sz=38; // tamaño fijo en px de pantalla (no canvas)
     const half=sz/2;
     const svg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,isSel);
     svg.dataset.id=el.id;
-    svg.style.cssText=`position:absolute;left:${el.x-half}px;top:${el.y-half}px;`+
+    svg.style.cssText=`position:absolute;left:${el.x*z-half}px;top:${el.y*z-half}px;`+
       `width:${sz}px;height:${sz}px;cursor:grab;pointer-events:auto;z-index:20;`+
       `transform:rotate(${rot}deg) scale(${sc});transform-origin:${half}px ${half}px;`;
     fMaster.appendChild(svg);
-    return; // SVG directo, sin div wrapper
+    return;
   }
 
   // Material y balón — usamos un div posicionado con left/top exacto
@@ -341,7 +342,7 @@ function paintObj(el){
     div.style.fontSize='26px';
     div.style.lineHeight='1';
     div.style.width='26px'; div.style.height='26px';
-    div.style.left=(el.x-13)+'px'; div.style.top=(el.y-13)+'px';
+    div.style.left=(el.x*z-13)+'px'; div.style.top=(el.y*z-13)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
     div.textContent='⚽';
   } else if(el.type==='cone'||el.type==='cone_low'){
@@ -352,33 +353,33 @@ function paintObj(el){
     div.style.borderRight=`${bw}px solid transparent`;
     div.style.borderBottom=`${bh}px solid ${el.color||(el.type==='cone'?'#e67e22':'#e74c3c')}`;
     div.style.filter='drop-shadow(0 2px 3px rgba(0,0,0,.4))';
-    div.style.left=(el.x-bw)+'px'; div.style.top=(el.y-bh/2)+'px';
+    div.style.left=(el.x*z-bw)+'px'; div.style.top=(el.y*z-bh/2)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   } else if(el.type==='pica'){
     div.style.width='6px'; div.style.height='52px';
     div.style.background=`linear-gradient(${el.color||'#f1c40f'},#e67e22 60%,#c0392b)`;
     div.style.borderRadius='3px 3px 1px 1px';
-    div.style.left=(el.x-3)+'px'; div.style.top=(el.y-26)+'px';
+    div.style.left=(el.x*z-3)+'px'; div.style.top=(el.y*z-26)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   } else if(el.type==='valla'){
     div.style.width='48px'; div.style.height='27px';
     div.style.border=`4px solid ${el.color||'#e74c3c'}`;
     div.style.borderBottom='none';
     div.style.borderRadius='5px 5px 0 0';
-    div.style.left=(el.x-24)+'px'; div.style.top=(el.y-13)+'px';
+    div.style.left=(el.x*z-24)+'px'; div.style.top=(el.y*z-13)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   } else if(el.type==='ladder'){
     div.style.width='155px'; div.style.height='33px';
     div.style.borderTop=`4px solid ${el.color||'#f1c40f'}`;
     div.style.borderBottom=`4px solid ${el.color||'#f1c40f'}`;
     div.style.backgroundImage=`repeating-linear-gradient(90deg,transparent,transparent 22px,${el.color||'#f1c40f'} 22px,${el.color||'#f1c40f'} 26px)`;
-    div.style.left=(el.x-77)+'px'; div.style.top=(el.y-16)+'px';
+    div.style.left=(el.x*z-77)+'px'; div.style.top=(el.y*z-16)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   } else if(el.type==='weight'){
     div.style.width='30px'; div.style.height='19px';
     div.style.background='linear-gradient(180deg,#bdc3c7,#7f8c8d)';
     div.style.borderRadius='4px';
-    div.style.left=(el.x-15)+'px'; div.style.top=(el.y-9)+'px';
+    div.style.left=(el.x*z-15)+'px'; div.style.top=(el.y*z-9)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   }
 
@@ -434,8 +435,9 @@ function paintZone(el){
   const div=document.createElement('div');
   div.className='zone-obj'+(activeId===el.id?' sel':'')+(el.locked?' locked':'');
   div.dataset.id=el.id;
-  div.style.left=el.x+'px';div.style.top=el.y+'px';
-  div.style.width=el.w+'px';div.style.height=el.h+'px';
+  const zz=getZoom();
+  div.style.left=(el.x*zz)+'px';div.style.top=(el.y*zz)+'px';
+  div.style.width=(el.w*zz)+'px';div.style.height=(el.h*zz)+'px';
   div.style.borderColor=el.color||'#ffffff';
   div.style.borderStyle=el.sub==='fill'?'solid':'dashed';
   div.style.background=el.sub==='fill'?(el.color||'#fff')+'33':'transparent';
@@ -459,13 +461,14 @@ function paintTxt(el){
   // Anclar en top-left (el.x, el.y) SIN transform de desplazamiento.
   // Así el drag (+=dx/dy) es 1:1 con el movimiento del dedo/ratón.
   div.style.cssText=
-    `position:absolute;left:${el.x}px;top:${el.y}px;`+
-    `color:${el.color||'#ffffff'};font-size:${fs}px;`+
+    `position:absolute;left:${el.x*getZoom()}px;top:${el.y*getZoom()}px;`+
+    `display:inline-block;`+   /* ajusta el div al ancho exacto del texto */
+    `color:${el.color||'#ffffff'};font-size:${fs}px;`+  /* font-size explícito, no hereda :0 del vp */
     `font-family:'Barlow Condensed',sans-serif;font-weight:800;`+
-    `white-space:nowrap;line-height:1;cursor:grab;pointer-events:auto;`+
-    `background:transparent;z-index:20;`+
+    `white-space:nowrap;line-height:${fs}px;cursor:grab;pointer-events:auto;`+
+    `background:transparent;z-index:20;overflow:visible;`+
     (rot?`transform:rotate(${rot}deg);`:'') +
-    (isSel?`text-shadow:0 0 8px #f1c40f,1px 1px 4px rgba(0,0,0,0.8);`:
+    (isSel?`text-shadow:0 0 8px #f1c40f,1px 1px 4px rgba(0,0,0,0.8);outline:1.5px dashed #f1c40f;outline-offset:4px;`:
             `text-shadow:1px 1px 4px rgba(0,0,0,0.8);`);
   div.textContent=el.text;
   if(isSel){
@@ -508,8 +511,11 @@ function ensureMarker(color){
 }
 
 function mkN(el,nx,ny,fx,fy,ctrl=false){
+  // Escalar coordenadas del canvas (0..FW, 0..FH) al tamaño real del campo
+  const z=getZoom();
   const n=document.createElement('div');n.className='node'+(ctrl?' ctrl':'');
-  n.style.left=fx+'px';n.style.top=fy+'px';n.dataset.id=el.id;n.dataset.nx=nx;
+  n.style.left=(fx*z)+'px';n.style.top=(fy*z)+'px';
+  n.dataset.id=el.id;n.dataset.nx=nx;
   if(ny!=null)n.dataset.ny=ny;
   const i=document.createElement('div');i.className='node-in';n.appendChild(i);fMaster.appendChild(n);
 }
