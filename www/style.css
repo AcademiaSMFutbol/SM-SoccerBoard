@@ -76,7 +76,6 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
   touch-action:none;
   padding:0;margin:0;
   line-height:0; /* evita espacio inline entre elementos block */
-  font-size:0;   /* idem */
 }
 :fullscreen #vp{ background:#000; }
 :-webkit-full-screen #vp{ background:#000; }
@@ -112,8 +111,8 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 /* ── OBJETOS EN CAMPO ── */
 .object{position:absolute;background:transparent;border:none;outline:none;pointer-events:auto;cursor:grab;}
 .object:active{cursor:grabbing;}
-.object.sel{outline:2.5px solid #f1c40f;outline-offset:4px;}
-/* Jugadores son SVG directo — no usan .object */
+/* Selección via box-shadow — NO mueve ni redimensiona el elemento */
+.object.sel{box-shadow:0 0 0 2.5px #f1c40f, 0 0 8px rgba(241,196,15,0.4);}
 .ball-obj{font-size:24px;cursor:grab;}
 
 /* Material */
@@ -211,19 +210,15 @@ hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
 /* ── TEXTO EN CAMPO ── */
 .txt-obj{
   position:absolute;
-  display:inline-block;
-  pointer-events:auto;cursor:grab;
+  display:inline-block;  /* ajuste automático al ancho del texto */
+  pointer-events:auto;
+  cursor:grab;
   background:transparent;
   white-space:nowrap;
   font-family:'Barlow Condensed',sans-serif;
   font-weight:800;
-  text-shadow:1px 1px 3px rgba(0,0,0,0.7);
   user-select:none;
-  /* SIN outline — la selección se muestra con borde de color en el texto */
-}
-.txt-obj.sel{
-  z-index:50;
-  text-shadow:0 0 8px var(--warn),1px 1px 3px rgba(0,0,0,0.7);
+  overflow:visible;
 }
 
 /* txt-sh — handle de escala para texto */
