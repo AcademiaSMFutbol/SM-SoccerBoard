@@ -95,52 +95,53 @@ function drawFieldBG(type){
   function ARC(cx,cy,r,a1,a2){const ra1=a1*Math.PI/180,ra2=a2*Math.PI/180;const x1=cx+r*Math.cos(ra1),y1=cy+r*Math.sin(ra1);const x2=cx+r*Math.cos(ra2),y2=cy+r*Math.sin(ra2);P(`M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`);}
 
   if(type==='full'){
-    // Campo 105m x 68m. FW=1050px=105m, FH=680px=68m (10px/m). Sin margenes.
-    R(0,0,FW,FH);                                      // perimetro
-    L(FW/2,0,FW/2,FH);                                 // linea central
-    C(FW/2,FH/2,91.5); DOT(FW/2,FH/2);                // circulo central (r=9.15m)
-    // Area grande (40.32m x 16.5m = 403x165px)
+    // Campo 105x68m — escala 10px/m — líneas blancas sobre verde
+    // Franjas de césped ya dibujadas arriba
+    R(0,0,FW,FH);                               // perímetro
+    L(FW/2,0,FW/2,FH);                          // línea central
+    C(FW/2,FH/2,91.5); DOT(FW/2,FH/2);         // círculo central r=9.15m
+    // Áreas grandes: 40.32m×16.5m = 403×165px
     R(0,FH/2-82.5,403,165); R(FW-403,FH/2-82.5,403,165);
-    // Area chica (18.32m x 5.5m = 183x55px)
+    // Áreas chicas: 18.32m×5.5m = 183×55px
     R(0,FH/2-27.5,183,55); R(FW-183,FH/2-27.5,183,55);
-    // Porterias (7.32m x 2.44m = 73x24px, fuera del perimetro)
-    R(-24,FH/2-36.6,24,73.2); R(FW,FH/2-36.6,24,73.2);
-    // Puntos de penalti (11m = 110px)
+    // Porterías: 7.32m×2.44m = 73×24px (fuera del perímetro)
+    R(-24,FH/2-36.5,24,73); R(FW,FH/2-36.5,24,73);
+    // Puntos de penalti: 11m=110px
     DOT(110,FH/2); DOT(FW-110,FH/2);
-    // Semicirculos de area (r=9.15m=91.5px, tangente al area grande)
+    // Semicírculos: r=91.5px desde punto de penalti, solo parte exterior al área
     P(`M 403 ${FH/2-50} A 91.5 91.5 0 0 1 403 ${FH/2+50}`);
     P(`M ${FW-403} ${FH/2-50} A 91.5 91.5 0 0 0 ${FW-403} ${FH/2+50}`);
-    // Corners (r=1m=10px)
+    // Córners: r=1m=10px
     ARC(0,0,10,0,90); ARC(FW,0,10,90,180);
     ARC(0,FH,10,270,360); ARC(FW,FH,10,180,270);
 
   } else if(type==='half'){
-    // Medio campo: porteria ARRIBA (y=0), linea central ABAJO (y=FH)
-    // Canvas FW=1050 = 68m ancho, FH=680 = 52.5m profundidad
-    // Escala: X=1050/68=15.44px/m, Y=680/52.5=12.95px/m
-    const Xs=1050/68, Ys=680/52.5;
-    // Linea de fondo (arriba), laterales y linea central (abajo)
+    // Medio campo: mitad del campo (52.5m×68m).
+    // Portería ARRIBA (y=0), línea central ABAJO (y=FH).
+    // Escala: FW=1050 → 52.5m ancho (20px/m en X), FH=680 → 68m alto (10px/m en Y)
+    // → mismo viewBox que campo completo, solo mostramos una mitad
+    const Xs=FW/52.5, Ys=FH/68;
+    // Líneas de contorno
     L(0,0,FW,0); L(0,0,0,FH); L(FW,0,FW,FH); L(0,FH,FW,FH);
-    // Area grande: 40.32m ancho x 16.5m profundidad
-    const AGW=Math.round(40.32*Xs), AGH=Math.round(16.5*Ys);
-    R(FW/2-AGW/2,0,AGW,AGH);
-    // Area chica: 18.32m x 5.5m
-    const ACW=Math.round(18.32*Xs), ACH=Math.round(5.5*Ys);
-    R(FW/2-ACW/2,0,ACW,ACH);
-    // Porteria: 7.32m x 2.44m (encima de y=0)
-    const GW=Math.round(7.32*Xs), GH=Math.round(2.44*Ys);
-    R(FW/2-GW/2,-GH,GW,GH);
-    // Punto penalti: 11m desde linea de fondo
-    const PP=Math.round(11*Ys);
-    DOT(FW/2,PP);
-    // Semicirculo: r=9.15m, tangente al area grande por abajo
-    // r en Y: 9.15*Ys=118.5, pero usamos un radio visual uniforme
-    const SR=Math.round(9.15*Ys);
-    P(`M ${FW/2-SR*0.55} ${AGH} A ${SR} ${SR} 0 0 0 ${FW/2+SR*0.55} ${AGH}`);
-    // Corners
+    // Área grande: 40.32m×16.5m
+    const AGW=40.32*Xs, AGH=16.5*Ys;
+    R((FW-AGW)/2,0,AGW,AGH);
+    // Área chica: 18.32m×5.5m
+    const ACW=18.32*Xs, ACH=5.5*Ys;
+    R((FW-ACW)/2,0,ACW,ACH);
+    // Portería: 7.32m×2.44m (encima de y=0, hacia afuera)
+    const GW=7.32*Xs, GH=2.44*Xs;
+    R((FW-GW)/2,-GH,GW,GH);
+    // Punto de penalti: 11m desde línea de fondo
+    DOT(FW/2,11*Ys);
+    // Semicírculo área: r=9.15m, sale por debajo del área grande
+    const SR=9.15*Xs;
+    P(`M ${FW/2-SR*0.58} ${AGH} A ${SR} ${SR} 0 0 0 ${FW/2+SR*0.58} ${AGH}`);
+    // Córners arriba
     ARC(0,0,10,0,90); ARC(FW,0,10,90,180);
-    // Punto en linea central
+    // Punto central en línea central
     DOT(FW/2,FH);
+
   } else if(type==='futsal'){
     // Futbol sala 40m x 20m. 1050/40=26.25px/m, 680/20=34px/m
     R(0,0,FW,FH);
@@ -276,10 +277,10 @@ function onUp(e){
 function render(){
   if(isPlaying)return;
   wipe();
-  // _RZ: ratio canvas→px, calculado DESPUÉS de wipe para layout estable
-  // Mismo ratio que usa el SVG viewBox → nodos coinciden con trazos
-  const _r=fMaster.getBoundingClientRect();
-  window._RZ={x:_r.width>0?_r.width/FW:1, y:_r.height>0?_r.height/FH:1};
+  // _RZ: mismo ratio que el SVG viewBox usa internamente
+  // clientWidth/Height son enteros post-layout, sin decimales de transform
+  const cw=fMaster.clientWidth, ch=fMaster.clientHeight;
+  window._RZ={x:cw>0?cw/FW:1, y:ch>0?ch/FH:1};
   const step=steps[curStep];
   step.forEach(el=>{if(el.type==='zone')paintZone(el);});
   step.forEach(el=>{if(el.type==='vec') paintVec(el);});
@@ -343,12 +344,12 @@ function paintObj(el){
   div.style.transformOrigin='center center';
 
   if(el.type==='ball'){
-    div.style.fontSize='26px';
-    div.style.lineHeight='1';
-    div.style.width='26px'; div.style.height='26px';
-    div.style.left=(el.x*(window._RZ?.x||1)-13)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-13)+'px';
+    const bsz=26;
+    div.style.width=bsz+'px'; div.style.height=bsz+'px';
+    div.style.left=(el.x*(window._RZ?.x||1)-bsz/2)+'px';
+    div.style.top =(el.y*(window._RZ?.y||1)-bsz/2)+'px';
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-    div.textContent='⚽';
+    div.innerHTML='<svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#fff" stroke="#333" stroke-width="1.5"/><circle cx="13" cy="13" r="4" fill="#333"/><line x1="13" y1="1" x2="13" y2="25" stroke="#333" stroke-width="0.8"/><line x1="1" y1="13" x2="25" y2="13" stroke="#333" stroke-width="0.8"/><line x1="4.5" y1="4.5" x2="21.5" y2="21.5" stroke="#333" stroke-width="0.7"/><line x1="21.5" y1="4.5" x2="4.5" y2="21.5" stroke="#333" stroke-width="0.7"/></svg>';
   } else if(el.type==='cone'||el.type==='cone_low'){
     const bw=el.type==='cone'?14:12;
     const bh=el.type==='cone'?28:14;
@@ -387,12 +388,11 @@ function paintObj(el){
     div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   }
 
-  // Ring de selección para material via outline circular donde aplique
+  // Glow de selección — drop-shadow no cambia dimensiones ni forma
   if(isSel){
-    div.style.outline='2.5px solid #f1c40f';
-    div.style.outlineOffset='4px';
+    const prev=div.style.filter||'';
+    div.style.filter=(prev?prev+' ':'')+'drop-shadow(0 0 4px #f1c40f) drop-shadow(0 0 2px #f1c40f)';
   }
-
   fMaster.appendChild(div);
 }
 
