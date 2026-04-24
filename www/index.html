@@ -22,6 +22,7 @@
     <div class="tg" id="poly-ind" style="display:none"><span class="poly-badge">✍ POLÍGONO</span></div>
     <div class="tg">
       <button class="btn bu" onclick="openLibrary()" title="Biblioteca">📚</button>
+      <button class="btn bs" onclick="saveToLocal()" title="Guardar en mi Biblioteca">💾 GUARDAR</button>
       <button class="btn bu" onclick="undo()" title="Deshacer">⟲</button>
       <button class="btn bp" onclick="runAnimation()">▶ PLAY</button>
       <button class="btn bs" onclick="exportPNG()">PNG</button>
@@ -55,6 +56,7 @@
       <button class="tool" onclick="createItem('cone_low')"><span class="ti cone-low-i"></span><span class="tl">Chita</span></button>
       <button class="tool" onclick="createItem('cone')"><span class="ti cone-i"></span><span class="tl">Cono</span></button>
       <button class="tool" onclick="createItem('pica')"><span class="ti pica-i"></span><span class="tl">Pica</span></button>
+      <button class="tool" onclick="createItem('aro')"><span class="ti" style="font-size:22px">⭕</span><span class="tl">Aro</span></button>
       <button class="tool" onclick="createItem('valla')"><span class="ti valla-i"></span><span class="tl">Valla</span></button>
       <button class="tool" onclick="createItem('ladder')"><span class="ti ladder-i"></span><span class="tl">Escal.</span></button>
       <button class="tool" onclick="createItem('weight')"><span class="ti weight-i"></span><span class="tl">Peso</span></button>
@@ -111,7 +113,6 @@
   </div>
 </div>
 
-<!-- MODALES -->
 <div id="m-lib" class="modal"><div class="mc">
   <div class="mh"><h3>📚 BIBLIOTECA</h3><button class="btn bi" onclick="closeLibrary()">✕</button></div>
   <div id="lib-grid"></div>
