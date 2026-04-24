@@ -361,7 +361,8 @@ function paintObj(el){
   div.style.zIndex='20';
   div.style.transformOrigin='center center';
 
-  const isSVGItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro'].includes(el.type);
+  // Añadimos 'weight' a la lista de elementos renderizados como SVG externo
+  const isSVGItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro', 'weight'].includes(el.type);
   if(isSVGItem) {
     const sizes = {
       'ball': [28, 28],
@@ -369,7 +370,8 @@ function paintObj(el){
       'cone_low': [24, 24],
       'pica': [8, 52],
       'ladder': [155, 33],
-      'aro': [32, 32]
+      'aro': [32, 32],
+      'weight': [30, 24] // Proporción ajustada para la pesa SVG
     };
     const files = {
       'ball': 'balon.svg',
@@ -377,7 +379,8 @@ function paintObj(el){
       'cone_low': 'chincheta.svg',
       'pica': 'pica.svg',
       'ladder': 'escalera.svg',
-      'aro': 'aro.svg'
+      'aro': 'aro.svg',
+      'weight': 'pesa.svg'
     };
     const [w, h] = sizes[el.type];
     div.style.width = w + 'px';
@@ -388,16 +391,12 @@ function paintObj(el){
     div.style.backgroundSize = "100% 100%";
     div.style.backgroundRepeat = "no-repeat";
   } else if(el.type==='valla'){
+    // La valla se mantiene dibujada por código CSS de momento
     div.style.width='48px'; div.style.height='27px';
     div.style.border=`4px solid ${el.color||'#e74c3c'}`;
     div.style.borderBottom='none';
     div.style.borderRadius='5px 5px 0 0';
     div.style.left=(el.x*(window._RZ?.x||1)-24)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-13)+'px';
-  } else if(el.type==='weight'){
-    div.style.width='30px'; div.style.height='19px';
-    div.style.background='linear-gradient(180deg,#bdc3c7,#7f8c8d)';
-    div.style.borderRadius='4px';
-    div.style.left=(el.x*(window._RZ?.x||1)-15)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-9)+'px';
   }
   
   div.style.transform=`rotate(${rot}deg) scale(${sc})`;
