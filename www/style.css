@@ -74,9 +74,7 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
   background:#2d8a47;
   overflow:hidden;
   touch-action:none;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display:block;   /* el campo hijo ocupa 100% con width/height:100% */
   padding:0;margin:0;
 }
 :fullscreen #vp{ background:#000; }
@@ -85,13 +83,14 @@ body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;backgroun
 
 /* field-master: width/height fijados por JS, centrado por el flex de #vp */
 #field-master{
-  /* Dimensiones las controla JS (resizeField). Centrado por el flex del #vp */
-  flex-shrink:0;
+  /* Campo ocupa 100% del viewport disponible — JS solo actualiza el campo SVG */
+  width:100% !important;
+  height:100% !important;
+  position:relative;
   overflow:hidden;
   background:#2d8a47;
   background-size:100% 100%;
   background-repeat:no-repeat;
-  background-position:center;
 }
 /* En pantalla completa, sin sombra */
 :fullscreen #field-master{ box-shadow:none; }
