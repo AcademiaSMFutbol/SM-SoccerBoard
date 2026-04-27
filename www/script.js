@@ -1,8 +1,8 @@
 /* ============================================================
    SM SoccerBoard Pro v75 — script.js
    © Academia SM Fútbol — Las Palmas de Gran Canaria
-   FIX: Precarga de SVGs en Base64 para garantizar que html2canvas
-   dibuje siempre el material (balones, conos, etc.) al exportar.
+   NUEVO: Integración de Fitball, Rebotador, Check y Error.
+   NUEVO: Marca de agua personalizable (Logo + Nombre).
    ============================================================ */
 
 // ── ESTADO ───────────────────────────────────────────────────
@@ -16,7 +16,6 @@ let globalPlayerScale=1;
 
 const FW=1050, FH=680;
 const ANIM=new Set(['A','B','C','D','ball']);
-const SVG_CACHE = {}; // Caché para almacenar las imágenes en Base64
 
 let TC={
   A:{c1:'#e63946',c2:'#ffffff'}, B:{c1:'#2e86de',c2:'#ffffff'},
@@ -29,27 +28,24 @@ const svgLayer = document.getElementById('svg-layer');
 
 // ── INIT & PRELOADER ─────────────────────────────────────────
 window.onload=()=>{
-  preloadMaterialSVGs(); // Carga los SVG a Base64
-  updateSwatches(); updateSpeedLabel();
+  preloadImages();
+  updateSwatches(); 
+  updateSpeedLabel();
+  updateWatermark(); // Carga la marca de agua al inicio
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{ resizeField(); render(); });
   });
 };
 
-// Truco anti-bloqueo para html2canvas
-async function preloadMaterialSVGs() {
-  const files = ['balon.svg', 'cono.svg', 'chincheta.svg', 'pica.svg', 'escalera.svg', 'aro.svg', 'pesa.svg'];
-  for (const f of files) {
-    try {
-      const r = await fetch(f);
-      if (r.ok) {
-        const text = await r.text();
-        const b64 = btoa(unescape(encodeURIComponent(text)));
-        SVG_CACHE[f] = `data:image/svg+xml;base64,${b64}`;
-      }
-    } catch(e) { console.warn('No se pudo precargar:', f); }
-  }
-  render(); // Refresca la pizarra cuando los carga
+function preloadImages() {
+  const files = [
+    'balon.png', 'cono.png', 'chincheta.png', 'pica.png', 'escalera.png', 'aro.png', 'pesa.png',
+    'fitball.png', 'rebotador.png', 'check.png', 'error.png', 'logo.png'
+  ];
+  files.forEach(f => {
+    const img = new Image();
+    img.src = f;
+  });
 }
 
 if(window.ResizeObserver){
@@ -88,6 +84,69 @@ function getZoom(){ return fMaster.getBoundingClientRect().width/FW; }
 function getExportBg() {
   const bgColors = { full: '#2d8a47', half: '#2d8a47', futsal: '#1a3a5c', blank: '#1a5c2a' };
   return bgColors[currentField] || '#2d8a47';
+}
+
+// ── MARCA DE AGUA PERSONALIZADA ──────────────────────────────
+function updateWatermark() {
+  let wm = document.getElementById('watermark-container');
+  if(!wm) {
+    wm = document.createElement('div');
+    wm.id = 'watermark-container';
+    // Estilos para fijarlo en la esquina inferior derecha, translúcido y que no interfiera con los clics
+    wm.style.cssText = 'position:absolute; bottom:15px; right:15px; pointer-events:none; z-index:10; display:flex; flex-direction:column; align-items:flex-end; opacity:0.7;';
+    fMaster.appendChild(wm);
+  }
+  wm.innerHTML = ''; // Limpiar
+  
+  // 1. Cargar el Logo (del usuario o el por defecto)
+  const logoSrc = localStorage.getItem('smboard_custom_logo') || 'logo.png';
+  const img = document.createElement('img');
+  img.src = logoSrc;
+  img.style.maxHeight = '50px'; 
+  img.style.objectFit = 'contain';
+  wm.appendChild(img);
+
+  // 2. Cargar el Texto (si el usuario lo ha añadido)
+  const name = localStorage.getItem('smboard_custom_name');
+  if(name) {
+    const txt = document.createElement('div');
+    txt.textContent = name;
+    txt.style.cssText = 'color:#ffffff; font-family:"Barlow Condensed", sans-serif; font-size:16px; font-weight:800; text-shadow:1px 1px 3px rgba(0,0,0,0.8); margin-top:5px;';
+    wm.appendChild(txt);
+  }
+
+  // 3. (Opcional) Actualizar el logo del header si tienes un <img id="header-logo"> en tu HTML
+  const headerLogo = document.getElementById('header-logo');
+  if(headerLogo) headerLogo.src = logoSrc;
+}
+
+// Llama a esta función desde un botón en tu HTML para cambiar el logo
+function uploadCustomLogo() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/png, image/jpeg, image/webp';
+  inp.onchange = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      // Guardar el logo en Base64 en el almacenamiento local del navegador
+      localStorage.setItem('smboard_custom_logo', ev.target.result);
+      updateWatermark();
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+
+// Llama a esta función desde un botón en tu HTML para cambiar el nombre
+function setCustomName() {
+  const current = localStorage.getItem('smboard_custom_name') || '';
+  const name = prompt("Introduce tu nombre o el de tu club:", current);
+  if(name !== null) {
+    localStorage.setItem('smboard_custom_name', name.trim());
+    updateWatermark();
+  }
 }
 
 // ── CAMPO ────────────────────────────────────────────────────
@@ -271,7 +330,8 @@ function onMove(e){
 }
 
 function onUp(e){
-  const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','aro','A','B','C','D','txt'];
+  // AÑADIDO: Nuevos objetos al array de rotación
+  const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','aro','fitball','rebotador','check','error','A','B','C','D','txt'];
   if(isPossibleTap && activeId && activePointers.size===1 && !isDrawingPoly){
     const hit = e.target.closest('.object,.shirt-svg,.txt-obj');
     const hitId = hit ? hit.dataset.id : null;
@@ -360,15 +420,18 @@ function paintObj(el){
     return;
   }
 
-  const isSVGItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro', 'weight'].includes(el.type);
-  if(isSVGItem) {
+  // AÑADIDO: Nuevos iconos en la lógica de pintado
+  const isImageItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro', 'weight', 'fitball', 'rebotador', 'check', 'error'].includes(el.type);
+  if(isImageItem) {
     const sizes = {
       'ball': [28, 28], 'cone': [28, 32], 'cone_low': [24, 24],
-      'pica': [8, 52], 'ladder': [155, 33], 'aro': [32, 32], 'weight': [30, 24]
+      'pica': [8, 52], 'ladder': [155, 33], 'aro': [32, 32], 'weight': [30, 24],
+      'fitball': [32, 32], 'rebotador': [45, 15], 'check': [24, 24], 'error': [24, 24]
     };
     const files = {
-      'ball': 'balon.svg', 'cone': 'cono.svg', 'cone_low': 'chincheta.svg',
-      'pica': 'pica.svg', 'ladder': 'escalera.svg', 'aro': 'aro.svg', 'weight': 'pesa.svg'
+      'ball': 'balon.png', 'cone': 'cono.png', 'cone_low': 'chincheta.png',
+      'pica': 'pica.png', 'ladder': 'escalera.png', 'aro': 'aro.png', 'weight': 'pesa.png',
+      'fitball': 'fitball.png', 'rebotador': 'rebotador.png', 'check': 'check.png', 'error': 'error.png'
     };
     const [w, h] = sizes[el.type];
     div.style.width = w + 'px'; div.style.height = h + 'px';
@@ -376,8 +439,7 @@ function paintObj(el){
     div.style.top = (el.y * (window._RZ?.y || 1) - (h/2)) + 'px';
     
     const img = document.createElement('img');
-    // FIX APLICADO AQUÍ: Si el SVG está en Caché Base64, usa el Base64.
-    img.src = SVG_CACHE[files[el.type]] || files[el.type];
+    img.src = files[el.type];
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.pointerEvents = 'none'; 
@@ -401,15 +463,16 @@ function paintObj(el){
     ring.style.zIndex='19'; ring.style.boxSizing='border-box';
     const rx=el.x*(window._RZ?.x||1); const ry=el.y*(window._RZ?.y||1);
     
-    if(isSVGItem){
+    if(isImageItem){
       const sizes = {
         'ball': [14, 14], 'cone': [14, 16], 'cone_low': [12, 12],
-        'pica': [4, 26], 'ladder': [77, 16], 'aro': [16, 16], 'weight': [15, 12]
+        'pica': [4, 26], 'ladder': [77, 16], 'aro': [16, 16], 'weight': [15, 12],
+        'fitball': [16, 16], 'rebotador': [24, 9], 'check': [12, 12], 'error': [12, 12]
       };
       const [hw, hh] = sizes[el.type];
       ring.style.width=(hw*2+8)+'px'; ring.style.height=(hh*2+8)+'px';
       ring.style.borderRadius='3px';
-      if(el.type === 'ball' || el.type === 'aro') ring.style.borderRadius='50%';
+      if(['ball', 'aro', 'fitball', 'check', 'error'].includes(el.type)) ring.style.borderRadius='50%';
       ring.style.left=(rx-hw-4)+'px'; ring.style.top=(ry-hh-4)+'px';
     } else if(el.type==='valla'){
       ring.style.width='56px'; ring.style.height='35px';
@@ -621,7 +684,8 @@ function createPlayer(team){
 
 function createItem(type){
   saveState();const id=uid();
-  const CM={cone:'#e67e22',cone_low:'#e74c3c',pica:'#f1c40f',valla:'#e74c3c',ladder:'#f1c40f',weight:'#95a5a6',aro:'#3498db'};
+  // AÑADIDO: Colores por defecto para los nuevos items si los usaras en SVG, pero como usan PNG no importan.
+  const CM={cone:'#e67e22',cone_low:'#e74c3c',pica:'#f1c40f',valla:'#e74c3c',ladder:'#f1c40f',weight:'#95a5a6',aro:'#3498db',fitball:'#34495e',rebotador:'#2c3e50',check:'#2ecc71',error:'#e74c3c'};
   steps[curStep].push({id,type,x:clamp(300+Math.random()*400,20,FW-20),y:clamp(180+Math.random()*300,20,FH-20),color:CM[type]||'#e67e22',scale:1,rot:0});
   activeId=id;render();
 }
