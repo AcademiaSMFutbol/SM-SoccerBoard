@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SM SoccerBoard Pro v75</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;800&display=swap" rel="stylesheet">
-  
   <link rel="stylesheet" href="style.css">
   
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -16,186 +15,135 @@
   <div id="topbar">
     <div class="logo-area">
       <img id="header-logo" src="logo.png" alt="Logo" style="height: 30px; margin-right: 10px; border-radius: 4px;">
-      <h2>SM SoccerBoard Pro</h2>
+      <h2 style="margin:0; font-size:1.2rem;">SM SoccerBoard Pro</h2>
     </div>
     
     <div class="top-actions">
-      <button class="btn" onclick="uploadCustomLogo()" title="Sube el escudo de tu club">🛡️ Cambiar Logo</button>
-      <button class="btn" onclick="setCustomName()" title="Pon tu nombre en la marca de agua">✍️ Añadir Nombre</button>
+      <button class="btn" onclick="uploadCustomLogo()">🛡️ Logo</button>
+      <button class="btn" onclick="setCustomName()">✍️ Nombre</button>
       
       <select onchange="setField(this.value)" class="field-select">
         <option value="full">Campo Entero</option>
         <option value="half">Medio Campo</option>
         <option value="futsal">Fútbol Sala</option>
-        <option value="blank">Pizarra en Blanco</option>
+        <option value="blank">Pizarra</option>
       </select>
       
       <button class="btn" onclick="openLibrary()">📚 Biblioteca</button>
       <button class="btn" onclick="exportPNG()">📸 PNG</button>
-      <button class="btn" onclick="exportVideo()">🎬 Video / GIF</button>
+      <button class="btn" onclick="exportVideo()">🎬 Video</button>
       <button class="btn btn-del" onclick="openResetMenu()">🗑️ Limpiar</button>
-      <button class="btn" onclick="toggleFullscreen()" title="Pantalla Completa">⛶</button>
+      <button class="btn" onclick="toggleFullscreen()">⛶</button>
     </div>
   </div>
 
   <div id="vp">
     <div id="left">
-      <div class="cat">JUGADORES</div>
-      <button class="tool" onclick="createPlayer('A')"><span id="dot-A" class="dot"></span> Equipo A</button>
-      <button class="tool" onclick="createPlayer('B')"><span id="dot-B" class="dot"></span> Equipo B</button>
-      <button class="tool" onclick="createPlayer('C')"><span id="dot-C" class="dot"></span> Equipo C</button>
-      <button class="tool" onclick="createPlayer('D')"><span id="dot-D" class="dot"></span> Equipo D</button>
+      <div class="cat">EQUIPOS</div>
+      <button class="tool" onclick="createPlayer('A')"><span id="dot-A" class="dot"></span> Eq. A</button>
+      <button class="tool" onclick="createPlayer('B')"><span id="dot-B" class="dot"></span> Eq. B</button>
+      <button class="tool" onclick="createPlayer('C')"><span id="dot-C" class="dot"></span> Eq. C</button>
+      <button class="tool" onclick="createPlayer('D')"><span id="dot-D" class="dot"></span> Eq. D</button>
       
-      <div class="cat">MATERIAL CLÁSICO</div>
+      <div class="cat">MATERIAL</div>
       <button class="tool" onclick="createItem('ball')">⚽ Balón</button>
       <button class="tool" onclick="createItem('cone')">🔼 Cono</button>
-      <button class="tool" onclick="createItem('cone_low')">🔴 Chincheta</button>
+      <button class="tool" onclick="createItem('cone_low')">🔴 Chita</button>
       <button class="tool" onclick="createItem('pica')">🟨 Pica</button>
-      <button class="tool" onclick="createItem('valla')">🚧 Valla</button>
-      <button class="tool" onclick="createItem('ladder')">🪜 Escalera</button>
-      <button class="tool" onclick="createItem('aro')">⭕ Aro</button>
-      <button class="tool" onclick="createItem('weight')">🏋️ Pesa</button>
-
-      <div class="cat">NUEVO MATERIAL</div>
       <button class="tool" onclick="createItem('fitball')">🟣 Fitball</button>
       <button class="tool" onclick="createItem('rebotador')">🥅 Rebotador</button>
       <button class="tool" onclick="createItem('check')">✔️ Check</button>
       <button class="tool" onclick="createItem('error')">❌ Error</button>
 
       <div class="cat">DIBUJO</div>
-      <button class="tool" onclick="createVector('line')">↗️ Flecha Recta</button>
-      <button class="tool" onclick="createVector('curve')">⤴️ Flecha Curva</button>
-      <button class="tool" onclick="startPolyMode()">📈 Línea Múltiple</button>
-      <button class="tool" onclick="createZone('line')">🔳 Zona Hueca</button>
-      <button class="tool" onclick="createZone('fill')">🔲 Zona Rellena</button>
+      <button class="tool" onclick="createVector('line')">↗️ Flecha</button>
+      <button class="tool" onclick="createVector('curve')">⤴️ Curva</button>
+      <button class="tool" onclick="startPolyMode()">📈 Poly</button>
+      <button class="tool" onclick="createZone('line')">🔳 Marco</button>
+      <button class="tool" onclick="createZone('fill')">🔲 Relleno</button>
       <button class="tool" onclick="createTextEl()">🔤 Texto</button>
     </div>
 
-    <div id="center-area">
-      <div id="field-master">
-        <svg id="svg-layer"></svg>
-        <div id="poly-ind" style="display:none; position:absolute; top:10px; left:50%; transform:translateX(-50%); background:#e74c3c; color:white; padding:5px 15px; border-radius:20px; z-index:100; font-weight:bold; pointer-events:none;">Modo Dibujo Activo (Haz clic en el campo)</div>
-      </div>
-
-      <div id="bottom-bar">
-        <button class="btn" onclick="undo()">↩️ Deshacer</button>
-        <div class="step-ctrl">
-          <button class="btn" onclick="navStep(-1)">◀</button>
-          <span id="step-label">1 / 1</span>
-          <button class="btn" onclick="navStep(1)">▶</button>
-          <button class="btn" onclick="addStep()">+ Añadir Paso</button>
-        </div>
-        <div class="anim-ctrl">
-          <button class="btn btn-play" onclick="runAnimation()">▶️ ANIMAR</button>
-          <label style="color:white; margin-left:10px; font-weight:bold;">Velocidad:</label>
-          <input type="range" id="speed-slider" min="500" max="3000" value="2000" step="100" oninput="updateSpeedLabel()">
-          <span id="speed-val" style="color:white; width: 55px; display:inline-block; text-align:right;"></span>
-        </div>
-      </div>
+    <div id="field-master">
+      <svg id="svg-layer"></svg>
+      <div id="poly-ind" style="display:none; position:absolute; top:10px; left:50%; transform:translateX(-50%); background:#e74c3c; color:white; padding:5px 15px; border-radius:20px; z-index:100; font-weight:bold;">Modo Poly Activo</div>
     </div>
 
     <div id="right">
       <div id="inspector" style="display:none;">
         <div class="cat">PROPIEDADES</div>
-        
-        <div class="irow" id="r-color">
-          <span>Color principal</span>
-          <input type="color" id="ins-color" oninput="setProp('color', this.value)">
-        </div>
-        
-        <div class="irow" id="r-num">
-          <span>Número dorsal</span>
-          <input type="number" id="ins-num" min="1" max="99" oninput="setProp('num', parseInt(this.value))">
-        </div>
-        
-        <div class="irow" id="r-numcolor">
-          <span>Color Número</span>
-          <input type="color" id="ins-numcolor" oninput="setProp('numColor', this.value)">
-        </div>
-        
-        <div class="irow" id="r-strtog">
-          <span>Camiseta rayada</span>
-          <input type="checkbox" id="ins-strtog" onchange="toggleStripe(this.checked)">
-        </div>
-        
-        <div class="irow" id="r-stripe" style="display:none;">
-          <span>Color rayas</span>
-          <input type="color" id="ins-stripe" oninput="setProp('stripeColor', this.value)">
-        </div>
-
-        <div class="irow" id="r-arrow" style="display:none;">
-          <span>Punta de Flecha</span>
-          <input type="checkbox" id="ins-arrow" onchange="setProp('arrow', this.checked)">
-        </div>
-        
-        <div class="irow" id="r-dash" style="display:none;">
-          <span>Línea Discontinua</span>
-          <input type="checkbox" id="ins-dash" onchange="setProp('dashed', this.checked)">
-        </div>
-
-        <div class="irow" id="r-lock" style="display:none;">
-          <span>Bloquear Zona</span>
-          <input type="checkbox" id="ins-lock" onchange="toggleLock(this.checked)">
-        </div>
-
-        <button class="btn" id="btn-fpoly" onclick="finishPoly()" style="display:none; width:100%; margin-top:10px; background:#2ecc71;">Terminar Línea</button>
-        
-        <div style="display:flex; gap:10px; margin-top:15px;">
-          <button class="btn" onclick="dupActive()" style="flex:1;">Duplicar</button>
+        <div class="irow" id="r-color"><span>Color</span><input type="color" id="ins-color" oninput="setProp('color', this.value)"></div>
+        <div class="irow" id="r-num"><span>Dorsal</span><input type="number" id="ins-num" min="1" max="99" oninput="setProp('num', parseInt(this.value))"></div>
+        <div class="irow" id="r-numcolor"><span>C. Num</span><input type="color" id="ins-numcolor" oninput="setProp('numColor', this.value)"></div>
+        <div class="irow" id="r-strtog"><span>Rayas</span><input type="checkbox" id="ins-strtog" onchange="toggleStripe(this.checked)"></div>
+        <div class="irow" id="r-arrow" style="display:none;"><span>Flecha</span><input type="checkbox" id="ins-arrow" onchange="setProp('arrow', this.checked)"></div>
+        <div class="irow" id="r-dash" style="display:none;"><span>Puntos</span><input type="checkbox" id="ins-dash" onchange="setProp('dashed', this.checked)"></div>
+        <div class="irow" id="r-lock" style="display:none;"><span>Bloqueo</span><input type="checkbox" id="ins-lock" onchange="toggleLock(this.checked)"></div>
+        <button class="btn" id="btn-fpoly" onclick="finishPoly()" style="display:none; width:100%; margin-top:10px; background:#2ecc71;">Terminar</button>
+        <div style="display:flex; gap:5px; margin-top:15px;">
+          <button class="btn" onclick="dupActive()" style="flex:1;">Copiar</button>
           <button class="btn btn-del" onclick="delActive()" style="flex:1;">Borrar</button>
         </div>
       </div>
 
-      <div id="teams-panel">
-        <div class="cat">COLORES DE EQUIPOS</div>
-        <div class="irow"><span>Eq. A</span><input type="color" id="sw-A" value="#e63946" oninput="setTeamColor('A','c1',this.value)"></div>
-        <div class="irow"><span>Eq. B</span><input type="color" id="sw-B" value="#2e86de" oninput="setTeamColor('B','c1',this.value)"></div>
-        <div class="irow"><span>Eq. C</span><input type="color" id="sw-C" value="#f1c40f" oninput="setTeamColor('C','c1',this.value)"></div>
-        <div class="irow"><span>Eq. D</span><input type="color" id="sw-D" value="#2ecc71" oninput="setTeamColor('D','c1',this.value)"></div>
-        
-        <div class="cat" style="margin-top:20px;">TAMAÑO GLOBAL JUGADORES</div>
-        <input type="range" min="0.5" max="2" value="1" step="0.1" oninput="setGlobalScale(this.value)" style="width:100%;">
+      <div class="cat">ANIMACIÓN</div>
+      <div class="irow" style="justify-content:center; gap:10px; margin-bottom:10px;">
+        <button class="btn" onclick="undo()">↩️</button>
+        <button class="btn" onclick="navStep(-1)">◀</button>
+        <span id="step-label" style="color:white; font-weight:800;">1 / 1</span>
+        <button class="btn" onclick="navStep(1)">▶</button>
       </div>
+      <button class="btn" onclick="addStep()" style="width:100%; margin-bottom:10px;">+ PASO</button>
+      <button class="btn btn-play" onclick="runAnimation()" style="width:100%;">▶ PLAY</button>
+      
+      <div class="irow" style="margin-top:10px;">
+        <input type="range" id="speed-slider" min="500" max="3000" value="2400" step="100" oninput="updateSpeedLabel()" style="width:100%;">
+      </div>
+      <div id="speed-val" style="color:white; text-align:center; font-size:12px;">2400ms</div>
+
+      <div class="cat" style="margin-top:20px;">EQUIPOS</div>
+      <div class="irow"><span>A</span><input type="color" id="sw-A" value="#e63946" oninput="setTeamColor('A','c1',this.value)"></div>
+      <div class="irow"><span>B</span><input type="color" id="sw-B" value="#2e86de" oninput="setTeamColor('B','c1',this.value)"></div>
+      <div class="irow"><span>C</span><input type="color" id="sw-C" value="#f1c40f" oninput="setTeamColor('C','c1',this.value)"></div>
+      <div class="irow"><span>D</span><input type="color" id="sw-D" value="#2ecc71" oninput="setTeamColor('D','c1',this.value)"></div>
+      
+      <div class="cat" style="margin-top:20px;">TAMAÑO JUGADORES</div>
+      <input type="range" min="0.5" max="2" value="1" step="0.1" oninput="setGlobalScale(this.value)" style="width:100%;">
     </div>
   </div>
 
   <div class="modal" id="m-export">
     <div class="modal-content">
-      <h3>Exportar Animación</h3>
-      <p>Elige el formato de exportación:</p>
-      
-      <button class="btn" onclick="startExport('webm')" style="width:100%; margin-bottom:10px; background:#3498db;">🎬 Exportar Video (WebM)</button>
-      <button class="btn" onclick="startExport('gif')" style="width:100%; margin-bottom:10px; background:#9b59b6;">🎞️ Exportar GIF Animado</button>
-      
-      <button class="btn btn-del" onclick="closeModal('m-export')" style="width:100%;">Cancelar</button>
-      
+      <h3>Exportar</h3>
+      <button class="btn" onclick="startExport('webm')" style="width:100%; margin-bottom:10px; background:#3498db;">🎬 Video (WebM)</button>
+      <button class="btn" onclick="startExport('gif')" style="width:100%; margin-bottom:10px; background:#9b59b6;">🎞️ GIF</button>
+      <button class="btn btn-del" onclick="closeModal('m-export')" style="width:100%;">Cerrar</button>
       <div id="exp-prog" style="display:none; margin-top:15px;">
-        <div style="background:#333; border-radius:5px; height:20px; overflow:hidden;">
-          <div id="pbar-fill" style="width:0%; height:100%; background:#f1c40f; transition:width 0.2s;"></div>
+        <div style="background:#333; height:10px; border-radius:5px; overflow:hidden;">
+          <div id="pbar-fill" style="width:0%; height:100%; background:#f1c40f;"></div>
         </div>
-        <div id="exp-status" style="text-align:center; margin-top:5px; font-size:14px; color:#fff;">Preparando...</div>
+        <div id="exp-status" style="color:white; font-size:11px; text-align:center; margin-top:5px;"></div>
       </div>
     </div>
   </div>
 
   <div class="modal" id="m-lib">
-    <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h3>Biblioteca de Jugadas</h3>
-        <button class="btn" onclick="saveToLocal()" style="background:#2ecc71;">+ Guardar Jugada Actual</button>
+    <div class="modal-content" style="max-width:80%; height:80%;">
+      <div style="display:flex; justify-content:space-between;">
+        <h3>Biblioteca</h3>
+        <button class="btn" onclick="saveToLocal()" style="background:#2ecc71;">Guardar Actual</button>
       </div>
-      <div id="lib-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
-        </div>
-      <button class="btn btn-del" onclick="closeModal('m-lib')" style="width:100%; margin-top:20px;">Cerrar</button>
+      <div id="lib-grid"></div>
+      <button class="btn btn-del" onclick="closeModal('m-lib')" style="width:100%; margin-top:10px;">Cerrar</button>
     </div>
   </div>
 
   <div class="modal" id="m-reset">
     <div class="modal-content">
-      <h3>¿Qué deseas limpiar?</h3>
-      <button class="btn" onclick="doReset('step')" style="width:100%; margin-bottom:10px;">Solo este Paso</button>
-      <button class="btn btn-del" onclick="doReset('all')" style="width:100%; margin-bottom:10px;">Toda la Pizarra (Todos los pasos)</button>
-      <button class="btn" onclick="closeModal('m-reset')" style="width:100%;">Cancelar</button>
+      <h3>¿Limpiar pizarra?</h3>
+      <button class="btn" onclick="doReset('step')" style="width:100%; margin-bottom:10px;">Solo este paso</button>
+      <button class="btn btn-del" onclick="doReset('all')" style="width:100%;">Todo</button>
+      <button class="btn" onclick="closeModal('m-reset')" style="width:100%; margin-top:10px;">Cancelar</button>
     </div>
   </div>
 
