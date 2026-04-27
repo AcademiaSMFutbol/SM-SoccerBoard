@@ -58,19 +58,19 @@
         <div class="tool" onclick="createPlayer('D')"><div class="pdot" id="dot-D" style="background:#2ecc71;">D</div><div class="tl">Eq. D</div></div>
         
         <div class="cat">MATERIAL</div>
-        <div class="tool" onclick="createItem('ball')"><div class="ti">⚽</div><div class="tl">Balón</div></div>
-        <div class="tool" onclick="createItem('cone_low')"><div class="cone-low-i"></div><div class="tl">Chita</div></div>
-        <div class="tool" onclick="createItem('cone')"><div class="cone-i"></div><div class="tl">Cono</div></div>
-        <div class="tool" onclick="createItem('pica')"><div class="pica-i"></div><div class="tl">Pica</div></div>
-        <div class="tool" onclick="createItem('aro')"><div class="ti">⭕</div><div class="tl">Aro</div></div>
-        <div class="tool" onclick="createItem('valla')"><div class="valla-i"></div><div class="tl">Valla</div></div>
-        <div class="tool" onclick="createItem('ladder')"><div class="ladder-i"></div><div class="tl">Escalera</div></div>
-        <div class="tool" onclick="createItem('weight')"><div class="weight-i"></div><div class="tl">Pesa</div></div>
+        <div class="tool" onclick="createItem('ball')"><img src="balon.png" style="max-width:22px; max-height:22px; object-fit:contain;"><div class="tl">Balón</div></div>
+        <div class="tool" onclick="createItem('cone_low')"><img src="chincheta.png" style="max-width:22px; max-height:22px; object-fit:contain;"><div class="tl">Chita</div></div>
+        <div class="tool" onclick="createItem('cone')"><img src="cono.png" style="max-width:22px; max-height:22px; object-fit:contain;"><div class="tl">Cono</div></div>
+        <div class="tool" onclick="createItem('pica')"><img src="pica.png" style="max-width:22px; max-height:22px; object-fit:contain;"><div class="tl">Pica</div></div>
+        <div class="tool" onclick="createItem('aro')"><img src="aro.png" style="max-width:22px; max-height:22px; object-fit:contain;"><div class="tl">Aro</div></div>
+        <div class="tool" onclick="createItem('ladder')"><img src="escalera.png" style="max-width:28px; max-height:16px; object-fit:contain;"><div class="tl">Escalera</div></div>
+        <div class="tool" onclick="createItem('weight')"><img src="pesa.png" style="max-width:22px; max-height:22px; object-fit:contain;"><div class="tl">Pesa</div></div>
+        <div class="tool" onclick="createItem('fitball')"><img src="fitball.png" style="max-width:22px; max-height:22px; object-fit:contain;"><div class="tl">Fitball</div></div>
+        <div class="tool" onclick="createItem('rebotador')"><img src="rebotador.png" style="max-width:24px; max-height:20px; object-fit:contain;"><div class="tl">Rebotador</div></div>
+        <div class="tool" onclick="createItem('check')"><img src="check.png" style="max-width:22px; max-height:22px; object-fit:contain;"><div class="tl">Check</div></div>
+        <div class="tool" onclick="createItem('error')"><img src="error.png" style="max-width:22px; max-height:22px; object-fit:contain;"><div class="tl">Error</div></div>
         
-        <div class="tool" onclick="createItem('fitball')"><div class="ti">🟣</div><div class="tl">Fitball</div></div>
-        <div class="tool" onclick="createItem('rebotador')"><div class="ti">🥅</div><div class="tl">Rebotador</div></div>
-        <div class="tool" onclick="createItem('check')"><div class="ti">✔️</div><div class="tl">Check</div></div>
-        <div class="tool" onclick="createItem('error')"><div class="ti">❌</div><div class="tl">Error</div></div>
+        <div class="tool" onclick="createItem('valla')"><div class="valla-i"></div><div class="tl">Valla</div></div>
       </div>
 
       <div id="vp">
@@ -151,7 +151,7 @@
           <input type="range" id="speed-slider" min="500" max="3000" value="2400" step="100" oninput="updateSpeedLabel()">
           <span>🐇</span>
         </div>
-        <div id="speed-val">2400ms</div>
+        <div id="speed-val" style="text-align:center; font-size:12px; margin-bottom:10px;">2400ms</div>
 
         <div class="cat">EQUIPOS</div>
         <div class="teq">
@@ -181,14 +181,14 @@
           </div>
         </div>
 
-        <div class="cat">TAMAÑO JUGADORES</div>
+        <div class="cat" style="margin-top:20px;">TAMAÑO JUGADORES</div>
         <div class="spd">
           <span style="font-size:10px;font-weight:bold;">A</span>
           <input type="range" min="0.5" max="2" value="1" step="0.1" oninput="setGlobalScale(this.value)">
           <span style="font-size:16px;font-weight:bold;">A</span>
         </div>
 
-        <div class="cat">CAMPO</div>
+        <div class="cat" style="margin-top:20px;">CAMPO</div>
         <select class="sel" onchange="setField(this.value)">
           <option value="full">Campo Completo</option>
           <option value="half">Medio Campo</option>
