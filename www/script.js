@@ -1,9 +1,8 @@
 /* ============================================================
    SM SoccerBoard Pro v75 — script.js
    © Academia SM Fútbol — Las Palmas de Gran Canaria
-   FIX RAÍZ: campo dibujado en #field-bg (SVG separado).
-   wipe() solo borra .object/.zone-obj/.node — NUNCA el campo.
-   resizeField() usa width/height directos, sin transform:scale.
+   FIX: Envoltorios div para SVG, etiquetas <img> para material
+   y colores de fondo dinámicos para html2canvas.
    ============================================================ */
 
 // ── ESTADO ───────────────────────────────────────────────────
@@ -13,7 +12,7 @@ let isPlaying=false, isDrawingPoly=false;
 let activePointers=new Map(), initialPinchDist=null;
 let tapStartX=0, tapStartY=0, isPossibleTap=false, wasActiveOnDown=false;
 let idCounter=1, currentField='full';
-let globalPlayerScale=1; // Escala global para los jugadores
+let globalPlayerScale=1; 
 
 const FW=1050, FH=680;
 const ANIM=new Set(['A','B','C','D','ball']);
@@ -67,12 +66,17 @@ function resizeField(){
 }
 function getZoom(){ return fMaster.getBoundingClientRect().width/FW; }
 
+// ── COLOR DE FONDO PARA EXPORTACIÓN ──────────────────────────
+function getExportBg() {
+  const bgColors = { full: '#2d8a47', half: '#2d8a47', futsal: '#1a3a5c', blank: '#1a5c2a' };
+  return bgColors[currentField] || '#2d8a47';
+}
+
 // ── CAMPO ────────────────────────────────────────────────────
 function drawFieldBG(type){
   const old=document.getElementById('field-bg'); if(old)old.remove();
   const IMGS={full:'campoentero.png', half:'mediocampo.png'};
   
-  // SOLUCIÓN html2canvas: Separar las propiedades del fondo
   if(IMGS[type]){
     fMaster.style.background = 'none';
     fMaster.style.backgroundColor = '#2d8a47';
@@ -92,6 +96,7 @@ function drawFieldBG(type){
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
   svg.id='field-bg';
+  svg.setAttribute('xmlns', ns); // CRÍTICO PARA HTML2CANVAS
   svg.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:visible;';
 
@@ -306,20 +311,6 @@ function paintObj(el){
   const rot=el.rot||0;
   const z=getZoom(); 
 
-  if(['A','B','C','D'].includes(el.type)){
-    const c1=el.color||TC[el.type].c1;
-    const c2=el.stripeColor||TC[el.type].c2;
-    const sz=38; 
-    const half=sz/2;
-    const svg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,isSel);
-    svg.dataset.id=el.id;
-    svg.style.cssText=`position:absolute;left:${el.x*(window._RZ?.x||1)-half}px;top:${el.y*(window._RZ?.y||1)-half}px;`+
-      `width:${sz}px;height:${sz}px;cursor:grab;pointer-events:auto;z-index:20;`+
-      `transform:rotate(${rot}deg) scale(${sc});transform-origin:${half}px ${half}px;`;
-    fMaster.appendChild(svg);
-    return;
-  }
-
   const div=document.createElement('div');
   div.className='object'+(isSel?' sel':'');
   div.dataset.id=el.id;
@@ -329,6 +320,28 @@ function paintObj(el){
   div.style.pointerEvents='auto';
   div.style.zIndex='20';
   div.style.transformOrigin='center center';
+  div.style.display='flex';
+  div.style.alignItems='center';
+  div.style.justifyContent='center';
+
+  if(['A','B','C','D'].includes(el.type)){
+    const c1=el.color||TC[el.type].c1;
+    const c2=el.stripeColor||TC[el.type].c2;
+    const sz=38; 
+    const half=sz/2;
+    
+    // FIX: Aplicamos el transform al div, NO al SVG interno
+    div.style.left=(el.x*(window._RZ?.x||1)-half)+'px';
+    div.style.top=(el.y*(window._RZ?.y||1)-half)+'px';
+    div.style.width=sz+'px';
+    div.style.height=sz+'px';
+    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
+
+    const svg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,isSel);
+    div.appendChild(svg);
+    fMaster.appendChild(div);
+    return; // Sale porque makeShirt ya incluye el anillo de selección
+  }
 
   const isSVGItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro', 'weight'].includes(el.type);
   if(isSVGItem) {
@@ -344,9 +357,15 @@ function paintObj(el){
     div.style.width = w + 'px'; div.style.height = h + 'px';
     div.style.left = (el.x * (window._RZ?.x || 1) - (w/2)) + 'px';
     div.style.top = (el.y * (window._RZ?.y || 1) - (h/2)) + 'px';
-    div.style.backgroundImage = `url('${files[el.type]}')`;
-    div.style.backgroundSize = "100% 100%";
-    div.style.backgroundRepeat = "no-repeat";
+    
+    // FIX: Usar etiqueta <img> para que html2canvas no lo pierda
+    const img = document.createElement('img');
+    img.src = files[el.type];
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.pointerEvents = 'none'; // Para que el drag lo detecte el div
+    div.appendChild(img);
+
   } else if(el.type==='valla'){
     div.style.width='48px'; div.style.height='27px';
     div.style.border=`4px solid ${el.color||'#e74c3c'}`;
@@ -358,9 +377,8 @@ function paintObj(el){
   div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   fMaster.appendChild(div);
   
-  if (isSel && !isSVGItem && el.type !== 'valla') {
-       // Fallback
-  } else if (isSel) {
+  // Anillo de selección externo (solo para objetos que no son jugadores)
+  if (isSel) {
     const ring=document.createElement('div');
     ring.dataset.ring='1'; ring.style.position='absolute';
     ring.style.pointerEvents='none'; ring.style.border='2.5px solid #f1c40f';
@@ -392,12 +410,15 @@ function paintObj(el){
 function makeShirt(c1,c2,striped,num,numColor,isSelected){
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('xmlns', ns); // CRÍTICO PARA HTML2CANVAS
   svg.setAttribute('width',38);svg.setAttribute('height',38);svg.setAttribute('viewBox','0 0 38 38');
-  svg.classList.add('shirt-svg');
+  svg.style.overflow='visible'; // Evitar cortes al renderizar
+  
   const bg=document.createElementNS(ns,'circle');
   bg.setAttribute('cx','19');bg.setAttribute('cy','19');bg.setAttribute('r','18');
   bg.setAttribute('fill',c1);bg.setAttribute('stroke','rgba(255,255,255,0.8)');bg.setAttribute('stroke-width','2');
   svg.appendChild(bg);
+  
   if(striped){
     const cid='sc-'+Math.random().toString(36).slice(2,6);
     const defs=document.createElementNS(ns,'defs');
@@ -410,11 +431,13 @@ function makeShirt(c1,c2,striped,num,numColor,isSelected){
       r.setAttribute('fill',c2);r.setAttribute('clip-path',`url(#${cid})`);svg.appendChild(r);
     });
   }
+  
   const txt=document.createElementNS(ns,'text');
   txt.setAttribute('x','19');txt.setAttribute('y','24');txt.setAttribute('text-anchor','middle');
   txt.setAttribute('font-family','Barlow Condensed,sans-serif');txt.setAttribute('font-size','14');txt.setAttribute('font-weight','800');
   const nc=numColor||'#ffffff'; txt.setAttribute('fill',nc);txt.setAttribute('paint-order','stroke');txt.setAttribute('stroke',nc==='#ffffff'?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.3)');txt.setAttribute('stroke-width','2');
   txt.textContent=num;svg.appendChild(txt);
+  
   if(isSelected){
     const ring=document.createElementNS(ns,'circle');
     ring.setAttribute('cx','19');ring.setAttribute('cy','19');ring.setAttribute('r','20');
@@ -802,13 +825,14 @@ async function exportPNG(){
   const _r=fMaster.getBoundingClientRect();
   window._RZ={x:_r.width>0?_r.width/FW:1,y:_r.height>0?_r.height/FH:1};
   render();
-  await tick(200); 
+  
+  // FIX: Esperamos más tiempo para asegurar que las imágenes <img> carguen
+  await tick(500); 
   
   html2canvas(fMaster,{
     scale:2,
     useCORS:true,
-    allowTaint:true,
-    backgroundColor: '#2d8a47', // FIX: Color de fondo seguro
+    backgroundColor: getExportBg(),
     logging:false,
     onclone:(doc)=>{
       doc.querySelectorAll('.shirt-svg').forEach(s=>{
@@ -859,14 +883,12 @@ async function doMP4(){
       const t=f/fp,ease=t<.5?2*t*t:-1+(4-2*t)*t;
       renderForExport(steps[i],steps[i+1],ease);
       await new Promise(r=>requestAnimationFrame(r));await tick(0);
-      // FIX: Color de fondo seguro
-      snaps.push(await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:'#2d8a47',logging:false}));
+      snaps.push(await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:getExportBg(),logging:false}));
       setProg(5+Math.round(((i*fp+f+1)/total)*55),`Frame ${i*fp+f+1}/${total}`);
     }
   }
   renderForExport(steps[steps.length-1],steps[steps.length-1],0);await tick(60);
-  // FIX: Color de fondo seguro
-  const ls=await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:'#2d8a47',logging:false});
+  const ls=await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:getExportBg(),logging:false});
   for(let k=0;k<FPS;k++)snaps.push(ls);
   isPlaying=false;fMaster.style.boxShadow=origShadow;render();setProg(62,'Ensamblando WebM...');
   const mime=['video/webm;codecs=vp8,opus','video/webm;codecs=vp8','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
@@ -919,8 +941,7 @@ async function doGIF(){
     const t=f/fp,ease=t<.5?2*t*t:-1+(4-2*t)*t;
     renderForExport(steps[i],steps[i+1],ease);
     await new Promise(r=>requestAnimationFrame(r));await tick(0);
-    // FIX: Color de fondo seguro
-    gif.addFrame(await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:'#2d8a47',logging:false}),{delay:Math.round(1000/FPS),copy:true});
+    gif.addFrame(await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:getExportBg(),logging:false}),{delay:Math.round(1000/FPS),copy:true});
     done++;setProg(5+Math.round((done/total)*80),`Frame ${done}/${total}`);
   }
   isPlaying=false;render();setProg(88,'Compilando GIF...');
