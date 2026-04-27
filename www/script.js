@@ -1,11 +1,8 @@
 /* ============================================================
    SM SoccerBoard Pro v75 — script.js
-   © Academia SM Fútbol — Las Palmas de Gran Canaria
-   FIX DEFINITIVO: Flechas dibujadas por trigonometría pura 
-   para html2canvas y forzado de PNGs (eliminando caché CSS).
+   © Academia SM Fútbol
    ============================================================ */
 
-// ── ESTADO ───────────────────────────────────────────────────
 let steps=[[]], history=[], curStep=0;
 let activeId=null, dragInfo=null;
 let isPlaying=false, isDrawingPoly=false;
@@ -26,7 +23,6 @@ const vp       = document.getElementById('vp');
 const fMaster  = document.getElementById('field-master');
 const svgLayer = document.getElementById('svg-layer');
 
-// ── INIT & PRELOADER ─────────────────────────────────────────
 window.onload=()=>{
   preloadImages();
   updateSwatches(); 
@@ -60,7 +56,6 @@ function updateSpeedLabel(){
 }
 function getDur(){ return 3300-+document.getElementById('speed-slider').value; }
 
-// ── ESCALA GLOBAL DE JUGADORES ───────────────────────────────
 function setGlobalScale(val) {
   globalPlayerScale = parseFloat(val);
   steps.forEach(step => {
@@ -73,7 +68,6 @@ function setGlobalScale(val) {
   render();
 }
 
-// ── RESIZE ───────────────────────────────────────────────────
 function resizeField(){
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   drawFieldBG(currentField);
@@ -85,7 +79,6 @@ function getExportBg() {
   return bgColors[currentField] || '#2d8a47';
 }
 
-// ── MARCA DE AGUA PERSONALIZADA ──────────────────────────────
 function updateWatermark() {
   let wm = document.getElementById('watermark-container');
   if(!wm) {
@@ -141,7 +134,6 @@ function setCustomName() {
   }
 }
 
-// ── CAMPO ────────────────────────────────────────────────────
 function drawFieldBG(type){
   const old=document.getElementById('field-bg'); if(old)old.remove();
   const IMGS={full:'campoentero.png', half:'mediocampo.png'};
@@ -223,7 +215,6 @@ function drawFieldBG(type){
   fMaster.insertBefore(svg, svgLayer);
 }
 
-// ── PUNTERO ──────────────────────────────────────────────────
 vp.addEventListener('pointerdown', onDown);
 window.addEventListener('pointermove', onMove);
 window.addEventListener('pointerup', onUp);
@@ -342,7 +333,6 @@ function onUp(e){
   dragInfo=null;
 }
 
-// ── RENDER ───────────────────────────────────────────────────
 function render(){
   if(isPlaying)return;
   wipe();
@@ -374,7 +364,6 @@ function wipe(){
   if(defs)svgLayer.appendChild(defs);
 }
 
-// ── PAINT OBJECT ─────────────────────────────────────────────
 function paintObj(el){
   const isSel=activeId===el.id;
   const sc=el.scale||1;
@@ -413,6 +402,7 @@ function paintObj(el){
 
   const isImageItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro', 'weight', 'fitball', 'rebotador', 'check', 'error'].includes(el.type);
   if(isImageItem) {
+    // Proporciones justas para que html2canvas no se líe sin object-fit
     const sizes = {
       'ball': [28, 28], 'cone': [28, 32], 'cone_low': [24, 24],
       'pica': [8, 52], 'ladder': [155, 33], 'aro': [32, 32], 'weight': [30, 24],
@@ -430,9 +420,10 @@ function paintObj(el){
     
     const img = document.createElement('img');
     img.src = files[el.type];
+    // Sin object-fit, obligamos a que cubra el div por completo
     img.style.width = '100%';
     img.style.height = '100%';
-    img.style.objectFit = 'contain'; 
+    img.style.display = 'block';
     img.style.pointerEvents = 'none'; 
     div.appendChild(img);
 
@@ -583,68 +574,47 @@ function paintTxt(el){
   fMaster.appendChild(div);
 }
 
-// ── FIX: TRIGONOMETRÍA PARA LAS FLECHAS ──────────────────────
 function paintVec(el){
-  let d='';
-  let endX, endY, angle;
+  let d='', endX, endY, angle;
 
   if(el.sub==='line') {
       d=`M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
-      endX = el.x2; endY = el.y2;
-      angle = Math.atan2(el.y2 - el.y1, el.x2 - el.x1);
-  }
-  else if(el.sub==='curve') {
+      endX = el.x2; endY = el.y2; angle = Math.atan2(el.y2 - el.y1, el.x2 - el.x1);
+  } else if(el.sub==='curve') {
       d=`M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1},${el.cx2} ${el.cy2},${el.x2} ${el.y2}`;
-      endX = el.x2; endY = el.y2;
-      angle = Math.atan2(el.y2 - el.cy2, el.x2 - el.cx2);
-  }
-  else if(el.sub==='poly'&&el.pts?.length>1) {
+      endX = el.x2; endY = el.y2; angle = Math.atan2(el.y2 - el.cy2, el.x2 - el.cx2);
+  } else if(el.sub==='poly'&&el.pts?.length>1) {
       d=el.pts.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' ');
-      const last = el.pts[el.pts.length-1];
-      const prev = el.pts[el.pts.length-2] || el.pts[0];
-      endX = last.x; endY = last.y;
-      angle = Math.atan2(last.y - prev.y, last.x - prev.x);
+      const last = el.pts[el.pts.length-1]; const prev = el.pts[el.pts.length-2] || el.pts[0];
+      endX = last.x; endY = last.y; angle = Math.atan2(last.y - prev.y, last.x - prev.x);
   }
   if(!d)return;
 
   const col=el.color||'#000000';
 
   const p=document.createElementNS('http://www.w3.org/2000/svg','path');
-  p.setAttribute('d',d);
-  p.setAttribute('stroke',col);
-  p.setAttribute('stroke-width','3.5');
-  p.setAttribute('fill','none');
-  p.setAttribute('stroke-linecap','round');
-  p.setAttribute('stroke-linejoin','round');
+  p.setAttribute('d',d); p.setAttribute('stroke',col); p.setAttribute('stroke-width','3.5'); p.setAttribute('fill','none');
+  p.setAttribute('stroke-linecap','round'); p.setAttribute('stroke-linejoin','round');
   if(el.dashed) p.setAttribute('stroke-dasharray','10 6');
-  p.classList.add('v-el');
-  svgLayer.appendChild(p);
+  p.classList.add('v-el'); svgLayer.appendChild(p);
 
-  // Se dibuja un polígono real en la punta (html2canvas lo lee 100% perfecto)
+  // Mantenemos la punta de flecha infalible 
   if(el.arrow && endX !== undefined) {
-     const size = 16; 
-     const a1 = angle - Math.PI / 7;
-     const a2 = angle + Math.PI / 7;
-     const p1x = endX - size * Math.cos(a1);
-     const p1y = endY - size * Math.sin(a1);
-     const p2x = endX - size * Math.cos(a2);
-     const p2y = endY - size * Math.sin(a2);
+     const size = 18; 
+     const a1 = angle - Math.PI / 6; const a2 = angle + Math.PI / 6;
+     const p1x = endX - size * Math.cos(a1); const p1y = endY - size * Math.sin(a1);
+     const p2x = endX - size * Math.cos(a2); const p2y = endY - size * Math.sin(a2);
+     const cx = endX - (size * 0.7) * Math.cos(angle); const cy = endY - (size * 0.7) * Math.sin(angle);
 
      const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-     poly.setAttribute('points', `${endX},${endY} ${p1x},${p1y} ${p2x},${p2y}`);
-     poly.setAttribute('fill', col);
-     poly.classList.add('v-el');
+     poly.setAttribute('points', `${endX},${endY} ${p1x},${p1y} ${cx},${cy} ${p2x},${p2y}`);
+     poly.setAttribute('fill', col); poly.classList.add('v-el');
      svgLayer.appendChild(poly);
   }
 
   const hit=document.createElementNS('http://www.w3.org/2000/svg','path');
-  hit.setAttribute('d',d);
-  hit.setAttribute('stroke','transparent');
-  hit.setAttribute('stroke-width','26');
-  hit.setAttribute('fill','none');
-  hit.classList.add('vec-hit','v-el');
-  hit.dataset.id=el.id;
-  hit.style.pointerEvents='auto';
+  hit.setAttribute('d',d); hit.setAttribute('stroke','transparent'); hit.setAttribute('stroke-width','26');
+  hit.setAttribute('fill','none'); hit.classList.add('vec-hit','v-el'); hit.dataset.id=el.id; hit.style.pointerEvents='auto';
   svgLayer.appendChild(hit);
 }
 
@@ -681,16 +651,25 @@ function toggleLock(on){const el=steps[curStep].find(o=>o.id===activeId);if(!el)
 function createPlayer(team){
   saveState();const id=uid();
   const teamPlayers = steps[curStep].filter(o=>o.type===team);
-  let maxNum = 0; let ref = null;
-  teamPlayers.forEach(p => { if(p.num > maxNum) maxNum = p.num; ref = p; });
+  let maxNum = 0;
+  let ref = null;
+  teamPlayers.forEach(p => {
+    if(p.num > maxNum) maxNum = p.num;
+    ref = p; 
+  });
 
   steps[curStep].push({
-    id, type:team,
-    x:clamp(300+Math.random()*400,20,FW-20), y:clamp(180+Math.random()*300,20,FH-20),
+    id, 
+    type:team,
+    x:clamp(300+Math.random()*400,20,FW-20),
+    y:clamp(180+Math.random()*300,20,FH-20),
     num: maxNum + 1,
-    color: ref ? ref.color : TC[team].c1, stripeColor: ref ? ref.stripeColor : TC[team].c2,
-    striped: ref ? ref.striped : false, numColor: ref ? ref.numColor : '#ffffff',
-    scale: ref ? ref.scale : globalPlayerScale, rot: 0
+    color: ref ? ref.color : TC[team].c1,
+    stripeColor: ref ? ref.stripeColor : TC[team].c2,
+    striped: ref ? ref.striped : false,
+    numColor: ref ? ref.numColor : '#ffffff',
+    scale: ref ? ref.scale : globalPlayerScale,
+    rot: 0
   });
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
 }
@@ -731,7 +710,10 @@ function createZone(sub){
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
 }
 
-function setField(val){ currentField=val; drawFieldBG(val); }
+function setField(val){
+  currentField=val;
+  drawFieldBG(val);
+}
 
 function setTeamColor(team,key,val){
   TC[team][key]=val;
@@ -785,8 +767,15 @@ function saveToLocal() {
   if (steps[0].length === 0) return alert("La pizarra está vacía.");
   const nombre = prompt("Nombre de la jugada:");
   if (!nombre) return;
+
   const locales = JSON.parse(localStorage.getItem('smboard_locales') || '[]');
-  const nuevaJugada = { id: 'local_' + Date.now(), name: nombre, date: new Date().toLocaleDateString(), data: steps };
+  const nuevaJugada = {
+    id: 'local_' + Date.now(),
+    name: nombre,
+    date: new Date().toLocaleDateString(),
+    data: steps
+  };
+
   locales.push(nuevaJugada);
   localStorage.setItem('smboard_locales', JSON.stringify(locales));
   alert("¡Jugada guardada en tu biblioteca!");
@@ -795,27 +784,48 @@ function saveToLocal() {
 function openLibrary() {
   const g = document.getElementById('lib-grid');
   g.innerHTML = '';
+  
   const warning = document.createElement('div');
   warning.className = 'lib-warning';
   warning.innerHTML = `⚠️ <b>AVISO:</b> Esta biblioteca solo está disponible en este dispositivo. 
   Si borras los datos del navegador o el historial, estas jugadas se perderán.`;
   g.appendChild(warning);
+
   const locales = JSON.parse(localStorage.getItem('smboard_locales') || '[]');
+  
   if (locales.length > 0) {
     const titulo = document.createElement('div');
-    titulo.className = 'cat'; titulo.innerText = "MIS JUGADAS"; titulo.style.gridColumn = "1 / -1";
+    titulo.className = 'cat';
+    titulo.innerText = "MIS JUGADAS";
+    titulo.style.gridColumn = "1 / -1";
     g.appendChild(titulo);
+
     locales.forEach(j => {
       const card = document.createElement('div');
       card.className = 'lcard';
-      card.innerHTML = `<div class="licon">📋</div><div class="lname">${j.name}</div><div class="ldesc">${j.date}</div><button class="btn btn-del" style="margin-top:8px">BORRAR</button>`;
-      card.onclick = (e) => { if(e.target.classList.contains('btn-del')) deleteLocal(j.id); else loadLocal(j.data); };
+      card.innerHTML = `
+        <div class="licon">📋</div>
+        <div class="lname">${j.name}</div>
+        <div class="ldesc">${j.date}</div>
+        <button class="btn btn-del" style="margin-top:8px">BORRAR</button>
+      `;
+      card.onclick = (e) => {
+        if(e.target.classList.contains('btn-del')) {
+          deleteLocal(j.id);
+        } else {
+          loadLocal(j.data);
+        }
+      };
       g.appendChild(card);
     });
   }
+
   const tituloAc = document.createElement('div');
-  tituloAc.className = 'cat'; tituloAc.innerText = "BIBLIOTECA ACADEMIA"; tituloAc.style.gridColumn = "1 / -1";
+  tituloAc.className = 'cat';
+  tituloAc.innerText = "BIBLIOTECA ACADEMIA";
+  tituloAc.style.gridColumn = "1 / -1";
   g.appendChild(tituloAc);
+
   DRILLS.forEach(d => {
     const c = document.createElement('div');
     c.className = 'lcard';
@@ -823,12 +833,17 @@ function openLibrary() {
     c.onclick = () => injectDrill(d);
     g.appendChild(c);
   });
+
   openModal('m-lib');
 }
 
 function loadLocal(data) {
-  saveState(); steps = JSON.parse(JSON.stringify(data)); curStep = 0;
-  deselect(); closeLibrary(); render();
+  saveState();
+  steps = JSON.parse(JSON.stringify(data));
+  curStep = 0;
+  deselect();
+  closeLibrary();
+  render();
 }
 
 function deleteLocal(id) {
@@ -886,6 +901,8 @@ function injectDrill(d){
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function openResetMenu(){openModal('m-reset');}
+function openHelp(){openModal('m-help');}
+function closeHelp(){closeModal('m-help');}
 
 async function exportPNG(){
   deselect();
