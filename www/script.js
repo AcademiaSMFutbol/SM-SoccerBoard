@@ -1,8 +1,8 @@
 /* ============================================================
    SM SoccerBoard Pro v75 — script.js
    © Academia SM Fútbol — Las Palmas de Gran Canaria
-   FIX: Envoltorios div para SVG, etiquetas <img> para material
-   y colores de fondo dinámicos para html2canvas.
+   FIX: Exportación nativa WebM, selectores JS únicos (sin CSS overlap)
+   y Textos con caja escalable real (ancho, alto y fuente).
    ============================================================ */
 
 // ── ESTADO ───────────────────────────────────────────────────
@@ -96,7 +96,7 @@ function drawFieldBG(type){
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
   svg.id='field-bg';
-  svg.setAttribute('xmlns', ns); // CRÍTICO PARA HTML2CANVAS
+  svg.setAttribute('xmlns', ns);
   svg.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:visible;';
 
@@ -232,8 +232,10 @@ function onMove(e){
 
   if(dragInfo.isSH){
     if(el.type==='txt'){
-      const delta=(dx+dy)*0.5;
-      el.fontSize=Math.max(8,Math.min(300,(el.fontSize||32)+delta));
+      // FIX TEXTO: Escalamos la caja completa (w, h) y ajustamos la fuente al alto de la caja
+      el.w = Math.max(40, (el.w || 200) + dx);
+      el.h = Math.max(20, (el.h || 60) + dy);
+      el.fontSize = el.h * 0.6; 
     } else {
       el.w=Math.max(30,el.w+dx); el.h=Math.max(30,el.h+dy);
     }
@@ -309,10 +311,10 @@ function paintObj(el){
   const isSel=activeId===el.id;
   const sc=el.scale||1;
   const rot=el.rot||0;
-  const z=getZoom(); 
 
   const div=document.createElement('div');
-  div.className='object'+(isSel?' sel':'');
+  // FIX: NO añadimos la clase 'sel' para evitar conflictos con CSS externo. 
+  div.className='object'; 
   div.dataset.id=el.id;
   div.style.position='absolute';
   div.style.background='transparent';
@@ -330,7 +332,6 @@ function paintObj(el){
     const sz=38; 
     const half=sz/2;
     
-    // FIX: Aplicamos el transform al div, NO al SVG interno
     div.style.left=(el.x*(window._RZ?.x||1)-half)+'px';
     div.style.top=(el.y*(window._RZ?.y||1)-half)+'px';
     div.style.width=sz+'px';
@@ -340,7 +341,7 @@ function paintObj(el){
     const svg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,isSel);
     div.appendChild(svg);
     fMaster.appendChild(div);
-    return; // Sale porque makeShirt ya incluye el anillo de selección
+    return; // Sale temprano, el anillo ya va dentro del SVG
   }
 
   const isSVGItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro', 'weight'].includes(el.type);
@@ -358,12 +359,11 @@ function paintObj(el){
     div.style.left = (el.x * (window._RZ?.x || 1) - (w/2)) + 'px';
     div.style.top = (el.y * (window._RZ?.y || 1) - (h/2)) + 'px';
     
-    // FIX: Usar etiqueta <img> para que html2canvas no lo pierda
     const img = document.createElement('img');
     img.src = files[el.type];
     img.style.width = '100%';
     img.style.height = '100%';
-    img.style.pointerEvents = 'none'; // Para que el drag lo detecte el div
+    img.style.pointerEvents = 'none'; 
     div.appendChild(img);
 
   } else if(el.type==='valla'){
@@ -377,7 +377,7 @@ function paintObj(el){
   div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   fMaster.appendChild(div);
   
-  // Anillo de selección externo (solo para objetos que no son jugadores)
+  // FIX: Un solo anillo preciso de JS, sin depender del CSS
   if (isSel) {
     const ring=document.createElement('div');
     ring.dataset.ring='1'; ring.style.position='absolute';
@@ -410,9 +410,9 @@ function paintObj(el){
 function makeShirt(c1,c2,striped,num,numColor,isSelected){
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
-  svg.setAttribute('xmlns', ns); // CRÍTICO PARA HTML2CANVAS
+  svg.setAttribute('xmlns', ns);
   svg.setAttribute('width',38);svg.setAttribute('height',38);svg.setAttribute('viewBox','0 0 38 38');
-  svg.style.overflow='visible'; // Evitar cortes al renderizar
+  svg.style.overflow='visible'; 
   
   const bg=document.createElementNS(ns,'circle');
   bg.setAttribute('cx','19');bg.setAttribute('cy','19');bg.setAttribute('r','18');
@@ -452,7 +452,8 @@ function makeShirt(c1,c2,striped,num,numColor,isSelected){
 // ── PAINT ZONE ───────────────────────────────────────────────
 function paintZone(el){
   const div=document.createElement('div');
-  div.className='zone-obj'+(activeId===el.id?' sel':'')+(el.locked?' locked':'');
+  // FIX: Sin '.sel' global, usamos outline directo para la zona
+  div.className='zone-obj'+(el.locked?' locked':'');
   div.dataset.id=el.id;
   div.style.left=(el.x*(window._RZ?.x||1))+'px';div.style.top=(el.y*(window._RZ?.y||1))+'px';
   div.style.width=(el.w*(window._RZ?.x||1))+'px';div.style.height=(el.h*(window._RZ?.y||1))+'px';
@@ -460,8 +461,15 @@ function paintZone(el){
   div.style.borderStyle=el.sub==='fill'?'solid':'dashed';
   div.style.background=el.sub==='fill'?(el.color||'#fff')+'33':'transparent';
   div.style.pointerEvents='auto'; 
-  if(activeId===el.id&&!el.locked){
-    const sh=document.createElement('div');sh.className='zone-sh';sh.dataset.id=el.id;sh.textContent='⤡';div.appendChild(sh);
+  
+  if(activeId===el.id){
+    div.style.outline = '2px solid #f1c40f';
+    div.style.outlineOffset = '2px';
+    if(!el.locked){
+      const sh=document.createElement('div');sh.className='zone-sh';sh.dataset.id=el.id;sh.textContent='⤡';
+      sh.style.cssText='position:absolute;bottom:-10px;right:-10px;width:20px;height:20px;background:#f1c40f;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:se-resize;font-size:12px;z-index:10;box-shadow:0 2px 4px rgba(0,0,0,0.5);';
+      div.appendChild(sh);
+    }
   }
   if(el.locked){const lk=document.createElement('div');lk.className='zone-lock';lk.textContent='🔒';div.appendChild(lk);}
   fMaster.appendChild(div);
@@ -470,26 +478,40 @@ function paintZone(el){
 // ── PAINT TEXT ───────────────────────────────────────────────
 function paintTxt(el){
   const div=document.createElement('div');
-  div.className='txt-obj'+(activeId===el.id?' sel':'');
+  div.className='txt-obj';
   div.dataset.id=el.id;
-  const fs=el.fontSize||32;
   const rot=el.rot||0;
   const isSel=activeId===el.id;
+  
+  // FIX: Caja escalable real
+  const fs = el.fontSize || 36;
+  const w = el.w || 200;
+  const h = el.h || 60;
+
   div.style.cssText=
     `position:absolute;left:${el.x*getZoom()}px;top:${el.y*getZoom()}px;`+
-    `display:inline-block;`+   
-    `color:${el.color||'#ffffff'};font-size:${fs}px;`+ 
+    `width:${w*getZoom()}px;height:${h*getZoom()}px;`+
+    `display:flex;align-items:center;justify-content:center;`+
+    `color:${el.color||'#ffffff'};font-size:${fs*getZoom()}px;`+ 
     `font-family:'Barlow Condensed',sans-serif;font-weight:800;`+
-    `white-space:nowrap;line-height:${fs}px;cursor:grab;pointer-events:auto;`+
-    `background:transparent;z-index:20;overflow:visible;`+
-    (rot?`transform:rotate(${rot}deg);`:'') +
-    (isSel?`text-shadow:0 0 8px #f1c40f,1px 1px 4px rgba(0,0,0,0.8);outline:1.5px dashed #f1c40f;outline-offset:4px;`:
-            `text-shadow:1px 1px 4px rgba(0,0,0,0.8);`);
+    `white-space:pre-wrap;text-align:center;line-height:1.1;cursor:grab;pointer-events:auto;`+
+    `background:transparent;z-index:20;`+
+    (rot?`transform:rotate(${rot}deg);`:'');
+
+  if(isSel){
+    div.style.outline = '2px dashed #f1c40f';
+    div.style.outlineOffset = '2px';
+    div.style.textShadow = '0 0 8px #f1c40f, 1px 1px 4px rgba(0,0,0,0.8)';
+  } else {
+    div.style.textShadow = '1px 1px 4px rgba(0,0,0,0.8)';
+  }
+
   div.textContent=el.text;
+
   if(isSel){
     const sh=document.createElement('div');
     sh.className='zone-sh txt-sh';sh.dataset.id=el.id;sh.textContent='⤡';
-    sh.style.cssText='position:absolute;bottom:-14px;right:-14px;z-index:30;width:16px;height:16px;font-size:10px;';
+    sh.style.cssText='position:absolute;bottom:-12px;right:-12px;z-index:30;width:24px;height:24px;font-size:14px;background:#f1c40f;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:se-resize;box-shadow:0 2px 4px rgba(0,0,0,0.5);';
     div.appendChild(sh);
   }
   fMaster.appendChild(div);
@@ -609,7 +631,7 @@ function createTextEl(){
   if(!txt||!txt.trim())return;
   saveState();const id=uid();
   steps[curStep].push({id,type:'txt',text:txt.trim(),
-    x:Math.round(FW*0.35),y:Math.round(FH*0.45),fontSize:32,color:'#ffffff',rot:0});
+    x:Math.round(FW*0.35),y:Math.round(FH*0.45), w:200, h:60, fontSize:36, color:'#ffffff', rot:0});
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
 }
 
@@ -825,8 +847,6 @@ async function exportPNG(){
   const _r=fMaster.getBoundingClientRect();
   window._RZ={x:_r.width>0?_r.width/FW:1,y:_r.height>0?_r.height/FH:1};
   render();
-  
-  // FIX: Esperamos más tiempo para asegurar que las imágenes <img> carguen
   await tick(500); 
   
   html2canvas(fMaster,{
@@ -847,11 +867,16 @@ async function exportPNG(){
 // ── EXPORTAR VÍDEO ───────────────────────────────────────────
 function exportVideo(){if(steps.length<2){alert('Añade al menos 2 pasos');return;}openModal('m-export');}
 function setProg(p,m){document.getElementById('pbar-fill').style.width=p+'%';document.getElementById('exp-status').textContent=m;}
+
 async function startExport(fmt){
   document.getElementById('exp-prog').style.display='block';setProg(2,'Preparando...');
-  try{if(fmt==='mp4')await doMP4();else await doGIF();}
+  try{
+    if(fmt==='mp4' || fmt==='webm' || fmt==='video') await doVideo();
+    else await doGIF();
+  }
   catch(err){console.error(err);alert('Error: '+err.message);closeModal('m-export');}
 }
+
 function renderForExport(f1,f2,ease){
   const _r=fMaster.getBoundingClientRect();
   window._RZ={x:_r.width>0?_r.width/FW:1,y:_r.height>0?_r.height/FH:1};
@@ -869,15 +894,19 @@ function renderForExport(f1,f2,ease){
     paintObj(tmp);
   });
 }
-async function doMP4(){
+
+// FIX: Exportación WebM nativa y robusta (se eliminó ffmpeg.js para evitar crashes)
+async function doVideo(){
   const origShadow=fMaster.style.boxShadow;
   fMaster.style.boxShadow='none';
   const FPS=25,dur=getDur();
   const fp=Math.round((dur/1000)*FPS),total=fp*(steps.length-1);
   setProg(5,`Capturando ${total} frames...`);deselect();isPlaying=true;
+  
   const W=fMaster.offsetWidth,H=fMaster.offsetHeight;
   const rc=document.createElement('canvas');rc.width=W;rc.height=H;
   const ctx=rc.getContext('2d');const snaps=[];
+  
   for(let i=0;i<steps.length-1;i++){
     for(let f=0;f<fp;f++){
       const t=f/fp,ease=t<.5?2*t*t:-1+(4-2*t)*t;
@@ -887,49 +916,32 @@ async function doMP4(){
       setProg(5+Math.round(((i*fp+f+1)/total)*55),`Frame ${i*fp+f+1}/${total}`);
     }
   }
+  
   renderForExport(steps[steps.length-1],steps[steps.length-1],0);await tick(60);
   const ls=await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:getExportBg(),logging:false});
   for(let k=0;k<FPS;k++)snaps.push(ls);
+  
   isPlaying=false;fMaster.style.boxShadow=origShadow;render();setProg(62,'Ensamblando WebM...');
+  
   const mime=['video/webm;codecs=vp8,opus','video/webm;codecs=vp8','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
   const stream=rc.captureStream(FPS),rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:4e6}),chunks=[];
   rec.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};rec.start();
-  for(let i=0;i<snaps.length;i++){ctx.drawImage(snaps[i],0,0,W,H);await tick(1000/FPS);setProg(62+Math.round((i/snaps.length)*20),'Ensamblando...');}
-  rec.stop();
-  const wb=await new Promise(r=>{rec.onstop=()=>r(new Blob(chunks,{type:'video/webm'}));});
-  setProg(83,'Convirtiendo a MP4...');
-  try{
-    const mp4=await toMP4(wb,p=>setProg(83+Math.round(p*14),`MP4 ${Math.round(p*100)}%`));
-    setProg(100,'¡Listo!');await tick(400);dl(URL.createObjectURL(mp4),`tactica_${Date.now()}.mp4`);closeModal('m-export');
-  }catch(err){
-    setProg(100,'Descargando WebM...');await tick(600);dl(URL.createObjectURL(wb),`tactica_${Date.now()}.webm`);closeModal('m-export');
+  
+  for(let i=0;i<snaps.length;i++){
+    ctx.drawImage(snaps[i],0,0,W,H);
+    await tick(1000/FPS);
+    setProg(62+Math.round((i/snaps.length)*30),'Ensamblando...');
   }
+  rec.stop();
+  
+  const wb=await new Promise(r=>{rec.onstop=()=>r(new Blob(chunks,{type:'video/webm'}));});
+  
+  setProg(100,'¡Listo!');
+  await tick(500);
+  dl(URL.createObjectURL(wb),`tactica_${Date.now()}.webm`);
+  closeModal('m-export');
 }
-let _ff=null;
-async function getFF(){
-  if(_ff)return _ff;
-  if(!window.FFmpeg)     await loadSrc('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.js');
-  if(!window.FFmpegUtil) await loadSrc('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js');
-  const{FFmpeg}=window.FFmpeg,{fetchFile,toBlobURL}=window.FFmpegUtil;
-  window._ffFetch=fetchFile;
-  const ff=new FFmpeg();
-  const b='https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
-  await ff.load({coreURL:await toBlobURL(`${b}/ffmpeg-core.js`,'text/javascript'),wasmURL:await toBlobURL(`${b}/ffmpeg-core.wasm`,'application/wasm')});
-  _ff=ff;return ff;
-}
-async function toMP4(blob,onP){
-  const ff=await getFF();await ff.writeFile('i.webm',await window._ffFetch(blob));
-  let p=0;const t=setInterval(()=>{p=Math.min(p+.04,.92);onP(p);},300);
-  await ff.exec(['-i','i.webm','-c:v','libx264','-preset','ultrafast','-crf','23','-pix_fmt','yuv420p','-movflags','+faststart','-an','o.mp4']);
-  clearInterval(t);onP(1);const d=await ff.readFile('o.mp4');return new Blob([d.buffer],{type:'video/mp4'});
-}
-function loadSrc(src){
-  return new Promise((res,rej)=>{
-    if(document.querySelector(`script[src="${src}"]`)){res();return;}
-    const s=document.createElement('script');s.src=src;s.crossOrigin='anonymous';
-    s.onload=res;s.onerror=()=>rej(new Error('No cargó: '+src));document.head.appendChild(s);
-  });
-}
+
 async function doGIF(){
   if(typeof GIF==='undefined'){alert('GIF no disponible');return;}
   const FPS=20,dur=getDur();
