@@ -1,8 +1,8 @@
 /* ============================================================
    SM SoccerBoard Pro v75 — script.js
    © Academia SM Fútbol — Las Palmas de Gran Canaria
-   FIX: Exportación nativa WebM, selectores JS únicos (sin CSS overlap)
-   y Textos con caja escalable real (ancho, alto y fuente).
+   FIX: Precarga de SVGs en Base64 para garantizar que html2canvas
+   dibuje siempre el material (balones, conos, etc.) al exportar.
    ============================================================ */
 
 // ── ESTADO ───────────────────────────────────────────────────
@@ -16,6 +16,7 @@ let globalPlayerScale=1;
 
 const FW=1050, FH=680;
 const ANIM=new Set(['A','B','C','D','ball']);
+const SVG_CACHE = {}; // Caché para almacenar las imágenes en Base64
 
 let TC={
   A:{c1:'#e63946',c2:'#ffffff'}, B:{c1:'#2e86de',c2:'#ffffff'},
@@ -26,13 +27,30 @@ const vp       = document.getElementById('vp');
 const fMaster  = document.getElementById('field-master');
 const svgLayer = document.getElementById('svg-layer');
 
-// ── INIT ─────────────────────────────────────────────────────
+// ── INIT & PRELOADER ─────────────────────────────────────────
 window.onload=()=>{
+  preloadMaterialSVGs(); // Carga los SVG a Base64
   updateSwatches(); updateSpeedLabel();
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{ resizeField(); render(); });
   });
 };
+
+// Truco anti-bloqueo para html2canvas
+async function preloadMaterialSVGs() {
+  const files = ['balon.svg', 'cono.svg', 'chincheta.svg', 'pica.svg', 'escalera.svg', 'aro.svg', 'pesa.svg'];
+  for (const f of files) {
+    try {
+      const r = await fetch(f);
+      if (r.ok) {
+        const text = await r.text();
+        const b64 = btoa(unescape(encodeURIComponent(text)));
+        SVG_CACHE[f] = `data:image/svg+xml;base64,${b64}`;
+      }
+    } catch(e) { console.warn('No se pudo precargar:', f); }
+  }
+  render(); // Refresca la pizarra cuando los carga
+}
 
 if(window.ResizeObserver){
   new ResizeObserver(()=>{ resizeField(); }).observe(vp);
@@ -232,7 +250,6 @@ function onMove(e){
 
   if(dragInfo.isSH){
     if(el.type==='txt'){
-      // FIX TEXTO: Escalamos la caja completa (w, h) y ajustamos la fuente al alto de la caja
       el.w = Math.max(40, (el.w || 200) + dx);
       el.h = Math.max(20, (el.h || 60) + dy);
       el.fontSize = el.h * 0.6; 
@@ -313,7 +330,6 @@ function paintObj(el){
   const rot=el.rot||0;
 
   const div=document.createElement('div');
-  // FIX: NO añadimos la clase 'sel' para evitar conflictos con CSS externo. 
   div.className='object'; 
   div.dataset.id=el.id;
   div.style.position='absolute';
@@ -341,7 +357,7 @@ function paintObj(el){
     const svg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,isSel);
     div.appendChild(svg);
     fMaster.appendChild(div);
-    return; // Sale temprano, el anillo ya va dentro del SVG
+    return;
   }
 
   const isSVGItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro', 'weight'].includes(el.type);
@@ -360,7 +376,8 @@ function paintObj(el){
     div.style.top = (el.y * (window._RZ?.y || 1) - (h/2)) + 'px';
     
     const img = document.createElement('img');
-    img.src = files[el.type];
+    // FIX APLICADO AQUÍ: Si el SVG está en Caché Base64, usa el Base64.
+    img.src = SVG_CACHE[files[el.type]] || files[el.type];
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.pointerEvents = 'none'; 
@@ -377,7 +394,6 @@ function paintObj(el){
   div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   fMaster.appendChild(div);
   
-  // FIX: Un solo anillo preciso de JS, sin depender del CSS
   if (isSel) {
     const ring=document.createElement('div');
     ring.dataset.ring='1'; ring.style.position='absolute';
@@ -452,7 +468,6 @@ function makeShirt(c1,c2,striped,num,numColor,isSelected){
 // ── PAINT ZONE ───────────────────────────────────────────────
 function paintZone(el){
   const div=document.createElement('div');
-  // FIX: Sin '.sel' global, usamos outline directo para la zona
   div.className='zone-obj'+(el.locked?' locked':'');
   div.dataset.id=el.id;
   div.style.left=(el.x*(window._RZ?.x||1))+'px';div.style.top=(el.y*(window._RZ?.y||1))+'px';
@@ -483,7 +498,6 @@ function paintTxt(el){
   const rot=el.rot||0;
   const isSel=activeId===el.id;
   
-  // FIX: Caja escalable real
   const fs = el.fontSize || 36;
   const w = el.w || 200;
   const h = el.h || 60;
@@ -895,7 +909,6 @@ function renderForExport(f1,f2,ease){
   });
 }
 
-// FIX: Exportación WebM nativa y robusta (se eliminó ffmpeg.js para evitar crashes)
 async function doVideo(){
   const origShadow=fMaster.style.boxShadow;
   fMaster.style.boxShadow='none';
