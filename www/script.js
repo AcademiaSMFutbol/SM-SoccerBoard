@@ -1,8 +1,8 @@
 /* ============================================================
    SM SoccerBoard Pro v75 — script.js
    © Academia SM Fútbol — Las Palmas de Gran Canaria
-   NUEVO: Integración de Fitball, Rebotador, Check y Error.
-   NUEVO: Marca de agua personalizable (Logo + Nombre).
+   FIX: Renderizado de PNG puro con Object-Fit para evitar
+   estiramientos y limpieza total de conflicto CSS en UI.
    ============================================================ */
 
 // ── ESTADO ───────────────────────────────────────────────────
@@ -31,7 +31,7 @@ window.onload=()=>{
   preloadImages();
   updateSwatches(); 
   updateSpeedLabel();
-  updateWatermark(); // Carga la marca de agua al inicio
+  updateWatermark();
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{ resizeField(); render(); });
   });
@@ -92,13 +92,11 @@ function updateWatermark() {
   if(!wm) {
     wm = document.createElement('div');
     wm.id = 'watermark-container';
-    // Estilos para fijarlo en la esquina inferior derecha, translúcido y que no interfiera con los clics
     wm.style.cssText = 'position:absolute; bottom:15px; right:15px; pointer-events:none; z-index:10; display:flex; flex-direction:column; align-items:flex-end; opacity:0.7;';
     fMaster.appendChild(wm);
   }
-  wm.innerHTML = ''; // Limpiar
+  wm.innerHTML = '';
   
-  // 1. Cargar el Logo (del usuario o el por defecto)
   const logoSrc = localStorage.getItem('smboard_custom_logo') || 'logo.png';
   const img = document.createElement('img');
   img.src = logoSrc;
@@ -106,7 +104,6 @@ function updateWatermark() {
   img.style.objectFit = 'contain';
   wm.appendChild(img);
 
-  // 2. Cargar el Texto (si el usuario lo ha añadido)
   const name = localStorage.getItem('smboard_custom_name');
   if(name) {
     const txt = document.createElement('div');
@@ -115,12 +112,10 @@ function updateWatermark() {
     wm.appendChild(txt);
   }
 
-  // 3. (Opcional) Actualizar el logo del header si tienes un <img id="header-logo"> en tu HTML
   const headerLogo = document.getElementById('header-logo');
   if(headerLogo) headerLogo.src = logoSrc;
 }
 
-// Llama a esta función desde un botón en tu HTML para cambiar el logo
 function uploadCustomLogo() {
   const inp = document.createElement('input');
   inp.type = 'file';
@@ -130,7 +125,6 @@ function uploadCustomLogo() {
     if(!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
-      // Guardar el logo en Base64 en el almacenamiento local del navegador
       localStorage.setItem('smboard_custom_logo', ev.target.result);
       updateWatermark();
     };
@@ -139,7 +133,6 @@ function uploadCustomLogo() {
   inp.click();
 }
 
-// Llama a esta función desde un botón en tu HTML para cambiar el nombre
 function setCustomName() {
   const current = localStorage.getItem('smboard_custom_name') || '';
   const name = prompt("Introduce tu nombre o el de tu club:", current);
@@ -330,7 +323,6 @@ function onMove(e){
 }
 
 function onUp(e){
-  // AÑADIDO: Nuevos objetos al array de rotación
   const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','aro','fitball','rebotador','check','error','A','B','C','D','txt'];
   if(isPossibleTap && activeId && activePointers.size===1 && !isDrawingPoly){
     const hit = e.target.closest('.object,.shirt-svg,.txt-obj');
@@ -420,7 +412,6 @@ function paintObj(el){
     return;
   }
 
-  // AÑADIDO: Nuevos iconos en la lógica de pintado
   const isImageItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro', 'weight', 'fitball', 'rebotador', 'check', 'error'].includes(el.type);
   if(isImageItem) {
     const sizes = {
@@ -442,6 +433,8 @@ function paintObj(el){
     img.src = files[el.type];
     img.style.width = '100%';
     img.style.height = '100%';
+    // EL TRUCO ESTÁ AQUÍ 👇
+    img.style.objectFit = 'contain'; 
     img.style.pointerEvents = 'none'; 
     div.appendChild(img);
 
@@ -684,7 +677,6 @@ function createPlayer(team){
 
 function createItem(type){
   saveState();const id=uid();
-  // AÑADIDO: Colores por defecto para los nuevos items si los usaras en SVG, pero como usan PNG no importan.
   const CM={cone:'#e67e22',cone_low:'#e74c3c',pica:'#f1c40f',valla:'#e74c3c',ladder:'#f1c40f',weight:'#95a5a6',aro:'#3498db',fitball:'#34495e',rebotador:'#2c3e50',check:'#2ecc71',error:'#e74c3c'};
   steps[curStep].push({id,type,x:clamp(300+Math.random()*400,20,FW-20),y:clamp(180+Math.random()*300,20,FH-20),color:CM[type]||'#e67e22',scale:1,rot:0});
   activeId=id;render();
