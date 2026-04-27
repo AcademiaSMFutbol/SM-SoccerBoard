@@ -71,12 +71,22 @@ function getZoom(){ return fMaster.getBoundingClientRect().width/FW; }
 function drawFieldBG(type){
   const old=document.getElementById('field-bg'); if(old)old.remove();
   const IMGS={full:'campoentero.png', half:'mediocampo.png'};
+  
+  // SOLUCIÓN html2canvas: Separar las propiedades del fondo
   if(IMGS[type]){
-    fMaster.style.background=`#2d8a47 url('${IMGS[type]}') no-repeat center/100% 100%`;
+    fMaster.style.background = 'none';
+    fMaster.style.backgroundColor = '#2d8a47';
+    fMaster.style.backgroundImage = `url('${IMGS[type]}')`;
+    fMaster.style.backgroundRepeat = 'no-repeat';
+    fMaster.style.backgroundPosition = 'center';
+    fMaster.style.backgroundSize = '100% 100%';
     return;
   }
+  
   const BG={futsal:'#1a3a5c',blank:'#1a5c2a'};
-  fMaster.style.background=BG[type]||'#2d8a47';
+  fMaster.style.background = 'none';
+  fMaster.style.backgroundImage = 'none';
+  fMaster.style.backgroundColor = BG[type]||'#2d8a47';
   if(type==='blank')return;
 
   const ns='http://www.w3.org/2000/svg';
@@ -793,12 +803,12 @@ async function exportPNG(){
   window._RZ={x:_r.width>0?_r.width/FW:1,y:_r.height>0?_r.height/FH:1};
   render();
   await tick(200); 
-  const bg=fMaster.style.background||'#2d8a47';
+  
   html2canvas(fMaster,{
     scale:2,
     useCORS:true,
     allowTaint:true,
-    backgroundColor:bg,
+    backgroundColor: '#2d8a47', // FIX: Color de fondo seguro
     logging:false,
     onclone:(doc)=>{
       doc.querySelectorAll('.shirt-svg').forEach(s=>{
@@ -849,12 +859,14 @@ async function doMP4(){
       const t=f/fp,ease=t<.5?2*t*t:-1+(4-2*t)*t;
       renderForExport(steps[i],steps[i+1],ease);
       await new Promise(r=>requestAnimationFrame(r));await tick(0);
-      snaps.push(await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:fMaster.style.background||'#2d8a47',logging:false}));
+      // FIX: Color de fondo seguro
+      snaps.push(await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:'#2d8a47',logging:false}));
       setProg(5+Math.round(((i*fp+f+1)/total)*55),`Frame ${i*fp+f+1}/${total}`);
     }
   }
   renderForExport(steps[steps.length-1],steps[steps.length-1],0);await tick(60);
-  const ls=await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:fMaster.style.background||'#2d8a47',logging:false});
+  // FIX: Color de fondo seguro
+  const ls=await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:'#2d8a47',logging:false});
   for(let k=0;k<FPS;k++)snaps.push(ls);
   isPlaying=false;fMaster.style.boxShadow=origShadow;render();setProg(62,'Ensamblando WebM...');
   const mime=['video/webm;codecs=vp8,opus','video/webm;codecs=vp8','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
@@ -907,7 +919,8 @@ async function doGIF(){
     const t=f/fp,ease=t<.5?2*t*t:-1+(4-2*t)*t;
     renderForExport(steps[i],steps[i+1],ease);
     await new Promise(r=>requestAnimationFrame(r));await tick(0);
-    gif.addFrame(await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:fMaster.style.background||'#2d8a47',logging:false}),{delay:Math.round(1000/FPS),copy:true});
+    // FIX: Color de fondo seguro
+    gif.addFrame(await html2canvas(fMaster,{scale:1,useCORS:true,backgroundColor:'#2d8a47',logging:false}),{delay:Math.round(1000/FPS),copy:true});
     done++;setProg(5+Math.round((done/total)*80),`Frame ${done}/${total}`);
   }
   isPlaying=false;render();setProg(88,'Compilando GIF...');
