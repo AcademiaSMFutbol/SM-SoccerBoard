@@ -11,8 +11,9 @@ let steps=[[]], history=[], curStep=0;
 let activeId=null, dragInfo=null;
 let isPlaying=false, isDrawingPoly=false;
 let activePointers=new Map(), initialPinchDist=null;
-let tapStartX=0, tapStartY=0, isPossibleTap=false;
+let tapStartX=0, tapStartY=0, isPossibleTap=false, wasActiveOnDown=false;
 let idCounter=1, currentField='full';
+let globalPlayerScale=1; // Escala global para los jugadores
 
 const FW=1050, FH=680;
 const ANIM=new Set(['A','B','C','D','ball']);
@@ -29,12 +30,11 @@ const svgLayer = document.getElementById('svg-layer');
 // ── INIT ─────────────────────────────────────────────────────
 window.onload=()=>{
   updateSwatches(); updateSpeedLabel();
-  // Diferir resizeField hasta que el browser haya calculado el layout
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{ resizeField(); render(); });
   });
 };
-// ResizeObserver para reaccionar a cambios de tamaño del viewport
+
 if(window.ResizeObserver){
   new ResizeObserver(()=>{ resizeField(); }).observe(vp);
 } else {
@@ -47,19 +47,29 @@ function updateSpeedLabel(){
 }
 function getDur(){ return 3300-+document.getElementById('speed-slider').value; }
 
-// ── RESIZE: el campo ocupa 100% del vp (CSS lo controla)
-// JS solo actualiza el SVG viewBox para que las coordenadas
-// internas (0,0)-(FW,FH) mapeen correctamente al tamaño real.
+// ── ESCALA GLOBAL DE JUGADORES ───────────────────────────────
+function setGlobalScale(val) {
+  globalPlayerScale = parseFloat(val);
+  steps.forEach(step => {
+    step.forEach(el => {
+      if (['A','B','C','D'].includes(el.type)) {
+        el.scale = globalPlayerScale;
+      }
+    });
+  });
+  render();
+}
+
+// ── RESIZE ───────────────────────────────────────────────────
 function resizeField(){
   svgLayer.setAttribute('viewBox',`0 0 ${FW} ${FH}`);
   drawFieldBG(currentField);
 }
 function getZoom(){ return fMaster.getBoundingClientRect().width/FW; }
 
-// ── CAMPO — imágenes PNG para full/half, SVG para futsal/blank ─
+// ── CAMPO ────────────────────────────────────────────────────
 function drawFieldBG(type){
   const old=document.getElementById('field-bg'); if(old)old.remove();
-  // Usar imágenes PNG del repositorio cuando estén disponibles
   const IMGS={full:'campoentero.png', half:'mediocampo.png'};
   if(IMGS[type]){
     fMaster.style.background=`#2d8a47 url('${IMGS[type]}') no-repeat center/100% 100%`;
@@ -78,7 +88,6 @@ function drawFieldBG(type){
   const LC=type==='futsal'?'rgba(79,195,247,0.85)':'rgba(255,255,255,0.82)';
   const LW=2.5;
 
-  // Franjas decorativas de cesped
   for(let i=0;i<10;i+=2){
     const r=document.createElementNS(ns,'rect');
     r.setAttribute('x',i*(FW/10));r.setAttribute('y',0);
@@ -95,73 +104,40 @@ function drawFieldBG(type){
   function ARC(cx,cy,r,a1,a2){const ra1=a1*Math.PI/180,ra2=a2*Math.PI/180;const x1=cx+r*Math.cos(ra1),y1=cy+r*Math.sin(ra1);const x2=cx+r*Math.cos(ra2),y2=cy+r*Math.sin(ra2);P(`M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`);}
 
   if(type==='full'){
-    // Campo 105x68m — escala 10px/m — líneas blancas sobre verde
-    // Franjas de césped ya dibujadas arriba
-    R(0,0,FW,FH);                               // perímetro
-    L(FW/2,0,FW/2,FH);                          // línea central
-    C(FW/2,FH/2,91.5); DOT(FW/2,FH/2);         // círculo central r=9.15m
-    // Áreas grandes: 40.32m×16.5m = 403×165px
+    R(0,0,FW,FH); L(FW/2,0,FW/2,FH);
+    C(FW/2,FH/2,91.5); DOT(FW/2,FH/2);
     R(0,FH/2-82.5,403,165); R(FW-403,FH/2-82.5,403,165);
-    // Áreas chicas: 18.32m×5.5m = 183×55px
     R(0,FH/2-27.5,183,55); R(FW-183,FH/2-27.5,183,55);
-    // Porterías: 7.32m×2.44m = 73×24px (fuera del perímetro)
     R(-24,FH/2-36.5,24,73); R(FW,FH/2-36.5,24,73);
-    // Puntos de penalti: 11m=110px
     DOT(110,FH/2); DOT(FW-110,FH/2);
-    // Semicírculos: r=91.5px desde punto de penalti, solo parte exterior al área
     P(`M 403 ${FH/2-50} A 91.5 91.5 0 0 1 403 ${FH/2+50}`);
     P(`M ${FW-403} ${FH/2-50} A 91.5 91.5 0 0 0 ${FW-403} ${FH/2+50}`);
-    // Córners: r=1m=10px
     ARC(0,0,10,0,90); ARC(FW,0,10,90,180);
     ARC(0,FH,10,270,360); ARC(FW,FH,10,180,270);
-
   } else if(type==='half'){
-    // Medio campo: mitad del campo (52.5m×68m).
-    // Portería ARRIBA (y=0), línea central ABAJO (y=FH).
-    // Escala: FW=1050 → 52.5m ancho (20px/m en X), FH=680 → 68m alto (10px/m en Y)
-    // → mismo viewBox que campo completo, solo mostramos una mitad
     const Xs=FW/52.5, Ys=FH/68;
-    // Líneas de contorno
     L(0,0,FW,0); L(0,0,0,FH); L(FW,0,FW,FH); L(0,FH,FW,FH);
-    // Área grande: 40.32m×16.5m
-    const AGW=40.32*Xs, AGH=16.5*Ys;
-    R((FW-AGW)/2,0,AGW,AGH);
-    // Área chica: 18.32m×5.5m
-    const ACW=18.32*Xs, ACH=5.5*Ys;
-    R((FW-ACW)/2,0,ACW,ACH);
-    // Portería: 7.32m×2.44m (encima de y=0, hacia afuera)
-    const GW=7.32*Xs, GH=2.44*Xs;
-    R((FW-GW)/2,-GH,GW,GH);
-    // Punto de penalti: 11m desde línea de fondo
+    const AGW=40.32*Xs, AGH=16.5*Ys; R((FW-AGW)/2,0,AGW,AGH);
+    const ACW=18.32*Xs, ACH=5.5*Ys; R((FW-ACW)/2,0,ACW,ACH);
+    const GW=7.32*Xs, GH=2.44*Xs; R((FW-GW)/2,-GH,GW,GH);
     DOT(FW/2,11*Ys);
-    // Semicírculo área: r=9.15m, sale por debajo del área grande
     const SR=9.15*Xs;
     P(`M ${FW/2-SR*0.58} ${AGH} A ${SR} ${SR} 0 0 0 ${FW/2+SR*0.58} ${AGH}`);
-    // Córners arriba
     ARC(0,0,10,0,90); ARC(FW,0,10,90,180);
-    // Punto central en línea central
     DOT(FW/2,FH);
-
   } else if(type==='futsal'){
-    // Futbol sala 40m x 20m. 1050/40=26.25px/m, 680/20=34px/m
-    R(0,0,FW,FH);
-    L(FW/2,0,FW/2,FH);
-    C(FW/2,FH/2,79); DOT(FW/2,FH/2); // circulo r=3m=79px
-    // Semicirculos de area r=6m: 6*26.25=157.5px
+    R(0,0,FW,FH); L(FW/2,0,FW/2,FH);
+    C(FW/2,FH/2,79); DOT(FW/2,FH/2);
     P(`M 0 ${FH/2-157.5} A 157.5 157.5 0 0 1 0 ${FH/2+157.5}`);
     P(`M ${FW} ${FH/2-157.5} A 157.5 157.5 0 0 0 ${FW} ${FH/2+157.5}`);
-    // Porterias: 3m x 1m = 78.75 x 26.25px
     R(-26.25,FH/2-39.375,26.25,78.75); R(FW,FH/2-39.375,26.25,78.75);
-    // Puntos de penalti: 6m=157.5px y 10m=262.5px
     DOT(157.5,FH/2); DOT(FW-157.5,FH/2);
     DOT(262.5,FH/2,2.5); DOT(FW-262.5,FH/2,2.5);
     ARC(0,0,7,0,90); ARC(FW,0,7,90,180);
     ARC(0,FH,7,270,360); ARC(FW,FH,7,180,270);
   }
-
   fMaster.insertBefore(svg, svgLayer);
 }
-
 
 // ── PUNTERO ──────────────────────────────────────────────────
 vp.addEventListener('pointerdown', onDown);
@@ -185,22 +161,21 @@ function onDown(e){
 
   if(activePointers.size===1){
     const was=activeId===hitId&&hitId!=null;
-    activeId=hitId||null;
+    wasActiveOnDown = was;
+    const isHitEmpty = (hitId == null);
+
+    if (!isHitEmpty) activeId = hitId;
+
     if(activeId){
       const el=steps[curStep].find(o=>o.id===activeId);
       if(el&&el.locked&&el.type==='zone'){
-        // Zona bloqueada: seleccionar para mostrar inspector (desbloquear)
-        // NO iniciar drag ni saveState
-        activeId=hitId;
-        syncInspector(el);
-        render();
-        return; // salir sin crear dragInfo
+        activeId=hitId; syncInspector(el); render(); return; 
       }
       const isTxt=el&&el.type==='txt';
       const isPlayer=['A','B','C','D'].includes(el?.type);
-      // Iniciar drag si: primer click en jugador/texto, doble en otros, o node/handle
+      
       const startDrag=el&&(
-        isPlayer||isTxt||was||
+        isPlayer||isTxt||was||isHitEmpty||
         hit?.classList.contains('node')||
         hit?.classList.contains('zone-sh')||
         hit?.classList.contains('txt-sh')
@@ -224,7 +199,6 @@ function onMove(e){
   activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(isPossibleTap&&Math.hypot(e.clientX-tapStartX,e.clientY-tapStartY)>6)isPossibleTap=false;
 
-  // Pellizco → escala jugadores/material
   if(activePointers.size===2&&activeId&&initialPinchDist){
     const el=steps[curStep].find(o=>o.id===activeId);
     if(el&&el.type!=='zone'&&el.type!=='vec'){
@@ -263,10 +237,20 @@ function onMove(e){
 }
 
 function onUp(e){
-  const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','A','B','C','D'];
-  if(isPossibleTap&&activeId&&activePointers.size===1&&!isDrawingPoly){
-    const el=steps[curStep].find(o=>o.id===activeId);
-    if(el&&ROT.includes(el.type)){el.rot=((el.rot||0)+15)%360;render();}
+  const ROT=['cone','cone_low','pica','valla','ladder','weight','ball','aro','A','B','C','D','txt'];
+  if(isPossibleTap && activeId && activePointers.size===1 && !isDrawingPoly){
+    const hit = e.target.closest('.object,.shirt-svg,.txt-obj');
+    const hitId = hit ? hit.dataset.id : null;
+
+    if (hitId === activeId && wasActiveOnDown) {
+      const el=steps[curStep].find(o=>o.id===activeId);
+      if(el&&ROT.includes(el.type)){
+        el.rot=((el.rot||0)+45)%360;
+        render();
+      }
+    } else if (!hitId && !e.target.closest('.tool, .btn, .irow, .cat, #left, #right, #topbar, #inspector')) {
+      deselect();
+    }
   }
   activePointers.delete(e.pointerId);
   if(activePointers.size<2)initialPinchDist=null;
@@ -277,8 +261,6 @@ function onUp(e){
 function render(){
   if(isPlaying)return;
   wipe();
-  // _RZ: mismo ratio que el SVG viewBox usa internamente
-  // clientWidth/Height son enteros post-layout, sin decimales de transform
   const cw=fMaster.clientWidth, ch=fMaster.clientHeight;
   window._RZ={x:cw>0?cw/FW:1, y:ch>0?ch/FH:1};
   const step=steps[curStep];
@@ -296,12 +278,10 @@ function render(){
     }
   }
   document.getElementById('step-label').innerText=`${curStep+1} / ${steps.length}`;
-  // Mostrar inspector si hay elemento activo
   const insEl = activeId ? steps[curStep].find(o=>o.id===activeId) : null;
   document.getElementById('inspector').style.display = insEl ? 'block' : 'none';
 }
 
-// FIX CRÍTICO: wipe() nunca borra #field-bg ni defs del svg-layer
 function wipe(){
   fMaster.querySelectorAll('.object,.zone-obj,.node,.txt-obj,.shirt-svg,[data-ring]').forEach(el=>el.remove());
   const defs=svgLayer.querySelector('defs');
@@ -310,18 +290,16 @@ function wipe(){
 }
 
 // ── PAINT OBJECT ─────────────────────────────────────────────
-// Posicionamos sin translate(-50%,-50%) para evitar el salto:
-// left = x - halfW, top = y - halfH  con dimensiones conocidas por tipo
 function paintObj(el){
   const isSel=activeId===el.id;
   const sc=el.scale||1;
   const rot=el.rot||0;
+  const z=getZoom(); 
 
-  const z=getZoom(); // escala canvas→px reales
   if(['A','B','C','D'].includes(el.type)){
     const c1=el.color||TC[el.type].c1;
     const c2=el.stripeColor||TC[el.type].c2;
-    const sz=38; // tamaño fijo en px de pantalla (no canvas)
+    const sz=38; 
     const half=sz/2;
     const svg=makeShirt(c1,c2,el.striped,el.num||1,el.numColor,isSel);
     svg.dataset.id=el.id;
@@ -332,7 +310,6 @@ function paintObj(el){
     return;
   }
 
-  // Material y balón — usamos un div posicionado con left/top exacto
   const div=document.createElement('div');
   div.className='object'+(isSel?' sel':'');
   div.dataset.id=el.id;
@@ -343,94 +320,58 @@ function paintObj(el){
   div.style.zIndex='20';
   div.style.transformOrigin='center center';
 
-  if(el.type==='ball'){
-    div.style.fontSize='28px';
-    div.style.lineHeight='28px';
-    div.style.width='28px'; div.style.height='28px';
-    div.style.textAlign='center';
-    div.style.overflow='visible';
-    div.style.left=(el.x*(window._RZ?.x||1)-14)+'px';
-    div.style.top =(el.y*(window._RZ?.y||1)-14)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-    div.textContent='⚽';
-  } else if(el.type==='cone'||el.type==='cone_low'){
-    const bw=el.type==='cone'?14:12;
-    const bh=el.type==='cone'?28:14;
-    div.style.width='0'; div.style.height='0';
-    div.style.borderLeft=`${bw}px solid transparent`;
-    div.style.borderRight=`${bw}px solid transparent`;
-    div.style.borderBottom=`${bh}px solid ${el.color||(el.type==='cone'?'#e67e22':'#e74c3c')}`;
-    div.style.filter='drop-shadow(0 2px 3px rgba(0,0,0,.4))';
-    div.style.left=(el.x*(window._RZ?.x||1)-bw)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-bh/2)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-  } else if(el.type==='pica'){
-    div.style.width='6px'; div.style.height='52px';
-    div.style.background=`linear-gradient(${el.color||'#f1c40f'},#e67e22 60%,#c0392b)`;
-    div.style.borderRadius='3px 3px 1px 1px';
-    div.style.left=(el.x*(window._RZ?.x||1)-3)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-26)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
+  const isSVGItem = ['ball', 'cone', 'cone_low', 'pica', 'ladder', 'aro', 'weight'].includes(el.type);
+  if(isSVGItem) {
+    const sizes = {
+      'ball': [28, 28], 'cone': [28, 32], 'cone_low': [24, 24],
+      'pica': [8, 52], 'ladder': [155, 33], 'aro': [32, 32], 'weight': [30, 24]
+    };
+    const files = {
+      'ball': 'balon.svg', 'cone': 'cono.svg', 'cone_low': 'chincheta.svg',
+      'pica': 'pica.svg', 'ladder': 'escalera.svg', 'aro': 'aro.svg', 'weight': 'pesa.svg'
+    };
+    const [w, h] = sizes[el.type];
+    div.style.width = w + 'px'; div.style.height = h + 'px';
+    div.style.left = (el.x * (window._RZ?.x || 1) - (w/2)) + 'px';
+    div.style.top = (el.y * (window._RZ?.y || 1) - (h/2)) + 'px';
+    div.style.backgroundImage = `url('${files[el.type]}')`;
+    div.style.backgroundSize = "100% 100%";
+    div.style.backgroundRepeat = "no-repeat";
   } else if(el.type==='valla'){
     div.style.width='48px'; div.style.height='27px';
     div.style.border=`4px solid ${el.color||'#e74c3c'}`;
     div.style.borderBottom='none';
     div.style.borderRadius='5px 5px 0 0';
     div.style.left=(el.x*(window._RZ?.x||1)-24)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-13)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-  } else if(el.type==='ladder'){
-    div.style.width='155px'; div.style.height='33px';
-    div.style.borderTop=`4px solid ${el.color||'#f1c40f'}`;
-    div.style.borderBottom=`4px solid ${el.color||'#f1c40f'}`;
-    div.style.backgroundImage=`repeating-linear-gradient(90deg,transparent,transparent 22px,${el.color||'#f1c40f'} 22px,${el.color||'#f1c40f'} 26px)`;
-    div.style.left=(el.x*(window._RZ?.x||1)-77)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-16)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
-  } else if(el.type==='weight'){
-    div.style.width='30px'; div.style.height='19px';
-    div.style.background='linear-gradient(180deg,#bdc3c7,#7f8c8d)';
-    div.style.borderRadius='4px';
-    div.style.left=(el.x*(window._RZ?.x||1)-15)+'px'; div.style.top=(el.y*(window._RZ?.y||1)-9)+'px';
-    div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   }
-
+  
+  div.style.transform=`rotate(${rot}deg) scale(${sc})`;
   fMaster.appendChild(div);
-
-  // Indicador de selección: div separado que NO afecta al elemento
-  if(isSel){
+  
+  if (isSel && !isSVGItem && el.type !== 'valla') {
+       // Fallback
+  } else if (isSel) {
     const ring=document.createElement('div');
-    ring.dataset.ring='1';
-    ring.style.position='absolute';
-    ring.style.pointerEvents='none';
-    ring.style.border='2.5px solid #f1c40f';
-    ring.style.zIndex='19';
-    ring.style.boxSizing='border-box';
-    const rx=el.x*(window._RZ?.x||1);
-    const ry=el.y*(window._RZ?.y||1);
-    if(el.type==='ball'){
-      const r=18; ring.style.width=r*2+'px'; ring.style.height=r*2+'px';
-      ring.style.borderRadius='50%';
-      ring.style.left=(rx-r)+'px'; ring.style.top=(ry-r)+'px';
-    } else if(el.type==='cone'||el.type==='cone_low'){
-      const bw=el.type==='cone'?14:12, bh=el.type==='cone'?28:14;
-      ring.style.width=(bw*2+8)+'px'; ring.style.height=(bh+8)+'px';
+    ring.dataset.ring='1'; ring.style.position='absolute';
+    ring.style.pointerEvents='none'; ring.style.border='2.5px solid #f1c40f';
+    ring.style.zIndex='19'; ring.style.boxSizing='border-box';
+    const rx=el.x*(window._RZ?.x||1); const ry=el.y*(window._RZ?.y||1);
+    
+    if(isSVGItem){
+      const sizes = {
+        'ball': [14, 14], 'cone': [14, 16], 'cone_low': [12, 12],
+        'pica': [4, 26], 'ladder': [77, 16], 'aro': [16, 16], 'weight': [15, 12]
+      };
+      const [hw, hh] = sizes[el.type];
+      ring.style.width=(hw*2+8)+'px'; ring.style.height=(hh*2+8)+'px';
       ring.style.borderRadius='3px';
-      ring.style.left=(rx-bw-4)+'px'; ring.style.top=(ry-bh/2-4)+'px';
-    } else if(el.type==='pica'){
-      ring.style.width='14px'; ring.style.height='60px';
-      ring.style.borderRadius='4px';
-      ring.style.left=(rx-7)+'px'; ring.style.top=(ry-30)+'px';
+      if(el.type === 'ball' || el.type === 'aro') ring.style.borderRadius='50%';
+      ring.style.left=(rx-hw-4)+'px'; ring.style.top=(ry-hh-4)+'px';
     } else if(el.type==='valla'){
       ring.style.width='56px'; ring.style.height='35px';
       ring.style.borderRadius='5px';
       ring.style.left=(rx-28)+'px'; ring.style.top=(ry-17)+'px';
-    } else if(el.type==='ladder'){
-      ring.style.width='163px'; ring.style.height='41px';
-      ring.style.borderRadius='4px';
-      ring.style.left=(rx-81)+'px'; ring.style.top=(ry-20)+'px';
-    } else if(el.type==='weight'){
-      ring.style.width='38px'; ring.style.height='27px';
-      ring.style.borderRadius='4px';
-      ring.style.left=(rx-19)+'px'; ring.style.top=(ry-13)+'px';
     }
-    const sc=el.scale||1;
     const rotStr=el.rot?`rotate(${el.rot}deg) `:'';
     ring.style.transform=`${rotStr}scale(${sc})`;
     ring.style.transformOrigin='center center';
@@ -464,7 +405,6 @@ function makeShirt(c1,c2,striped,num,numColor,isSelected){
   txt.setAttribute('font-family','Barlow Condensed,sans-serif');txt.setAttribute('font-size','14');txt.setAttribute('font-weight','800');
   const nc=numColor||'#ffffff'; txt.setAttribute('fill',nc);txt.setAttribute('paint-order','stroke');txt.setAttribute('stroke',nc==='#ffffff'?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.3)');txt.setAttribute('stroke-width','2');
   txt.textContent=num;svg.appendChild(txt);
-  // Ring de selección dentro del SVG (círculo, no rectángulo)
   if(isSelected){
     const ring=document.createElementNS(ns,'circle');
     ring.setAttribute('cx','19');ring.setAttribute('cy','19');ring.setAttribute('r','20');
@@ -486,7 +426,7 @@ function paintZone(el){
   div.style.borderColor=el.color||'#ffffff';
   div.style.borderStyle=el.sub==='fill'?'solid':'dashed';
   div.style.background=el.sub==='fill'?(el.color||'#fff')+'33':'transparent';
-  div.style.pointerEvents='auto'; // siempre clickeable (drag bloqueado en onMove)
+  div.style.pointerEvents='auto'; 
   if(activeId===el.id&&!el.locked){
     const sh=document.createElement('div');sh.className='zone-sh';sh.dataset.id=el.id;sh.textContent='⤡';div.appendChild(sh);
   }
@@ -494,7 +434,6 @@ function paintZone(el){
   fMaster.appendChild(div);
 }
 
-// ── PAINT VECTOR ─────────────────────────────────────────────
 // ── PAINT TEXT ───────────────────────────────────────────────
 function paintTxt(el){
   const div=document.createElement('div');
@@ -503,12 +442,10 @@ function paintTxt(el){
   const fs=el.fontSize||32;
   const rot=el.rot||0;
   const isSel=activeId===el.id;
-  // Anclar en top-left (el.x, el.y) SIN transform de desplazamiento.
-  // Así el drag (+=dx/dy) es 1:1 con el movimiento del dedo/ratón.
   div.style.cssText=
     `position:absolute;left:${el.x*getZoom()}px;top:${el.y*getZoom()}px;`+
-    `display:inline-block;`+   /* ajusta el div al ancho exacto del texto */
-    `color:${el.color||'#ffffff'};font-size:${fs}px;`+  /* font-size explícito, no hereda :0 del vp */
+    `display:inline-block;`+   
+    `color:${el.color||'#ffffff'};font-size:${fs}px;`+ 
     `font-family:'Barlow Condensed',sans-serif;font-weight:800;`+
     `white-space:nowrap;line-height:${fs}px;cursor:grab;pointer-events:auto;`+
     `background:transparent;z-index:20;overflow:visible;`+
@@ -556,7 +493,6 @@ function ensureMarker(color){
 }
 
 function mkN(el,nx,ny,fx,fy,ctrl=false){
-  // Escalar coordenadas del canvas (0..FW, 0..FH) al tamaño real del campo
   const n=document.createElement('div');n.className='node'+(ctrl?' ctrl':'');
   n.style.left=(fx*(window._RZ?.x||1))+'px';n.style.top=(fy*(window._RZ?.y||1))+'px';
   n.dataset.id=el.id;n.dataset.nx=nx;
@@ -574,7 +510,6 @@ function syncInspector(el){
   tog('r-num',isPly);tog('r-strtog',isPly);tog('r-stripe',isPly&&el.striped);
   tog('r-numcolor',isPly);
   if(isPly){setv('ins-num',el.num||1);setck('ins-strtog',!!el.striped);setv('ins-stripe',el.stripeColor||TC[el.type].c2);setv('ins-numcolor',el.numColor||'#ffffff');}
-  // Bloqueo: visible solo para zonas
   document.getElementById('r-lock').style.display = isZone ? 'flex' : 'none';
   if(isZone) setck('ins-lock',!!el.locked);
   document.getElementById('btn-fpoly').style.display=(isVec&&el.sub==='poly'&&isDrawingPoly)?'block':'none';
@@ -591,13 +526,33 @@ function toggleLock(on){const el=steps[curStep].find(o=>o.id===activeId);if(!el)
 // ── CREAR ELEMENTOS ──────────────────────────────────────────
 function createPlayer(team){
   saveState();const id=uid();
-  steps[curStep].push({id,type:team,x:clamp(300+Math.random()*400,20,FW-20),y:clamp(180+Math.random()*300,20,FH-20),
-    num:steps[curStep].filter(o=>o.type===team).length+1,color:TC[team].c1,stripeColor:TC[team].c2,striped:false,scale:1,rot:0});
+  const teamPlayers = steps[curStep].filter(o=>o.type===team);
+  let maxNum = 0;
+  let ref = null;
+  teamPlayers.forEach(p => {
+    if(p.num > maxNum) maxNum = p.num;
+    ref = p; 
+  });
+
+  steps[curStep].push({
+    id, 
+    type:team,
+    x:clamp(300+Math.random()*400,20,FW-20),
+    y:clamp(180+Math.random()*300,20,FH-20),
+    num: maxNum + 1,
+    color: ref ? ref.color : TC[team].c1,
+    stripeColor: ref ? ref.stripeColor : TC[team].c2,
+    striped: ref ? ref.striped : false,
+    numColor: ref ? ref.numColor : '#ffffff',
+    scale: ref ? ref.scale : globalPlayerScale,
+    rot: 0
+  });
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
 }
+
 function createItem(type){
   saveState();const id=uid();
-  const CM={cone:'#e67e22',cone_low:'#e74c3c',pica:'#f1c40f',valla:'#e74c3c',ladder:'#f1c40f',weight:'#95a5a6'};
+  const CM={cone:'#e67e22',cone_low:'#e74c3c',pica:'#f1c40f',valla:'#e74c3c',ladder:'#f1c40f',weight:'#95a5a6',aro:'#3498db'};
   steps[curStep].push({id,type,x:clamp(300+Math.random()*400,20,FW-20),y:clamp(180+Math.random()*300,20,FH-20),color:CM[type]||'#e67e22',scale:1,rot:0});
   activeId=id;render();
 }
@@ -620,8 +575,6 @@ function createTextEl(){
   const txt=prompt('Escribe el texto:','');
   if(!txt||!txt.trim())return;
   saveState();const id=uid();
-  // Tipo 'txt' propio para simplificar lógica (no depende de 'vec')
-  // x,y = top-left del texto (sin translate para evitar saltos)
   steps[curStep].push({id,type:'txt',text:txt.trim(),
     x:Math.round(FW*0.35),y:Math.round(FH*0.45),fontSize:32,color:'#ffffff',rot:0});
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
@@ -690,7 +643,98 @@ function animStep(f1,f2,dur){
   });
 }
 
-// ── BIBLIOTECA ───────────────────────────────────────────────
+// ── GESTIÓN DE BIBLIOTECA PERSONAL (LocalStorage) ────────────
+function saveToLocal() {
+  if (steps[0].length === 0) return alert("La pizarra está vacía.");
+  const nombre = prompt("Nombre de la jugada:");
+  if (!nombre) return;
+
+  const locales = JSON.parse(localStorage.getItem('smboard_locales') || '[]');
+  const nuevaJugada = {
+    id: 'local_' + Date.now(),
+    name: nombre,
+    date: new Date().toLocaleDateString(),
+    data: steps
+  };
+
+  locales.push(nuevaJugada);
+  localStorage.setItem('smboard_locales', JSON.stringify(locales));
+  alert("¡Jugada guardada en tu biblioteca!");
+}
+
+function openLibrary() {
+  const g = document.getElementById('lib-grid');
+  g.innerHTML = '';
+  
+  const warning = document.createElement('div');
+  warning.className = 'lib-warning';
+  warning.innerHTML = `⚠️ <b>AVISO:</b> Esta biblioteca solo está disponible en este dispositivo. 
+  Si borras los datos del navegador o el historial, estas jugadas se perderán.`;
+  g.appendChild(warning);
+
+  const locales = JSON.parse(localStorage.getItem('smboard_locales') || '[]');
+  
+  if (locales.length > 0) {
+    const titulo = document.createElement('div');
+    titulo.className = 'cat';
+    titulo.innerText = "MIS JUGADAS";
+    titulo.style.gridColumn = "1 / -1";
+    g.appendChild(titulo);
+
+    locales.forEach(j => {
+      const card = document.createElement('div');
+      card.className = 'lcard';
+      card.innerHTML = `
+        <div class="licon">📋</div>
+        <div class="lname">${j.name}</div>
+        <div class="ldesc">${j.date}</div>
+        <button class="btn btn-del" style="margin-top:8px">BORRAR</button>
+      `;
+      card.onclick = (e) => {
+        if(e.target.classList.contains('btn-del')) {
+          deleteLocal(j.id);
+        } else {
+          loadLocal(j.data);
+        }
+      };
+      g.appendChild(card);
+    });
+  }
+
+  const tituloAc = document.createElement('div');
+  tituloAc.className = 'cat';
+  tituloAc.innerText = "BIBLIOTECA ACADEMIA";
+  tituloAc.style.gridColumn = "1 / -1";
+  g.appendChild(tituloAc);
+
+  DRILLS.forEach(d => {
+    const c = document.createElement('div');
+    c.className = 'lcard';
+    c.innerHTML = `<div class="licon">${d.icon}</div><div class="lname">${d.name}</div><div class="ldesc">${d.desc}</div>`;
+    c.onclick = () => injectDrill(d);
+    g.appendChild(c);
+  });
+
+  openModal('m-lib');
+}
+
+function loadLocal(data) {
+  saveState();
+  steps = JSON.parse(JSON.stringify(data));
+  curStep = 0;
+  deselect();
+  closeLibrary();
+  render();
+}
+
+function deleteLocal(id) {
+  if (!confirm("¿Seguro que quieres borrar esta jugada?")) return;
+  let locales = JSON.parse(localStorage.getItem('smboard_locales') || '[]');
+  locales = locales.filter(j => j.id !== id);
+  localStorage.setItem('smboard_locales', JSON.stringify(locales));
+  openLibrary(); 
+}
+
 const DRILLS=[
   {key:'r41',name:'Rondo 4×1',icon:'🔵',desc:'Posesión 4 vs 1',steps:[
     [{_bid:'z1',type:'zone',sub:'line',x:340,y:180,w:290,h:290,color:'#fff',locked:false},{_bid:'a1',type:'A',x:340,y:180,num:1},{_bid:'a2',type:'A',x:630,y:180,num:2},{_bid:'a3',type:'A',x:340,y:470,num:3},{_bid:'a4',type:'A',x:630,y:470,num:4},{_bid:'b1',type:'B',x:485,y:325,num:1},{_bid:'bl',type:'ball',x:340,y:180}],
@@ -720,15 +764,6 @@ const DRILLS=[
   ]}
 ];
 
-function openLibrary(){
-  const g=document.getElementById('lib-grid');g.innerHTML='';
-  DRILLS.forEach(d=>{
-    const c=document.createElement('div');c.className='lcard';
-    c.innerHTML=`<div class="licon">${d.icon}</div><div class="lname">${d.name}</div><div class="ldesc">${d.desc}</div>`;
-    c.onclick=()=>injectDrill(d);g.appendChild(c);
-  });
-  openModal('m-lib');
-}
 function closeLibrary(){closeModal('m-lib');}
 function injectDrill(d){
   saveState();
@@ -748,15 +783,16 @@ function injectDrill(d){
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function openResetMenu(){openModal('m-reset');}
+function openHelp(){openModal('m-help');}
+function closeHelp(){closeModal('m-help');}
 
 // ── EXPORTAR PNG ─────────────────────────────────────────────
 async function exportPNG(){
   deselect();
-  // Recalcular _RZ y renderizar sin selección antes de capturar
   const _r=fMaster.getBoundingClientRect();
   window._RZ={x:_r.width>0?_r.width/FW:1,y:_r.height>0?_r.height/FH:1};
   render();
-  await tick(200); // esperar a que el browser pinte todos los SVGs
+  await tick(200); 
   const bg=fMaster.style.background||'#2d8a47';
   html2canvas(fMaster,{
     scale:2,
@@ -765,7 +801,6 @@ async function exportPNG(){
     backgroundColor:bg,
     logging:false,
     onclone:(doc)=>{
-      // Asegurar que los SVGs clonados son visibles
       doc.querySelectorAll('.shirt-svg').forEach(s=>{
         s.style.overflow='visible';
       });
@@ -784,7 +819,6 @@ async function startExport(fmt){
   catch(err){console.error(err);alert('Error: '+err.message);closeModal('m-export');}
 }
 function renderForExport(f1,f2,ease){
-  // Recalcular _RZ para exportación (puede diferir del render interactivo)
   const _r=fMaster.getBoundingClientRect();
   window._RZ={x:_r.width>0?_r.width/FW:1,y:_r.height>0?_r.height/FH:1};
   wipe();
@@ -802,7 +836,6 @@ function renderForExport(f1,f2,ease){
   });
 }
 async function doMP4(){
-  // Ocultar box-shadow durante la captura para evitar sombra negra en el video
   const origShadow=fMaster.style.boxShadow;
   fMaster.style.boxShadow='none';
   const FPS=25,dur=getDur();
@@ -893,14 +926,25 @@ function toggleFullscreen(){
 function saveState(){if(history.length>40)history.shift();history.push(JSON.stringify(steps));}
 function undo(){if(!history.length)return;steps=JSON.parse(history.pop());if(curStep>=steps.length)curStep=steps.length-1;render();}
 function deselect(){activeId=null;if(isDrawingPoly)finishPoly();render();}
+
 function dupActive(){
   if(!activeId)return;saveState();
   const o=steps[curStep].find(x=>x.id===activeId);if(!o)return;
   const c=JSON.parse(JSON.stringify(o));c.id=uid();
   if(c.type==='zone'){c.x=clamp(c.x+20,0,FW-c.w);c.y=clamp(c.y+20,0,FH-c.h);}
   else if(c.type!=='vec'){c.x=clamp(c.x+40,0,FW);c.y=clamp(c.y+40,0,FH);}
+  
+  if(['A','B','C','D'].includes(c.type)){
+    let maxNum = 0;
+    steps[curStep].forEach(p => {
+      if(p.type === c.type && p.num > maxNum) maxNum = p.num;
+    });
+    c.num = maxNum + 1;
+  }
+  
   steps[curStep].push(c);activeId=c.id;render();
 }
+
 function delActive(){if(!activeId)return;saveState();steps[curStep]=steps[curStep].filter(o=>o.id!==activeId);activeId=null;render();}
 function doReset(t){saveState();if(t==='step')steps[curStep]=[];else{steps=[[]];curStep=0;}closeModal('m-reset');deselect();}
 function uid(){return(++idCounter)+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);}
