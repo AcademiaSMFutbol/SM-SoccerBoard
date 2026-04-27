@@ -1,8 +1,8 @@
 /* ============================================================
    SM SoccerBoard Pro v75 — script.js
    © Academia SM Fútbol — Las Palmas de Gran Canaria
-   FIX: Renderizado de PNG puro con Object-Fit para evitar
-   estiramientos y limpieza total de conflicto CSS en UI.
+   FIX DEFINITIVO: Flechas dibujadas por trigonometría pura 
+   para html2canvas y forzado de PNGs (eliminando caché CSS).
    ============================================================ */
 
 // ── ESTADO ───────────────────────────────────────────────────
@@ -80,7 +80,6 @@ function resizeField(){
 }
 function getZoom(){ return fMaster.getBoundingClientRect().width/FW; }
 
-// ── COLOR DE FONDO PARA EXPORTACIÓN ──────────────────────────
 function getExportBg() {
   const bgColors = { full: '#2d8a47', half: '#2d8a47', futsal: '#1a3a5c', blank: '#1a5c2a' };
   return bgColors[currentField] || '#2d8a47';
@@ -433,7 +432,6 @@ function paintObj(el){
     img.src = files[el.type];
     img.style.width = '100%';
     img.style.height = '100%';
-    // EL TRUCO ESTÁ AQUÍ 👇
     img.style.objectFit = 'contain'; 
     img.style.pointerEvents = 'none'; 
     div.appendChild(img);
@@ -521,7 +519,6 @@ function makeShirt(c1,c2,striped,num,numColor,isSelected){
   return svg;
 }
 
-// ── PAINT ZONE ───────────────────────────────────────────────
 function paintZone(el){
   const div=document.createElement('div');
   div.className='zone-obj'+(el.locked?' locked':'');
@@ -546,7 +543,6 @@ function paintZone(el){
   fMaster.appendChild(div);
 }
 
-// ── PAINT TEXT ───────────────────────────────────────────────
 function paintTxt(el){
   const div=document.createElement('div');
   div.className='txt-obj';
@@ -587,34 +583,69 @@ function paintTxt(el){
   fMaster.appendChild(div);
 }
 
+// ── FIX: TRIGONOMETRÍA PARA LAS FLECHAS ──────────────────────
 function paintVec(el){
   let d='';
-  if(el.sub==='line')d=`M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
-  else if(el.sub==='curve')d=`M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1},${el.cx2} ${el.cy2},${el.x2} ${el.y2}`;
-  else if(el.sub==='poly'&&el.pts?.length>1)d=el.pts.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' ');
-  if(!d)return;
-  const col=el.color||'#000000'; ensureMarker(col);
-  const p=document.createElementNS('http://www.w3.org/2000/svg','path');
-  p.setAttribute('d',d);p.setAttribute('stroke',col);p.setAttribute('stroke-width','3.5');p.setAttribute('fill','none');
-  p.setAttribute('stroke-linecap','round');p.setAttribute('stroke-linejoin','round');
-  if(el.dashed)p.setAttribute('stroke-dasharray','10 6');
-  if(el.arrow) p.setAttribute('marker-end',`url(#mk-${col.replace('#','')})`);
-  p.classList.add('v-el');svgLayer.appendChild(p);
-  const hit=document.createElementNS('http://www.w3.org/2000/svg','path');
-  hit.setAttribute('d',d);hit.setAttribute('stroke','transparent');hit.setAttribute('stroke-width','26');hit.setAttribute('fill','none');
-  hit.classList.add('vec-hit','v-el');hit.dataset.id=el.id;hit.style.pointerEvents='auto';svgLayer.appendChild(hit);
-}
+  let endX, endY, angle;
 
-function ensureMarker(color){
-  const id='mk-'+color.replace('#','');
-  const defs=svgLayer.querySelector('defs');
-  if(!defs||defs.querySelector('#'+id))return;
-  const mk=document.createElementNS('http://www.w3.org/2000/svg','marker');
-  mk.setAttribute('id',id);mk.setAttribute('markerWidth','8');mk.setAttribute('markerHeight','6');
-  mk.setAttribute('refX','7');mk.setAttribute('refY','3');mk.setAttribute('orient','auto');
-  const pl=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-  pl.setAttribute('points','0 0,8 3,0 6');pl.setAttribute('fill',color);
-  mk.appendChild(pl);defs.appendChild(mk);
+  if(el.sub==='line') {
+      d=`M ${el.x1} ${el.y1} L ${el.x2} ${el.y2}`;
+      endX = el.x2; endY = el.y2;
+      angle = Math.atan2(el.y2 - el.y1, el.x2 - el.x1);
+  }
+  else if(el.sub==='curve') {
+      d=`M ${el.x1} ${el.y1} C ${el.cx1} ${el.cy1},${el.cx2} ${el.cy2},${el.x2} ${el.y2}`;
+      endX = el.x2; endY = el.y2;
+      angle = Math.atan2(el.y2 - el.cy2, el.x2 - el.cx2);
+  }
+  else if(el.sub==='poly'&&el.pts?.length>1) {
+      d=el.pts.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' ');
+      const last = el.pts[el.pts.length-1];
+      const prev = el.pts[el.pts.length-2] || el.pts[0];
+      endX = last.x; endY = last.y;
+      angle = Math.atan2(last.y - prev.y, last.x - prev.x);
+  }
+  if(!d)return;
+
+  const col=el.color||'#000000';
+
+  const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d',d);
+  p.setAttribute('stroke',col);
+  p.setAttribute('stroke-width','3.5');
+  p.setAttribute('fill','none');
+  p.setAttribute('stroke-linecap','round');
+  p.setAttribute('stroke-linejoin','round');
+  if(el.dashed) p.setAttribute('stroke-dasharray','10 6');
+  p.classList.add('v-el');
+  svgLayer.appendChild(p);
+
+  // Se dibuja un polígono real en la punta (html2canvas lo lee 100% perfecto)
+  if(el.arrow && endX !== undefined) {
+     const size = 16; 
+     const a1 = angle - Math.PI / 7;
+     const a2 = angle + Math.PI / 7;
+     const p1x = endX - size * Math.cos(a1);
+     const p1y = endY - size * Math.sin(a1);
+     const p2x = endX - size * Math.cos(a2);
+     const p2y = endY - size * Math.sin(a2);
+
+     const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+     poly.setAttribute('points', `${endX},${endY} ${p1x},${p1y} ${p2x},${p2y}`);
+     poly.setAttribute('fill', col);
+     poly.classList.add('v-el');
+     svgLayer.appendChild(poly);
+  }
+
+  const hit=document.createElementNS('http://www.w3.org/2000/svg','path');
+  hit.setAttribute('d',d);
+  hit.setAttribute('stroke','transparent');
+  hit.setAttribute('stroke-width','26');
+  hit.setAttribute('fill','none');
+  hit.classList.add('vec-hit','v-el');
+  hit.dataset.id=el.id;
+  hit.style.pointerEvents='auto';
+  svgLayer.appendChild(hit);
 }
 
 function mkN(el,nx,ny,fx,fy,ctrl=false){
@@ -625,7 +656,6 @@ function mkN(el,nx,ny,fx,fy,ctrl=false){
   const i=document.createElement('div');i.className='node-in';n.appendChild(i);fMaster.appendChild(n);
 }
 
-// ── INSPECTOR ────────────────────────────────────────────────
 function syncInspector(el){
   if(!el)return;
   const isVec=el.type==='vec', isPly=['A','B','C','D'].includes(el.type), isZone=el.type==='zone', isTxt=el.type==='txt';
@@ -648,29 +678,19 @@ function setProp(prop,val){const el=steps[curStep].find(o=>o.id===activeId);if(!
 function toggleStripe(on){const el=steps[curStep].find(o=>o.id===activeId);if(!el)return;el.striped=on;tog('r-stripe',on);render();}
 function toggleLock(on){const el=steps[curStep].find(o=>o.id===activeId);if(!el)return;el.locked=on;render();syncInspector(el);}
 
-// ── CREAR ELEMENTOS ──────────────────────────────────────────
 function createPlayer(team){
   saveState();const id=uid();
   const teamPlayers = steps[curStep].filter(o=>o.type===team);
-  let maxNum = 0;
-  let ref = null;
-  teamPlayers.forEach(p => {
-    if(p.num > maxNum) maxNum = p.num;
-    ref = p; 
-  });
+  let maxNum = 0; let ref = null;
+  teamPlayers.forEach(p => { if(p.num > maxNum) maxNum = p.num; ref = p; });
 
   steps[curStep].push({
-    id, 
-    type:team,
-    x:clamp(300+Math.random()*400,20,FW-20),
-    y:clamp(180+Math.random()*300,20,FH-20),
+    id, type:team,
+    x:clamp(300+Math.random()*400,20,FW-20), y:clamp(180+Math.random()*300,20,FH-20),
     num: maxNum + 1,
-    color: ref ? ref.color : TC[team].c1,
-    stripeColor: ref ? ref.stripeColor : TC[team].c2,
-    striped: ref ? ref.striped : false,
-    numColor: ref ? ref.numColor : '#ffffff',
-    scale: ref ? ref.scale : globalPlayerScale,
-    rot: 0
+    color: ref ? ref.color : TC[team].c1, stripeColor: ref ? ref.stripeColor : TC[team].c2,
+    striped: ref ? ref.striped : false, numColor: ref ? ref.numColor : '#ffffff',
+    scale: ref ? ref.scale : globalPlayerScale, rot: 0
   });
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
 }
@@ -711,13 +731,8 @@ function createZone(sub){
   activeId=id;render();syncInspector(steps[curStep].find(o=>o.id===id));
 }
 
-// ── CAMPO ────────────────────────────────────────────────────
-function setField(val){
-  currentField=val;
-  drawFieldBG(val);
-}
+function setField(val){ currentField=val; drawFieldBG(val); }
 
-// ── EQUIPOS ──────────────────────────────────────────────────
 function setTeamColor(team,key,val){
   TC[team][key]=val;
   steps.forEach(s=>s.forEach(el=>{if(el.type===team){if(key==='c1')el.color=val;if(key==='c2')el.stripeColor=val;}}));
@@ -730,11 +745,9 @@ function updateSwatches(){
   });
 }
 
-// ── PASOS ────────────────────────────────────────────────────
 function navStep(d){const n=curStep+d;if(n<0||n>=steps.length)return;curStep=n;deselect();}
 function addStep(){saveState();steps.splice(curStep+1,0,JSON.parse(JSON.stringify(steps[curStep])));curStep++;deselect();}
 
-// ── ANIMACIÓN ────────────────────────────────────────────────
 async function runAnimation(){
   if(steps.length<2){alert('Añade al menos 2 pasos');return;}
   isPlaying=true;deselect();
@@ -768,20 +781,12 @@ function animStep(f1,f2,dur){
   });
 }
 
-// ── GESTIÓN DE BIBLIOTECA PERSONAL (LocalStorage) ────────────
 function saveToLocal() {
   if (steps[0].length === 0) return alert("La pizarra está vacía.");
   const nombre = prompt("Nombre de la jugada:");
   if (!nombre) return;
-
   const locales = JSON.parse(localStorage.getItem('smboard_locales') || '[]');
-  const nuevaJugada = {
-    id: 'local_' + Date.now(),
-    name: nombre,
-    date: new Date().toLocaleDateString(),
-    data: steps
-  };
-
+  const nuevaJugada = { id: 'local_' + Date.now(), name: nombre, date: new Date().toLocaleDateString(), data: steps };
   locales.push(nuevaJugada);
   localStorage.setItem('smboard_locales', JSON.stringify(locales));
   alert("¡Jugada guardada en tu biblioteca!");
@@ -790,48 +795,27 @@ function saveToLocal() {
 function openLibrary() {
   const g = document.getElementById('lib-grid');
   g.innerHTML = '';
-  
   const warning = document.createElement('div');
   warning.className = 'lib-warning';
   warning.innerHTML = `⚠️ <b>AVISO:</b> Esta biblioteca solo está disponible en este dispositivo. 
   Si borras los datos del navegador o el historial, estas jugadas se perderán.`;
   g.appendChild(warning);
-
   const locales = JSON.parse(localStorage.getItem('smboard_locales') || '[]');
-  
   if (locales.length > 0) {
     const titulo = document.createElement('div');
-    titulo.className = 'cat';
-    titulo.innerText = "MIS JUGADAS";
-    titulo.style.gridColumn = "1 / -1";
+    titulo.className = 'cat'; titulo.innerText = "MIS JUGADAS"; titulo.style.gridColumn = "1 / -1";
     g.appendChild(titulo);
-
     locales.forEach(j => {
       const card = document.createElement('div');
       card.className = 'lcard';
-      card.innerHTML = `
-        <div class="licon">📋</div>
-        <div class="lname">${j.name}</div>
-        <div class="ldesc">${j.date}</div>
-        <button class="btn btn-del" style="margin-top:8px">BORRAR</button>
-      `;
-      card.onclick = (e) => {
-        if(e.target.classList.contains('btn-del')) {
-          deleteLocal(j.id);
-        } else {
-          loadLocal(j.data);
-        }
-      };
+      card.innerHTML = `<div class="licon">📋</div><div class="lname">${j.name}</div><div class="ldesc">${j.date}</div><button class="btn btn-del" style="margin-top:8px">BORRAR</button>`;
+      card.onclick = (e) => { if(e.target.classList.contains('btn-del')) deleteLocal(j.id); else loadLocal(j.data); };
       g.appendChild(card);
     });
   }
-
   const tituloAc = document.createElement('div');
-  tituloAc.className = 'cat';
-  tituloAc.innerText = "BIBLIOTECA ACADEMIA";
-  tituloAc.style.gridColumn = "1 / -1";
+  tituloAc.className = 'cat'; tituloAc.innerText = "BIBLIOTECA ACADEMIA"; tituloAc.style.gridColumn = "1 / -1";
   g.appendChild(tituloAc);
-
   DRILLS.forEach(d => {
     const c = document.createElement('div');
     c.className = 'lcard';
@@ -839,17 +823,12 @@ function openLibrary() {
     c.onclick = () => injectDrill(d);
     g.appendChild(c);
   });
-
   openModal('m-lib');
 }
 
 function loadLocal(data) {
-  saveState();
-  steps = JSON.parse(JSON.stringify(data));
-  curStep = 0;
-  deselect();
-  closeLibrary();
-  render();
+  saveState(); steps = JSON.parse(JSON.stringify(data)); curStep = 0;
+  deselect(); closeLibrary(); render();
 }
 
 function deleteLocal(id) {
@@ -904,14 +883,10 @@ function injectDrill(d){
   curStep=0;deselect();closeLibrary();
 }
 
-// ── MODALES ──────────────────────────────────────────────────
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function openResetMenu(){openModal('m-reset');}
-function openHelp(){openModal('m-help');}
-function closeHelp(){closeModal('m-help');}
 
-// ── EXPORTAR PNG ─────────────────────────────────────────────
 async function exportPNG(){
   deselect();
   const _r=fMaster.getBoundingClientRect();
@@ -934,7 +909,6 @@ async function exportPNG(){
   }).catch(err=>{alert('Error PNG: '+err.message);});
 }
 
-// ── EXPORTAR VÍDEO ───────────────────────────────────────────
 function exportVideo(){if(steps.length<2){alert('Añade al menos 2 pasos');return;}openModal('m-export');}
 function setProg(p,m){document.getElementById('pbar-fill').style.width=p+'%';document.getElementById('exp-status').textContent=m;}
 
@@ -1031,13 +1005,11 @@ async function doGIF(){
   gif.render();
 }
 
-// ── PANTALLA COMPLETA ─────────────────────────────────────────
 function toggleFullscreen(){
   if(!document.fullscreenElement){document.documentElement.requestFullscreen().catch(e=>console.warn(e));}
   else{document.exitFullscreen().catch(e=>console.warn(e));}
 }
 
-// ── UTILIDADES ───────────────────────────────────────────────
 function saveState(){if(history.length>40)history.shift();history.push(JSON.stringify(steps));}
 function undo(){if(!history.length)return;steps=JSON.parse(history.pop());if(curStep>=steps.length)curStep=steps.length-1;render();}
 function deselect(){activeId=null;if(isDrawingPoly)finishPoly();render();}
