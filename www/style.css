@@ -5,7 +5,7 @@
   --text:#e8eaed;--muted:#6e7681;--border:#30363d;--r:7px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;outline:none;user-select:none;}
-body,html{margin:0;padding:0;width:100vw;height:100dvh;overflow:hidden;background:#000;font-family:'Barlow',sans-serif;color:var(--text);}
+body,html{margin:0;padding:0;width:100%;min-width:1150px;height:100dvh;overflow:hidden;background:#000;font-family:'Barlow',sans-serif;color:var(--text);}
 
 /* ── APP SHELL ── */
 #app{display:flex;flex-direction:column;width:100vw;height:100dvh;}
@@ -248,7 +248,8 @@ hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
   font-weight:800;
   user-select:none;
   overflow:visible;
+  z-index: 100 !important; /* Fuerza capa superior */
 }
 
 /* txt-sh — handle de escala para texto */
-.txt-sh{pointer-events:auto;cursor:se-resize;}
+.txt-sh{pointer-events:auto;cursor:se-resize; z-index: 110 !important;}
