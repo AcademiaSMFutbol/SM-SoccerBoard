@@ -5,7 +5,11 @@
   --text:#e8eaed;--muted:#6e7681;--border:#30363d;--r:7px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;outline:none;user-select:none;}
+
 body,html{margin:0;padding:0;width:100%;min-width:1150px;height:100dvh;overflow:hidden;background:#000;font-family:'Barlow',sans-serif;color:var(--text);}
+/* Permite que en pantalla completa el navegador use el ancho real del dispositivo */
+:fullscreen body, :fullscreen html { min-width: 100vw; }
+:-webkit-full-screen body, :-webkit-full-screen html { min-width: 100vw; }
 
 /* ── APP SHELL ── */
 #app{display:flex;flex-direction:column;width:100vw;height:100dvh;}
@@ -15,7 +19,14 @@ body,html{margin:0;padding:0;width:100%;min-width:1150px;height:100dvh;overflow:
   height:50px;flex-shrink:0;
   background:var(--bg);display:flex;align-items:center;gap:6px;
   padding:0 8px;border-bottom:1px solid var(--border);z-index:200;
+  /* SOLUCIÓN: Habilita scroll horizontal y oculta la barra */
+  overflow-x:auto; 
+  overflow-y:hidden;
+  scrollbar-width:none; /* Firefox */
 }
+#topbar::-webkit-scrollbar{display:none;} /* Chrome/Safari */
+#topbar > * { flex-shrink: 0; } /* Previene que los botones se aplasten al hacer scroll */
+
 .tg{display:flex;gap:5px;align-items:center;flex-shrink:0;}
 .logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;white-space:nowrap;}
 .logo span{color:var(--accent);}
