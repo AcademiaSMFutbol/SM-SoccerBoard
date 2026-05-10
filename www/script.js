@@ -1,6 +1,6 @@
 /* ============================================================
    SM SoccerBoard Pro v75 — script.js
-   © Academia SM Fútbol
+   © SM Fútbol
    ============================================================ */
 
 let steps=[[]], history=[], curStep=0;
@@ -737,6 +737,7 @@ async function runAnimation(){
   for(let i=0;i<steps.length-1;i++)await animStep(steps[i],steps[i+1],dur);
   isPlaying=false;render();
 }
+
 function animStep(f1,f2,dur){
   return new Promise(res=>{
     let t0=null;
@@ -746,7 +747,8 @@ function animStep(f1,f2,dur){
       wipe();
       f1.forEach(el=>{if(el.type==='zone')paintZone(el);});
       f1.forEach(el=>{if(el.type==='vec') paintVec(el);});
-      f1.forEach(el=>{if(el.type!=='zone'&&el.type!=='vec'&&!ANIM.has(el.type))paintObj(el);});
+      f1.forEach(el=>{if(el.type==='txt') paintTxt(el);});
+      f1.forEach(el=>{if(el.type!=='zone'&&el.type!=='vec'&&el.type!=='txt'&&!ANIM.has(el.type))paintObj(el);});
       f1.forEach(o1=>{
         if(!ANIM.has(o1.type))return;
         const o2=f2.find(x=>x.id===o1.id);
@@ -944,7 +946,8 @@ function renderForExport(f1,f2,ease){
   wipe();
   f1.forEach(el=>{if(el.type==='zone')paintZone(el);});
   f1.forEach(el=>{if(el.type==='vec') paintVec(el);});
-  f1.forEach(el=>{if(el.type!=='zone'&&el.type!=='vec'&&!ANIM.has(el.type))paintObj(el);});
+  f1.forEach(el=>{if(el.type==='txt') paintTxt(el);});
+  f1.forEach(el=>{if(el.type!=='zone'&&el.type!=='vec'&&el.type!=='txt'&&!ANIM.has(el.type))paintObj(el);});
   f1.forEach(o1=>{
     if(!ANIM.has(o1.type))return;
     const o2=f2.find(x=>x.id===o1.id);if(!o2){paintObj(o1);return;}
